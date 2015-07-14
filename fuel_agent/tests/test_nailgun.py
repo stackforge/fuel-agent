@@ -20,8 +20,8 @@ import yaml
 
 from fuel_agent.drivers import nailgun
 from fuel_agent import errors
+from fuel_agent import objects
 from fuel_agent.objects import image
-from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
 
 
@@ -460,6 +460,37 @@ NO_BOOT_KS_SPACES = [
     }
 ]
 
+MD_RAID_KS_SPACES = [
+    {
+        "name": "sda",
+        "extra": ["sda"],
+        "free_space": 1024,
+        "volumes": [
+            {
+                "type": "boot",
+                "size": 300
+            },
+            {
+                "mount": "/boot",
+                "size": 200,
+                "type": "raid",
+                "file_system": "ext2",
+                "name": "Boot"
+            },
+            {
+                "mount": "/",
+                "size": 200,
+                "type": "raid",
+                "file_system": "ext4",
+                "name": "Root"
+            },
+        ],
+        "type": "disk",
+        "id": "sda",
+        "size": 102400
+    }
+]
+
 FIRST_DISK_HUGE_KS_SPACES = [
     {
         "name": "sda",
@@ -579,8 +610,7 @@ MANY_HUGE_DISKS_KS_SPACES = [
 ]
 
 
-class TestNailgun(unittest2.TestCase):
-
+class TestNailgunMatch(unittest2.TestCase):
     def test_match_device_by_id_matches(self):
         # matches by 'by-id' links
         fake_ks_disk = {
@@ -692,10 +722,49 @@ class TestNailgun(unittest2.TestCase):
         }
         self.assertFalse(nailgun.match_device(fake_hu_disk, fake_ks_disk))
 
-    @mock.patch('yaml.load')
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_configdrive_scheme(self, mock_lbd, mock_http, mock_yaml):
+
+@mock.patch.object(nailgun.Nailgun, 'parse_image_meta', return_value={})
+@mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
+class TestNailgunMockedMeta(unittest2.TestCase):
+    def test_parse_operating_system_test_profiles(
+            self, mock_lbd, mock_image_meta):
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        p_data = PROVISION_SAMPLE_DATA.copy()
+        d = {'centos-x86_64': {'obj': objects.Centos, 'minor': 5, 'major': 6},
+             'centos7-x86_64': {'obj': objects.Centos, 'minor': 0, 'major': 7},
+             'ubuntu_1204_x86_64': {'obj': objects.Ubuntu,
+                                    'minor': 4, 'major': 12},
+             'ubuntu_1404_x86_64': {'obj': objects.Ubuntu,
+                                    'minor': 4, 'major': 14},
+             'generic_os': {'obj': objects.OperatingSystem,
+                            'minor': 'unknown', 'major': 'unknown'}}
+        for profile, obj in d.iteritems():
+            p_data['profile'] = profile
+            drv = nailgun.Nailgun(p_data)
+            self.assertIsInstance(drv.operating_system, obj['obj'])
+            self.assertEqual(obj['minor'], drv.operating_system.minor)
+            self.assertEqual(obj['major'], drv.operating_system.major)
+
+    def test_parse_operating_system_image_meta(self, mock_lbd,
+                                               mock_image_meta):
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        d = {'Centos': objects.Centos,
+             'Ubuntu': objects.Ubuntu,
+             'unknown': None}
+        for os_name, obj in d.iteritems():
+            mock_image_meta.return_value = {'os': {'name': os_name, 'minor': 1,
+                                            'major': 2}}
+            drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
+            os = drv.get_os_by_image_meta()
+            if os:
+                self.assertIsInstance(os, obj)
+                self.assertEqual(1, os.minor)
+                self.assertEqual(2, os.major)
+            else:
+                self.assertIsNone(os)
+                self.assertEqual('unknown', os_name)
+
+    def test_configdrive_scheme(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         cd_scheme = nailgun.Nailgun(PROVISION_SAMPLE_DATA).configdrive_scheme
         self.assertEqual(['fake_authorized_key1', 'fake_authorized_key2',
@@ -744,10 +813,7 @@ class TestNailgun(unittest2.TestCase):
             ],
             cd_scheme.common.ks_repos)
 
-    @mock.patch('yaml.load')
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_partition_scheme(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_partition_scheme(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
         p_scheme = drv.partition_scheme
@@ -757,10 +823,7 @@ class TestNailgun(unittest2.TestCase):
         self.assertEqual(2, len(p_scheme.vgs))
         self.assertEqual(3, len(p_scheme.parteds))
 
-    @mock.patch('yaml.load')
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_image_scheme(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_image_scheme(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
         p_scheme = drv.partition_scheme
@@ -788,20 +851,16 @@ class TestNailgun(unittest2.TestCase):
             self.assertIsNone(img.size)
             self.assertIsNone(img.md5)
 
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_image_scheme_with_checksums(self, mock_lbd, mock_http_req):
-        fake_image_meta = {'images': [{'raw_md5': 'fakeroot', 'raw_size': 1,
-                                       'container_name': 'fake_image.img.gz'}]}
-        prop_mock = mock.PropertyMock(return_value=yaml.dump(fake_image_meta))
-        type(mock_http_req.return_value).text = prop_mock
+    def test_image_scheme_with_checksums(self, mock_lbd, mock_image_meta):
+        fake_image_meta = {
+            'images': [{'raw_md5': 'fakeroot', 'raw_size': 1,
+                        'container_name': 'fake_image.img.gz'}]}
+        mock_image_meta.return_value = fake_image_meta
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         p_data = PROVISION_SAMPLE_DATA.copy()
         drv = nailgun.Nailgun(p_data)
         p_scheme = drv.partition_scheme
         i_scheme = drv.image_scheme
-        mock_http_req.assert_called_once_with(
-            'http://fake.host.org:123/imgs/fake_image.yaml')
         expected_images = []
         for fs in p_scheme.fss:
             if fs.mount not in PROVISION_SAMPLE_DATA['ks_meta']['image_data']:
@@ -826,10 +885,7 @@ class TestNailgun(unittest2.TestCase):
                 img.size, fake_image_meta['images'][0]['raw_size'])
             self.assertEqual(img.md5, fake_image_meta['images'][0]['raw_md5'])
 
-    @mock.patch('yaml.load')
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_getlabel(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_getlabel(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
         self.assertEqual('', drv._getlabel(None))
@@ -837,10 +893,7 @@ class TestNailgun(unittest2.TestCase):
         self.assertEqual(' -L %s ' % long_label[:12],
                          drv._getlabel(long_label))
 
-    @mock.patch('yaml.load')
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_disk_dev_not_found(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_disk_dev_not_found(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
         fake_ks_disk = {
@@ -853,19 +906,13 @@ class TestNailgun(unittest2.TestCase):
         self.assertRaises(errors.DiskNotFoundError, drv._disk_dev,
                           fake_ks_disk)
 
-    @mock.patch('yaml.load')
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_get_partition_count(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_get_partition_count(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
         self.assertEqual(3, drv._get_partition_count('Boot'))
         self.assertEqual(1, drv._get_partition_count('TMP'))
 
-    @mock.patch('yaml.load')
-    @mock.patch.object(utils, 'init_http_request')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_partition_scheme_ceph(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_partition_scheme_ceph(self, mock_lbd, mock_image_meta):
         # TODO(agordeev): perform better testing of ceph logic
         p_data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         for i in range(0, 3):
@@ -888,10 +935,7 @@ class TestNailgun(unittest2.TestCase):
             self.assertEqual(CEPH_DATA['partition_guid'],
                              p_scheme.parteds[disk].partitions[part].guid)
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
-    def test_grub_centos_26(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_grub_centos_26(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['profile'] = 'centos'
         data['ks_meta']['kernel_lt'] = 0
@@ -901,14 +945,11 @@ class TestNailgun(unittest2.TestCase):
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
         self.assertEqual(drv.grub.kernel_regexp, r'^vmlinuz-2\.6.*')
         self.assertEqual(drv.grub.initrd_regexp, r'^initramfs-2\.6.*')
-        self.assertIsNone(drv.grub.version)
+        self.assertEqual(1, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_name)
         self.assertIsNone(drv.grub.initrd_name)
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
-    def test_grub_centos_lt(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_grub_centos_lt(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['profile'] = 'centos'
         data['ks_meta']['kernel_lt'] = 1
@@ -918,14 +959,11 @@ class TestNailgun(unittest2.TestCase):
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
         self.assertIsNone(drv.grub.kernel_regexp)
         self.assertIsNone(drv.grub.initrd_regexp)
-        self.assertIsNone(drv.grub.version)
+        self.assertEqual(1, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_name)
         self.assertIsNone(drv.grub.initrd_name)
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
-    def test_grub_ubuntu(self, mock_lbd, mock_http_req, mock_yaml):
+    def test_grub_ubuntu(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['profile'] = 'ubuntu'
         data['ks_meta']['kernel_lt'] = 0
@@ -933,17 +971,13 @@ class TestNailgun(unittest2.TestCase):
         drv = nailgun.Nailgun(data)
         self.assertEqual(drv.grub.kernel_params,
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
-        self.assertIsNone(drv.grub.version)
+        self.assertEqual(2, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_regexp)
         self.assertIsNone(drv.grub.initrd_regexp)
         self.assertIsNone(drv.grub.kernel_name)
         self.assertIsNone(drv.grub.initrd_name)
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
-    def test_boot_partition_ok_single_disk(self, mock_lbd,
-                                           mock_http_req, mock_yaml):
+    def test_boot_partition_ok_single_disk(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['ks_meta']['pm_data']['ks_spaces'] = SINGLE_DISK_KS_SPACES
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
@@ -952,11 +986,7 @@ class TestNailgun(unittest2.TestCase):
             drv.partition_scheme.fs_by_mount('/boot').device,
             '/dev/sda3')
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
-    def test_elevate_keep_data_single_disk(self, mock_lbd,
-                                           mock_http_req, mock_yaml):
+    def test_elevate_keep_data_single_disk(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['ks_meta']['pm_data']['ks_spaces'] = SINGLE_DISK_KS_SPACES
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
@@ -983,11 +1013,8 @@ class TestNailgun(unittest2.TestCase):
             if fs.mount != '/':
                 self.assertFalse(fs.keep_data)
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
     def test_boot_partition_ok_many_normal_disks(self, mock_lbd,
-                                                 mock_http_req, mock_yaml):
+                                                 mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(data)
@@ -995,11 +1022,8 @@ class TestNailgun(unittest2.TestCase):
             drv.partition_scheme.fs_by_mount('/boot').device,
             '/dev/sda3')
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
     def test_boot_partition_ok_first_disk_huge(self, mock_lbd,
-                                               mock_http_req, mock_yaml):
+                                               mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['ks_meta']['pm_data']['ks_spaces'] = FIRST_DISK_HUGE_KS_SPACES
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
@@ -1008,11 +1032,8 @@ class TestNailgun(unittest2.TestCase):
             drv.partition_scheme.fs_by_mount('/boot').device,
             '/dev/sdb3')
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
     def test_boot_partition_ok_many_huge_disks(self, mock_lbd,
-                                               mock_http_req, mock_yaml):
+                                               mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['ks_meta']['pm_data']['ks_spaces'] = MANY_HUGE_DISKS_KS_SPACES
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
@@ -1021,13 +1042,64 @@ class TestNailgun(unittest2.TestCase):
             drv.partition_scheme.fs_by_mount('/boot').device,
             '/dev/sda3')
 
-    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
-    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
-    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
-    def test_boot_partition_no_boot(self, mock_lbd,
-                                    mock_http_req, mock_yaml):
+    def test_boot_partition_no_boot(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
         data['ks_meta']['pm_data']['ks_spaces'] = NO_BOOT_KS_SPACES
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         self.assertRaises(errors.WrongPartitionSchemeError,
                           nailgun.Nailgun, data)
+
+    def test_md_metadata_centos(self, mock_lbd, mock_image_meta):
+        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['profile'] = 'base-centos-x86_64'
+        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        drv = nailgun.Nailgun(data)
+        self.assertEqual(1, drv.grub.version)
+        self.assertEqual(1, len(drv.partition_scheme.mds))
+        self.assertEqual('0.90', drv.partition_scheme.mds[0].metadata)
+
+    def test_md_metadata_centos70(self, mock_lbd, mock_image_meta):
+        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['profile'] = 'base-centos7-x86_64'
+        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        drv = nailgun.Nailgun(data)
+        self.assertEqual(2, drv.grub.version)
+        self.assertEqual(1, len(drv.partition_scheme.mds))
+        self.assertEqual('default', drv.partition_scheme.mds[0].metadata)
+
+    def test_md_metadata_ubuntu(self, mock_lbd, mock_image_meta):
+        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['profile'] = 'base-ubuntu_1404_x86_64'
+        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        drv = nailgun.Nailgun(data)
+        self.assertEqual(1, len(drv.partition_scheme.mds))
+        self.assertEqual(2, drv.grub.version)
+        self.assertEqual('default', drv.partition_scheme.mds[0].metadata)
+
+
+@mock.patch.object(utils, 'init_http_request')
+@mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
+class TestNailgunImageMeta(unittest2.TestCase):
+    def test_parse_image_meta(self, mock_lbd, mock_http_req):
+        fake_image_meta = {'images': [{'raw_md5': 'fakeroot', 'raw_size': 1,
+                                       'container_name': 'fake_image.img.gz'}]}
+        prop_mock = mock.PropertyMock(return_value=yaml.dump(fake_image_meta))
+        type(mock_http_req.return_value).text = prop_mock
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        p_data = PROVISION_SAMPLE_DATA.copy()
+        drv = nailgun.Nailgun(p_data)
+        self.assertEqual(fake_image_meta, drv._image_meta)
+        mock_http_req.assert_called_once_with(
+            'http://fake.host.org:123/imgs/fake_image.yaml')
+
+    def test_parse_image_meta_not_parsed(self, mock_lbd, mock_http_req):
+        mock_http_req.side_effect = KeyError()
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        p_data = PROVISION_SAMPLE_DATA.copy()
+        drv = nailgun.Nailgun(p_data)
+        self.assertEqual({}, drv._image_meta)
+        mock_http_req.assert_called_once_with(
+            'http://fake.host.org:123/imgs/fake_image.yaml')
