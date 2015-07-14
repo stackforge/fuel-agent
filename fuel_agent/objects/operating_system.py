@@ -20,4 +20,24 @@ class OperatingSystem(object):
 
 
 class Ubuntu(OperatingSystem):
+    grub_version = 2
+
+
+class Ubuntu1204(Ubuntu):
     pass
+
+
+class Ubuntu1404(Ubuntu):
+    pass
+
+
+class Centos(OperatingSystem):
+    grub_version = 2
+
+
+class Centos70(Centos):
+    pass
+
+
+class Centos65(Centos):
+    grub_version = 1

@@ -159,10 +159,15 @@ localhost.localdomain)
         self.assertEqual(mock_mdclean_expected_calls,
                          mock_mdclean.call_args_list)
         mock_exec.assert_called_once_with(
-            'mdadm', '--create', '--force', '/dev/md0', '-e0.90',
+            'mdadm', '--create', '--force', '/dev/md0', '-e', 'default',
             '--level=mirror',
             '--raid-devices=2', '/dev/fake1', '/dev/fake2',
             check_exit_code=[0])
+
+    def test_mdcreate_failed_wrong_metadata(self):
+        self.assertRaises(errors.MDWrongSpecError,
+                          mu.mdcreate, '/dev/md0', 'mirror',
+                          ['/dev/fake1', '/dev/fake2'], 'wrong_meta')
 
     @mock.patch.object(mu, 'mddisplay')
     def test_mdcreate_duplicate(self, mock_mddisplay):

@@ -80,9 +80,13 @@ class Nailgun(BaseDataDriver):
         # has already been added. we need this to
         # get rid of md over all disks for /boot partition.
         self._boot_done = False
+        self._image_meta = self.parse_image_meta()
 
-        self._partition_scheme = self.parse_partition_scheme()
+        self._operating_system = self.parse_operating_system()
         self._grub = self.parse_grub()
+        # parsing partition scheme needs grub and operating system have
+        # been parsed
+        self._partition_scheme = self.parse_partition_scheme()
         self._configdrive_scheme = self.parse_configdrive_scheme()
         # parsing image scheme needs partition scheme has been parsed
         self._image_scheme = self.parse_image_scheme()
@@ -101,7 +105,7 @@ class Nailgun(BaseDataDriver):
 
     @property
     def operating_system(self):
-        return None
+        return self._operating_system
 
     @property
     def configdrive_scheme(self):
@@ -173,6 +177,48 @@ class Nailgun(BaseDataDriver):
 
     def _num_ceph_osds(self):
         return self._get_partition_count('ceph')
+
+    def parse_operating_system(self):
+        LOG.debug('--- Preparing operating system data ---')
+        data = self.data
+        os_release = self._image_meta.get('os_release', None)
+        supported_os = ('Centos70', 'Centos65', 'Ubuntu1404', 'Ubuntu1204')
+        if os_release:
+            if os_release not in supported_os:
+                raise errors.WrongInputDataError(
+                    'Unsupported operating system release speficied: {0}'.
+                    format(os_release))
+            LOG.debug('Looks like %{0} is going to be provisioned'.
+                      format(os_release))
+            os = getattr(objects, os_release)
+            return os(repos=None, packages=None)
+        profile = data['profile'].lower()
+        if 'centos' in profile:
+            if '7' in profile:
+                LOG.debug('Looks like CentOS7 is going to be provisioned. '
+                          'GRUB2 is assumed as the default bootloader')
+                return objects.Centos70(repos=None, packages=None)
+            else:
+                LOG.debug('Looks like CentOS6 is going to be provisioned. '
+                          'GRUB1 is assumed as the default bootloader')
+                return objects.Centos65(repos=None, packages=None)
+        elif 'ubuntu' in profile:
+            if '1404' in profile:
+                LOG.debug('Looks like Ubuntu1404 is going to be provisioned. '
+                          'GRUB2 is assumed as the default bootloader')
+                return objects.Ubuntu1404(repos=None, packages=None)
+            if '1204' in profile:
+                LOG.debug('Looks like Ubuntu1204 is going to be provisioned. '
+                          'GRUB2 is assumed as the default bootloader')
+                return objects.Ubuntu1204(repos=None, packages=None)
+            else:
+                raise errors.WrongInputDataError(
+                    'Unsupported Ubuntu profile speficied: {0}'.
+                    format(profile))
+        else:
+            raise errors.WrongInputDataError(
+                'Unsupported operating system profile speficied: {0}'.
+                format(profile))
 
     def parse_partition_scheme(self):
         LOG.debug('--- Preparing partition scheme ---')
@@ -337,10 +383,14 @@ class Nailgun(BaseDataDriver):
                             volume['mount'] not in ('none', '/boot'):
                         LOG.debug('Attaching partition to RAID '
                                   'by its mount point %s' % volume['mount'])
+                        metadata = 'default'
+                        if self.grub.version == 1:
+                            metadata = '0.90'
                         partition_scheme.md_attach_by_mount(
                             device=prt.name, mount=volume['mount'],
                             fs_type=volume.get('file_system', 'xfs'),
-                            fs_label=self._getlabel(volume.get('disk_label')))
+                            fs_label=self._getlabel(volume.get('disk_label')),
+                            metadata=metadata)
 
                     if 'mount' in volume and volume['mount'] == '/boot' and \
                             not self._boot_done:
@@ -462,12 +512,12 @@ class Nailgun(BaseDataDriver):
             LOG.debug('Prefered kernel version is 2.6')
             grub.kernel_regexp = r'^vmlinuz-2\.6.*'
             grub.initrd_regexp = r'^initramfs-2\.6.*'
+        grub.version = self.operating_system.grub_version
         return grub
 
-    def parse_image_scheme(self):
-        LOG.debug('--- Preparing image scheme ---')
+    def parse_image_meta(self):
+        LOG.debug('--- Preparing image metadata ---')
         data = self.data
-        image_scheme = objects.ImageScheme()
         # FIXME(agordeev): this piece of code for fetching additional image
         # meta data should be factored out of this particular nailgun driver
         # into more common and absract data getter which should be able to deal
@@ -489,6 +539,13 @@ class Nailgun(BaseDataDriver):
             LOG.exception(e)
             LOG.debug('Failed to fetch/decode image meta data')
             image_meta = {}
+        return image_meta
+
+    def parse_image_scheme(self):
+        LOG.debug('--- Preparing image scheme ---')
+        data = self.data
+        image_meta = self._image_meta
+        image_scheme = objects.ImageScheme()
         # We assume for every file system user may provide a separate
         # file system image. For example if partitioning scheme has
         # /, /boot, /var/lib file systems then we will try to get images
