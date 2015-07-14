@@ -127,6 +127,8 @@ class TestNailgunBuildImage(unittest2.TestCase):
         driver = NailgunBuildImage(data)
         mock_ub.assert_called_once_with(repos=[], packages=data['packages'])
         self.assertEqual(driver.operating_system.packages, data['packages'])
+        self.assertEqual(driver.operating_system.minor, 4)
+        self.assertEqual(driver.operating_system.major, 14)
 
     @mock.patch('fuel_agent.objects.Ubuntu')
     @mock.patch.object(NailgunBuildImage, 'parse_schemes')

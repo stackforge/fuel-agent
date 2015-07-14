@@ -14,10 +14,22 @@
 
 
 class OperatingSystem(object):
+    major = None
+    minor = None
+
     def __init__(self, repos, packages):
         self.repos = repos
         self.packages = packages
 
+    def to_dict(self):
+        return {'major': self.major,
+                'minor': self.minor,
+                'name': self.__class__.__name__}
+
 
 class Ubuntu(OperatingSystem):
+    pass
+
+
+class Centos(OperatingSystem):
     pass

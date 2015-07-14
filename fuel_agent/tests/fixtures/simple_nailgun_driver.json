@@ -97,7 +97,7 @@
     "power_pass": "/root/.ssh/bootstrap.rsa",
     "power_type": "ssh",
     "power_user": "root",
-    "profile": "pro_fi-le",
+    "profile": "pro_fi-le_centos",
     "slave_name": "node-1",
     "uid": "1",
     "partitioning": {
