@@ -229,7 +229,7 @@ class Manager(object):
 
         # creating meta disks
         for md in self.driver.partition_scheme.mds:
-            mu.mdcreate(md.name, md.level, md.devices)
+            mu.mdcreate(md.name, md.level, md.devices, md.metadata)
 
         # creating physical volumes
         for pv in self.driver.partition_scheme.pvs:
@@ -410,7 +410,6 @@ class Manager(object):
 
         grub = self.driver.grub
 
-        grub.version = gu.guess_grub_version(chroot=chroot)
         boot_device = self.driver.partition_scheme.boot_device(grub.version)
         install_devices = [d.name for d in self.driver.partition_scheme.parteds
                            if d.install_bootloader]

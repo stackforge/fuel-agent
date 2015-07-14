@@ -37,6 +37,8 @@ class Image(object):
 
 
 class ImageScheme(object):
+    os_release = None
+
     def __init__(self, images=None):
         self.images = images or []
 
