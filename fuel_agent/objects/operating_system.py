@@ -14,6 +14,8 @@
 
 
 class OperatingSystem(object):
+    grub_version = 2
+
     def __init__(self, repos, packages):
         self.repos = repos
         self.packages = packages
@@ -21,3 +23,23 @@ class OperatingSystem(object):
 
 class Ubuntu(OperatingSystem):
     pass
+
+
+class Ubuntu1204(Ubuntu):
+    pass
+
+
+class Ubuntu1404(Ubuntu):
+    pass
+
+
+class Centos(OperatingSystem):
+    pass
+
+
+class Centos70(Centos):
+    pass
+
+
+class Centos65(Centos):
+    grub_version = 1
