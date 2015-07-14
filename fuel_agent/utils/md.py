@@ -76,7 +76,18 @@ def mddisplay(names=None):
     return mds
 
 
-def mdcreate(mdname, level, devices):
+def mdcreate(mdname, level, devices, metadata='default'):
+    # NOTE(agordeev): metadata v1.2 became default since mdadm-3.1.2,
+    # kernel module md supports v1 since 2.6.10
+    # Thus, it's pretty safe to assume that all metadata formats are supported
+    # both by mdadm and kernel md.
+    supported_metadata = ('0', '0.90', '1', '1.0', '1.1', '1.2', 'default')
+    if metadata not in supported_metadata:
+        raise errors.MDWrongSpecError(
+            'Error while creating md device: '
+            'specified metadata version is {0}: '
+            'metadata must be one of {1}'.format(
+                metadata, ', '.join(supported_metadata)))
     mds = mddisplay()
 
     # check if md device already exists
@@ -107,7 +118,7 @@ def mdcreate(mdname, level, devices):
     # FIXME: mdadm will ask user to continue creating if any device appears to
     #       be a part of raid array. Superblock zeroing helps to avoid that.
     map(mdclean, devices)
-    utils.execute('mdadm', '--create', '--force', mdname, '-e0.90',
+    utils.execute('mdadm', '--create', '--force', mdname, '-e', metadata,
                   '--level=%s' % level,
                   '--raid-devices=%s' % len(devices), *devices,
                   check_exit_code=[0])
