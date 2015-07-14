@@ -44,7 +44,7 @@ CEPH_DATA = {
     "size": 3333
 }
 PROVISION_SAMPLE_DATA = {
-    "profile": "pro_fi-le",
+    "profile": "invalid_CeNtOS_UbUnTU_profile",
     "name_servers_search": "\"domain.tld\"",
     "uid": "1",
     "interfaces": {
@@ -460,6 +460,37 @@ NO_BOOT_KS_SPACES = [
     }
 ]
 
+MD_RAID_KS_SPACES = [
+    {
+        "name": "sda",
+        "extra": ["sda"],
+        "free_space": 1024,
+        "volumes": [
+            {
+                "type": "boot",
+                "size": 300
+            },
+            {
+                "mount": "/boot",
+                "size": 200,
+                "type": "raid",
+                "file_system": "ext2",
+                "name": "Boot"
+            },
+            {
+                "mount": "/",
+                "size": 200,
+                "type": "raid",
+                "file_system": "ext4",
+                "name": "Root"
+            },
+        ],
+        "type": "disk",
+        "id": "sda",
+        "size": 102400
+    }
+]
+
 FIRST_DISK_HUGE_KS_SPACES = [
     {
         "name": "sda",
@@ -722,7 +753,7 @@ class TestNailgun(unittest2.TestCase):
         self.assertEqual('mcollective', cd_scheme.mcollective.user)
         self.assertEqual('marionette', cd_scheme.mcollective.password)
         self.assertEqual('rabbitmq', cd_scheme.mcollective.connector)
-        self.assertEqual('pro_fi-le', cd_scheme.profile)
+        self.assertEqual('invalid_CeNtOS_UbUnTU_profile', cd_scheme.profile)
         self.assertEqual(
             [
                 {
@@ -901,7 +932,7 @@ class TestNailgun(unittest2.TestCase):
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
         self.assertEqual(drv.grub.kernel_regexp, r'^vmlinuz-2\.6.*')
         self.assertEqual(drv.grub.initrd_regexp, r'^initramfs-2\.6.*')
-        self.assertIsNone(drv.grub.version)
+        self.assertEqual(1, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_name)
         self.assertIsNone(drv.grub.initrd_name)
 
@@ -918,7 +949,7 @@ class TestNailgun(unittest2.TestCase):
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
         self.assertIsNone(drv.grub.kernel_regexp)
         self.assertIsNone(drv.grub.initrd_regexp)
-        self.assertIsNone(drv.grub.version)
+        self.assertEqual(1, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_name)
         self.assertIsNone(drv.grub.initrd_name)
 
@@ -933,7 +964,7 @@ class TestNailgun(unittest2.TestCase):
         drv = nailgun.Nailgun(data)
         self.assertEqual(drv.grub.kernel_params,
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
-        self.assertIsNone(drv.grub.version)
+        self.assertEqual(2, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_regexp)
         self.assertIsNone(drv.grub.initrd_regexp)
         self.assertIsNone(drv.grub.kernel_name)
@@ -1031,3 +1062,29 @@ class TestNailgun(unittest2.TestCase):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         self.assertRaises(errors.WrongPartitionSchemeError,
                           nailgun.Nailgun, data)
+
+    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
+    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
+    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
+    def test_md_metadata_centos(self, mock_lbd, mock_http_req, mock_yaml):
+        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['profile'] = 'base-centos-x86_64'
+        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        drv = nailgun.Nailgun(data)
+        self.assertEqual(1, drv.grub.version)
+        self.assertEqual(1, len(drv.partition_scheme.mds))
+        self.assertEqual('0.90', drv.partition_scheme.mds[0].metadata)
+
+    @mock.patch('fuel_agent.drivers.nailgun.yaml.load')
+    @mock.patch('fuel_agent.drivers.nailgun.utils.init_http_request')
+    @mock.patch('fuel_agent.drivers.nailgun.hu.list_block_devices')
+    def test_md_metadata_ubuntu(self, mock_lbd, mock_http_req, mock_yaml):
+        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['profile'] = 'base-ubuntu_1404_x86_64'
+        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        drv = nailgun.Nailgun(data)
+        self.assertEqual(1, len(drv.partition_scheme.mds))
+        self.assertEqual(2, drv.grub.version)
+        self.assertEqual('default', drv.partition_scheme.mds[0].metadata)

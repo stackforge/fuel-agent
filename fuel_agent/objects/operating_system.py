@@ -21,3 +21,11 @@ class OperatingSystem(object):
 
 class Ubuntu(OperatingSystem):
     pass
+
+
+class Ubuntu1404(Ubuntu):
+    pass
+
+
+class Centos65(OperatingSystem):
+    pass

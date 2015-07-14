@@ -81,8 +81,11 @@ class Nailgun(BaseDataDriver):
         # get rid of md over all disks for /boot partition.
         self._boot_done = False
 
-        self._partition_scheme = self.parse_partition_scheme()
         self._grub = self.parse_grub()
+        self._operating_system = self.parse_operating_system()
+        # parsing partition scheme needs grub and operating system have
+        # been parsed
+        self._partition_scheme = self.parse_partition_scheme()
         self._configdrive_scheme = self.parse_configdrive_scheme()
         # parsing image scheme needs partition scheme has been parsed
         self._image_scheme = self.parse_image_scheme()
@@ -101,7 +104,7 @@ class Nailgun(BaseDataDriver):
 
     @property
     def operating_system(self):
-        return None
+        return self._operating_system
 
     @property
     def configdrive_scheme(self):
@@ -173,6 +176,34 @@ class Nailgun(BaseDataDriver):
 
     def _num_ceph_osds(self):
         return self._get_partition_count('ceph')
+
+    def parse_operating_system(self):
+        LOG.debug('--- Preparing operating system data ---')
+        data = self.data
+        grub = self.grub
+        # FIXME(agordeev): actually it's a cobbler profile
+        # current values could be centos-x86_64 or ubuntu_1404_x86_64
+        # Therefore, it's not possible to determine version of CentOS
+        # FIXME(agordeev): once centos7 becomes supported by fuel,
+        # this code should be rewritten to get distro release version
+        # more accurately. As centos7 comes with GRUB2 by default.
+        profile = data['profile'].lower()
+        if 'centos' in profile:
+            LOG.debug('Looks like CentOS is going to be provisioned. '
+                      'GRUB1 is assumed as the default bootloader')
+            grub.version = 1
+            return objects.Centos65(repos=None, packages=None)
+        elif 'ubuntu' in profile:
+            LOG.debug('Looks like Ubuntu is going to be provisioned. '
+                      'GRUB2 is assumed as the default bootloader')
+            grub.version = 2
+            # NOTE(agordeev): it's safely enough to stick to 14.04 only.
+            # Since both 12.04 and 14.04 come with GRUB2 by default.
+            return objects.Ubuntu1404(repos=None, packages=None)
+        else:
+            raise errors.WrongInputDataError(
+                'Unsupported operating system profile speficied: {0}'.
+                format(profile))
 
     def parse_partition_scheme(self):
         LOG.debug('--- Preparing partition scheme ---')
@@ -337,10 +368,17 @@ class Nailgun(BaseDataDriver):
                             volume['mount'] not in ('none', '/boot'):
                         LOG.debug('Attaching partition to RAID '
                                   'by its mount point %s' % volume['mount'])
+                        metadata = 'default'
+                        # FIXME(agordeev): CentOS 7 comes with grub2,
+                        # so it's possible to use default metadata version
+                        # instead of obsolete 0.90
+                        if self.grub.version == 1:
+                            metadata = '0.90'
                         partition_scheme.md_attach_by_mount(
                             device=prt.name, mount=volume['mount'],
                             fs_type=volume.get('file_system', 'xfs'),
-                            fs_label=self._getlabel(volume.get('disk_label')))
+                            fs_label=self._getlabel(volume.get('disk_label')),
+                            metadata=metadata)
 
                     if 'mount' in volume and volume['mount'] == '/boot' and \
                             not self._boot_done:
@@ -613,7 +651,7 @@ class NailgunBuildImage(BaseDataDriver):
                 section=repo['section'],
                 priority=repo['priority']))
 
-        return objects.Ubuntu(repos=repos, packages=packages)
+        return objects.Ubuntu1404(repos=repos, packages=packages)
 
     def parse_schemes(self):
 

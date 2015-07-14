@@ -113,7 +113,7 @@ class TestNailgunBuildImage(unittest2.TestCase):
             data = {'codename': 'not-trusty'}
             NailgunBuildImage(data)
 
-    @mock.patch('fuel_agent.objects.Ubuntu')
+    @mock.patch('fuel_agent.objects.Ubuntu1404')
     @mock.patch.object(NailgunBuildImage, 'parse_schemes')
     def test_parse_operating_system_packages_given(self, mock_parse_schemes,
                                                    mock_ub):
@@ -128,7 +128,7 @@ class TestNailgunBuildImage(unittest2.TestCase):
         mock_ub.assert_called_once_with(repos=[], packages=data['packages'])
         self.assertEqual(driver.operating_system.packages, data['packages'])
 
-    @mock.patch('fuel_agent.objects.Ubuntu')
+    @mock.patch('fuel_agent.objects.Ubuntu1404')
     @mock.patch.object(NailgunBuildImage, 'parse_schemes')
     def test_parse_operating_system_packages_not_given(
             self, mock_parse_schemes, mock_ub):
@@ -145,7 +145,7 @@ class TestNailgunBuildImage(unittest2.TestCase):
                          NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES)
 
     @mock.patch('fuel_agent.objects.DEBRepo')
-    @mock.patch('fuel_agent.objects.Ubuntu')
+    @mock.patch('fuel_agent.objects.Ubuntu1404')
     @mock.patch.object(NailgunBuildImage, 'parse_schemes')
     def test_parse_operating_system_repos(self, mock_parse_schemes, mock_ub,
                                           mock_deb):
