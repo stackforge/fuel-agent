@@ -101,7 +101,10 @@ class Nailgun(BaseDataDriver):
 
     @property
     def operating_system(self):
-        return None
+        # FIXME(agordeev): actually it's a cobbler profile
+        # current values could be centos-x86_64 or ubuntu_1404_x86_64
+        # Therefore, it's not possible to determine version of CentOS
+        return self.data['profile'].lower()
 
     @property
     def configdrive_scheme(self):
@@ -337,10 +340,17 @@ class Nailgun(BaseDataDriver):
                             volume['mount'] not in ('none', '/boot'):
                         LOG.debug('Attaching partition to RAID '
                                   'by its mount point %s' % volume['mount'])
+                        metadata = 'default'
+                        # FIXME(agordeev): CentOS 7 comes with grub2,
+                        # so it's possible to use default metadata version
+                        # instead of obsolete 0.90
+                        if 'centos' in self.operating_system:
+                            metadata = '0.90'
                         partition_scheme.md_attach_by_mount(
                             device=prt.name, mount=volume['mount'],
                             fs_type=volume.get('file_system', 'xfs'),
-                            fs_label=self._getlabel(volume.get('disk_label')))
+                            fs_label=self._getlabel(volume.get('disk_label')),
+                            metadata=metadata)
 
                     if 'mount' in volume and volume['mount'] == '/boot' and \
                             not self._boot_done:
