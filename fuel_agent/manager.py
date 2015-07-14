@@ -233,7 +233,7 @@ class Manager(object):
 
         # creating meta disks
         for md in self.driver.partition_scheme.mds:
-            mu.mdcreate(md.name, md.level, md.devices)
+            mu.mdcreate(md.name, md.level, md.devices, md.metadata)
 
         # creating physical volumes
         for pv in self.driver.partition_scheme.pvs:
@@ -414,7 +414,6 @@ class Manager(object):
 
         grub = self.driver.grub
 
-        grub.version = gu.guess_grub_version(chroot=chroot)
         boot_device = self.driver.partition_scheme.boot_device(grub.version)
         install_devices = [d.name for d in self.driver.partition_scheme.parteds
                            if d.install_bootloader]
@@ -522,6 +521,9 @@ class Manager(object):
         # TODO(kozhukalov): Implement metadata
         # as a pluggable data driver to avoid any fixed format.
         metadata = {}
+
+        # FIXME(agordeev): get rid of hardcoded release value
+        metadata['os_release'] = 'Ubuntu1404'
 
         # TODO(kozhukalov): implement this using image metadata
         # we need to compare list of packages and repos
