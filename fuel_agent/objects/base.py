@@ -27,6 +27,6 @@ class Serializable(object):
     def to_dict(self):
         pass
 
-    @abstractclassmethod
+    @classmethod
     def from_dict(cls, data):
-        pass
+        return cls(**data)
