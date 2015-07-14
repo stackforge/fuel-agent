@@ -43,6 +43,10 @@ def provision():
     main(['do_provisioning'])
 
 
+def provision_ironic():
+    main(['do_provisioning_ironic'])
+
+
 def partition():
     main(['do_partitioning'])
 
