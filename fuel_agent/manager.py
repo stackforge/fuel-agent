@@ -374,8 +374,6 @@ class Manager(object):
                 continue
             fu.umount_fs(chroot + fs.mount, try_lazy_umount=try_lazy_umount)
 
-    # TODO(kozhukalov): write tests for this method
-    # https://bugs.launchpad.net/fuel/+bug/1449609
     def do_bootloader(self):
         LOG.debug('--- Installing bootloader (do_bootloader) ---')
         chroot = '/tmp/target'
@@ -386,6 +384,10 @@ class Manager(object):
             mount2uuid[fs.mount] = utils.execute(
                 'blkid', '-o', 'value', '-s', 'UUID', fs.device,
                 check_exit_code=[0])[0].strip()
+
+        if '/' not in mount2uuid.keys():
+            raise errors.WrongPartitionSchemeError(
+                'Error: device with / mountpoint has not been found')
 
         grub = self.driver.grub
 
