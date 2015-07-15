@@ -29,11 +29,13 @@ from fuel_agent.tests import base
     parse_image_scheme=lambda x: objects.ImageScheme())
 class TestObjectDeserialization(unittest2.TestCase):
 
-    def test_driver_always_has_correct_objects(self):
+    @mock.patch('fuel_agent.validators.SimpleNailgunDriverValidator')
+    def test_driver_always_has_correct_objects(self, _):
         driver = simple.NailgunSimpleDriver({})
         assert isinstance(driver.partition_scheme, objects.PartitionScheme)
 
-    def test_lv_data_is_loaded(self):
+    @mock.patch('fuel_agent.validators.SimpleNailgunDriverValidator')
+    def test_lv_data_is_loaded(self, _):
         lv_data = {
             'partitioning': {
                 'lvs': [
@@ -54,7 +56,8 @@ class TestObjectDeserialization(unittest2.TestCase):
         assert lv.size == 12345
         assert lv.vgname == 'vg-name'
 
-    def test_pv_data_is_loaded(self):
+    @mock.patch('fuel_agent.validators.SimpleNailgunDriverValidator')
+    def test_pv_data_is_loaded(self, _):
         pv_data = {
             'partitioning': {
                 'pvs': [
@@ -75,7 +78,8 @@ class TestObjectDeserialization(unittest2.TestCase):
         assert pv.metadatacopies == 2
         assert pv.metadatasize == 28
 
-    def test_vg_data_is_loaded(self):
+    @mock.patch('fuel_agent.validators.SimpleNailgunDriverValidator')
+    def test_vg_data_is_loaded(self, _):
         vg_data = {
             'partitioning': {
                 'vgs': [
@@ -105,7 +109,8 @@ class TestObjectDeserialization(unittest2.TestCase):
             )
         )
 
-    def test_fs_data_is_loaded(self):
+    @mock.patch('fuel_agent.validators.SimpleNailgunDriverValidator')
+    def test_fs_data_is_loaded(self, _):
         fs_data = {
             'partitioning': {
                 'fss': [
@@ -130,7 +135,8 @@ class TestObjectDeserialization(unittest2.TestCase):
         assert fs.type == 'ext2'
         assert fs.mount == '/boot'
 
-    def test_parted_data_is_loaded(self):
+    @mock.patch('fuel_agent.validators.SimpleNailgunDriverValidator')
+    def test_parted_data_is_loaded(self, _):
         parted_data = {
             'partitioning': {
                 'parteds': [
@@ -176,7 +182,8 @@ class TestObjectDeserialization(unittest2.TestCase):
         assert partition.name == '/dev/sdb1'
         assert partition.type == 'primary'
 
-    def test_md_data_is_loaded(self):
+    @mock.patch('fuel_agent.validators.SimpleNailgunDriverValidator')
+    def test_md_data_is_loaded(self, _):
         md_data = {
             'partitioning': {
                 'mds': [
