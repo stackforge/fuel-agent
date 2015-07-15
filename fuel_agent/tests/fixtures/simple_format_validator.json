@@ -1,0 +1,247 @@
+{
+  "parteds": [
+    {
+      "id": 1,
+      "label": "gpt",
+      "name": "example_parted",
+      "device": "/dev/sda",
+      "partitions": [
+        {
+          "id": 1,
+          "name": "prt1",
+          "begin": 0,
+          "end": 1000,
+          "count": 1,
+          "partition_type": "primary"
+        },
+        {
+          "id": 2,
+          "name": "prt2",
+          "begin": 1001,
+          "end": 2000,
+          "count": 1,
+          "partition_type": "primary"
+        },
+        {
+          "id": 3,
+          "name": "prt3",
+          "begin": 2001,
+          "end": 3000,
+          "count": 1,
+          "partition_type": "primary"
+        },
+        {
+          "id": 4,
+          "name": "prt4",
+          "begin": 3001,
+          "end": 4000,
+          "count": 1,
+          "partition_type": "primary"
+        },
+        {
+          "id": 5,
+          "name": "prt5",
+          "begin": 4001,
+          "end": 5000,
+          "count": 1,
+          "partition_type": "primary"
+        },
+        {
+          "id": 6,
+          "name": "prt6",
+          "begin": 5001,
+          "end": 6000,
+          "count": 1,
+          "partition_type": "primary"
+        },
+        {
+          "id": 7,
+          "name": "ceph",
+          "guid": "4fbd7e29-9d25-41b8-afd0-062c0ceff05d",
+          "begin": 6001,
+          "end": 7000,
+          "count": 1,
+          "partition_type": "primary"
+        },
+        {
+          "id": 8,
+          "name": "cephjournal",
+          "guid": "45b0969e-9b03-4f30-b4c6-b4b80ceff106",
+          "begin": 7001,
+          "end": 8000,
+          "count": 1,
+          "partition_type": "primary"
+        }
+      ]
+    }
+  ],
+  "pvs": [
+    {
+      "id": 1,
+      "device": "@parteds/1/5"
+    },
+    {
+      "id": 2,
+      "device": "@parteds/1/3"
+    },
+    {
+      "id": 3,
+      "device": "@parteds/1/1"
+    },
+    {
+      "id": 4,
+      "device": "@parteds/1/2"
+    },
+    {
+      "id": 5,
+      "device": "@parteds/1/4"
+    },
+    {
+      "id": 6,
+      "device": "@parteds/1/6"
+    }
+  ],
+  "vgs": [
+    {
+      "id": 1,
+      "name": "os",
+      "label": "Base System",
+      "pvs": [
+        3
+      ]
+    },
+    {
+      "id": 2,
+      "name": "mongo",
+      "label": "MongoDB",
+      "pvs": [
+        2
+      ]
+    },
+    {
+      "id": 3,
+      "name": "mysql",
+      "label": "Mysql Database",
+      "pvs": [
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "name": "vm",
+      "label": "Virtual Storage",
+      "pvs": [
+        5
+      ]
+    },
+    {
+      "id": 5,
+      "name": "image",
+      "label": "Image Storage",
+      "pvs": [
+        4
+      ]
+    },
+    {
+      "id": 6,
+      "name": "cinder",
+      "label": "Cinder",
+      "pvs": [
+        6
+      ]
+    }
+  ],
+  "lvs": [
+    {
+      "id": 1,
+      "name": "root",
+      "vgname": "os",
+      "size": "15GB"
+    },
+    {
+      "id": 2,
+      "name": "swap",
+      "vgname": "os",
+      "size": "3B"
+    },
+    {
+      "id": 3,
+      "name": "mongodb",
+      "vgname": "mongo",
+      "size": "14MB"
+    },
+    {
+      "id": 4,
+      "name": "root",
+      "vgname": "mysql",
+      "size": "30B"
+    },
+    {
+      "id": 5,
+      "name": "nova",
+      "vgname": "vm",
+      "size": "20TB"
+    },
+    {
+      "id": 6,
+      "name": "glance",
+      "vgname": "image",
+      "size": "3GB"
+    }
+  ],
+  "fss": [
+    {
+      "id": 1,
+      "mount": "/",
+      "device": "@lvs/1",
+      "fs_type": "ext4",
+      "fs_options": "",
+      "fs_label": ""
+    },
+    {
+      "id": 3,
+      "mount": "/var/lib/mongo",
+      "device": "@lvs/3",
+      "fs_type": "ext4",
+      "fs_options": "",
+      "fs_label": ""
+    },
+    {
+      "id": 4,
+      "mount": "/var/lib/mysql",
+      "device": "@lvs/4",
+      "fs_type": "ext4",
+      "fs_options": "",
+      "fs_label": ""
+    },
+    {
+      "id": 5,
+      "mount": "/var/lib/nova",
+      "device": "@lvs/5",
+      "fs_type": "xfs",
+      "fs_options": "",
+      "fs_label": ""
+    },
+    {
+      "id": 6,
+      "mount": "/var/lib/glance",
+      "device": "@lvs/6",
+      "fs_type": "xfs",
+      "fs_options": "",
+      "fs_label": ""
+    }
+  ],
+  "mds": [
+    {
+      "id": 1,
+      "level": "mirror",
+      "devices": [
+      "/dev/sdb",
+        "/dev/sdc"
+      ],
+      "spares": [
+        "/dev/sdd"
+      ]
+    }
+  ]
+}
