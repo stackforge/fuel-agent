@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import jsonschema
+import six
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
@@ -137,8 +138,8 @@ class KsSpacesValidator(BaseValidator):
             jsonschema.validate(data, self.schema,
                                 format_checker=checker)
         except Exception as exc:
-            LOG.exception(exc)
-            raise errors.WrongPartitionSchemeError(str(exc))
+            LOG.exception("Wrong partition schema")
+            raise errors.WrongPartitionSchemeError(six.text_type(exc))
 
         # data is not valid if the number of disks is 0
         if not [d for d in data if d['type'] == 'disk']:

@@ -1,6 +1,13 @@
 import abc
 
+import six
 
+from fuel_agent.openstack.common import log as logging
+
+LOG = logging.getLogger(__name__)
+
+
+@six.add_metaclass(abc.ABCMeta)
 class BaseValidator(object):
 
     @abc.abstractmethod
