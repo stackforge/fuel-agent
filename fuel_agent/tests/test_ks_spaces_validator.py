@@ -16,8 +16,9 @@ import copy
 
 from oslotest import base as test_base
 
-from fuel_agent.drivers import ks_spaces_validator as kssv
 from fuel_agent import errors
+from fuel_agent.validators import KsSpacesValidator
+
 
 SAMPLE_SCHEME = [
     {
@@ -188,17 +189,17 @@ class TestKSSpacesValidator(test_base.BaseTestCase):
         self.fake_scheme = copy.deepcopy(SAMPLE_SCHEME)
 
     def test_validate_ok(self):
-        kssv.validate(self.fake_scheme)
+        KsSpacesValidator(self.fake_scheme)
 
     def test_validate_jsoschema_fail(self):
-        self.assertRaises(errors.WrongPartitionSchemeError, kssv.validate,
+        self.assertRaises(errors.WrongPartitionSchemeError, KsSpacesValidator,
                           [{}])
 
     def test_validate_no_disks_fail(self):
-        self.assertRaises(errors.WrongPartitionSchemeError, kssv.validate,
+        self.assertRaises(errors.WrongPartitionSchemeError, KsSpacesValidator,
                           self.fake_scheme[-2:])
 
     def test_validate_16T_root_volume_fail(self):
         self.fake_scheme[3]['volumes'][0]['size'] = 16777216 + 1
-        self.assertRaises(errors.WrongPartitionSchemeError, kssv.validate,
+        self.assertRaises(errors.WrongPartitionSchemeError, KsSpacesValidator,
                           self.fake_scheme)
