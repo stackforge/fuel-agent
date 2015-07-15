@@ -27,6 +27,10 @@ class MultipleDevice(base.Serializable):
         self.devices = devices or []
         self.spares = spares or []
 
+    @property
+    def all_devices(self):
+        return self.devices + self.spares
+
     def add_device(self, device):
         if device in self.devices or device in self.spares:
             raise errors.MDDeviceDuplicationError(
