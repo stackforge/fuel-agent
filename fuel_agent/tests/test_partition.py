@@ -13,14 +13,13 @@
 # limitations under the License.
 
 import mock
-
-from oslotest import base as test_base
+import unittest2
 
 from fuel_agent import errors
 from fuel_agent.objects import partition
 
 
-class TestMD(test_base.BaseTestCase):
+class TestMD(unittest2.TestCase):
     def setUp(self):
         super(TestMD, self).setUp()
         self.md = partition.Md('name', 'level')
@@ -60,7 +59,7 @@ class TestMD(test_base.BaseTestCase):
                           'device')
 
 
-class TestPartition(test_base.BaseTestCase):
+class TestPartition(unittest2.TestCase):
     def setUp(self):
         super(TestPartition, self).setUp()
         self.pt = partition.Partition('name', 'count', 'device', 'begin',
@@ -73,7 +72,7 @@ class TestPartition(test_base.BaseTestCase):
         self.assertIn('fake_flag', self.pt.flags)
 
 
-class TestPartitionScheme(test_base.BaseTestCase):
+class TestPartitionScheme(unittest2.TestCase):
     def setUp(self):
         super(TestPartitionScheme, self).setUp()
         self.p_scheme = partition.PartitionScheme()
@@ -171,7 +170,7 @@ class TestPartitionScheme(test_base.BaseTestCase):
         self.assertEqual('-F', self.p_scheme.fss[0].options)
 
 
-class TestParted(test_base.BaseTestCase):
+class TestParted(unittest2.TestCase):
     def setUp(self):
         super(TestParted, self).setUp()
         self.prtd = partition.Parted('name', 'label')
