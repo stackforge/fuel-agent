@@ -20,7 +20,6 @@ from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
 from fuel_agent.validators.base import BaseValidator
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -190,14 +189,13 @@ class SimpleNailgunDriverValidator(BaseValidator):
 
     @property
     def partitions(self):
-        return [y for y in itertools.chain.from_iterable(
-            x['partitions'] for x in self.data.get('parteds', []))]
+        return list(itertools.chain.from_iterable(
+            x['partitions'] for x in self.data.get('parteds', [])))
 
-    @classmethod
-    def raise_error(self, message):
-        error = errors.WrongPartitionSchemeError(message)
-        LOG.exception(error)
-        raise error
+    def get_all_devices(self):
+        devices = [md['name'] for md in self.data.get('mds', [])]
+        devices.extend([prt.get('name') for prt in self.partitions])
+        return devices
 
     def validate(self, data):
         self.data = copy.deepcopy(data)
@@ -222,13 +220,12 @@ class SimpleNailgunDriverValidator(BaseValidator):
                                                            partition['end']))
 
     def validate_pvs(self):
-        partition_devices = set(prt.get('name') for prt in self.partitions)
+        devices = self.get_all_devices()
         for pv in self.data.get('pvs', []):
-            if pv['name'] not in partition_devices:
+            if pv['name'] not in devices:
                 self.raise_error(
-                    "Physical Volume cannot be assigned to not existing "
-                    "partition.\n'{0}' not in {1}".format(pv['name'],
-                                                          partition_devices))
+                    "Physical Volume cannot be assigned to non-existing "
+                    "device.\n'{0}' not in {1}".format(pv['name'], devices))
 
     def validate_vgs(self):
         existing_pvs = set(pv['name'] for pv in self.data.get('pvs', []))
@@ -252,3 +249,288 @@ class SimpleNailgunDriverValidator(BaseValidator):
 
     def validate_fss(self):
         pass
+
+
+class PartitionSchemeValidator(BaseValidator):
+
+    SIMPLE_FORMAT_SCHEMA = {
+        '$schema': 'http://json-schema.org/draft-04/schema#',
+        'title': 'Volume Management Metadata',
+        'type': 'object',
+        'properties': {
+            'pvs': {
+                'title': 'Physical volumes',
+                'type': 'array',
+                'items': {
+                    'title': 'Physical volume',
+                    'type': 'object',
+                    'properties': {
+                        'id': {
+                            'description': 'Index of physical volume',
+                            'type': 'number'
+                        },
+                    },
+                    '$ref': '#/definitions/deviceBySystemOrReference',
+                    'required': ['id'],
+                },
+            },
+            'vgs': {
+                'title': 'Volume groups',
+                'type': 'array',
+                'items': {
+                    'title': 'Volume group',
+                    'type': 'object',
+                    'properties': {
+                        'id': {
+                            'description': 'Index of volume group',
+                            'type': 'number',
+                        },
+                        'name': {
+                            'type': 'string'
+                        },
+                        'label': {
+                            'type': 'string'
+                        },
+                        'pvs': {
+                            'type': 'array',
+                            'title': 'Physical volumes indices',
+                            'items': {
+                                'type': 'number'
+                            }
+                        }
+                    },
+                    'required': ['id', 'name', 'pvs', 'label']
+                }
+            },
+            'lvs': {
+                'title': 'Logical volumes',
+                'type': 'array',
+                'items': {
+                    'title': 'Logical volume',
+                    'type': 'object',
+                    'properties': {
+                        'id': {
+                            'description': 'Index of logical volume',
+                            'type': 'number',
+                        },
+                        'name': {
+                            'type': 'string'
+                        },
+                        'vgname': {
+                            'description': 'Volume group name',
+                            'type': 'string'
+                        },
+                        'size': {
+                            'type': 'string',
+                            'pattern': '^[1-9][0-9]*(k|M|G|T)?B'
+                        }
+                    },
+                    'required': ['id', 'name', 'vgname', 'size']
+                }
+            },
+            'mds': {
+                'title': 'Multiple devices',
+                'type': 'array',
+                'items': {
+                    'title': 'Multiple device',
+                    'type': 'object',
+                    'properties': {
+                        'id': {
+                            'description': 'Index of multiple device',
+                            'type': 'number',
+                        },
+                        'devices': {
+                            'type': 'array',
+                            'minItems': 1,
+                            'items': {
+                                '$ref': '#/definitions/pathPattern'
+                            }
+                        },
+                        'spares': {
+                            'type': 'array',
+                            'items': {
+                                '$ref': '#/definitions/pathPattern'
+                            }
+                        },
+                    },
+                    'required': ['id', 'devices', 'spares']
+                }
+            },
+            'parteds': {
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    '$ref': '#/definitions/deviceBySystemOrReference',
+                    'properties': {
+                        'id': {
+                            'type': 'number',
+                        },
+                        'label': {
+                            'type': 'string',
+                        },
+                        'name': {
+                            'type': 'string',
+                        },
+                        'partitions': {
+                            'title': 'Partitions',
+                            'type': 'array',
+                            'items': {
+                                'title': 'Partition',
+                                'type': 'object',
+                                'required': ['id', 'begin', 'end',
+                                             'partition_type'],
+                                'properties': {
+                                    'id': {
+                                        'type': 'number',
+                                    },
+                                    'begin': {
+                                        'type': 'number'
+                                    },
+                                    'end': {
+                                        'type': 'number'
+                                    },
+                                    'name': {
+                                        'type': 'string'
+                                    },
+                                    'count': {
+                                        'type': 'number'
+                                    },
+                                    'partition_type': {
+                                        'type': 'string',
+                                    },
+                                    'guid': {
+                                        'type': 'string',
+                                    },
+                                },
+                                '$ref': ('#/definitions/'
+                                         'deviceBySystemOrReference'),
+                            }
+                        }
+                    }
+                }
+            },
+            'fss': {
+                'title': 'File systems',
+                'type': 'array',
+                'items': {
+                    'title': 'File system',
+                    'type': 'object',
+                    'required': ['id', 'mount', 'fs_type', 'fs_label'],
+                    'allOf': [
+                        {'properties': {
+                            'id': {
+                                'description': 'Index of filesystem',
+                                'type': 'number',
+                            },
+                            'mount': {
+                                '$ref': '#/definitions/pathPattern'
+                            },
+                            'fs_type': {
+                                'type': 'string'
+                            },
+                            'fs_label': {
+                                'type': 'string'
+                            }
+                        }},
+                        {'$ref': '#/definitions/deviceBySystemOrReference'}
+                    ]
+                }
+            }
+        },
+        'definitions': {
+            'deviceBySystemOrReference': {
+                'required': ['device'],
+                'properties': {
+                    'device': {
+                        'description': 'Device metadata path',
+                        '$ref': '#/definitions/devicePattern'
+                    },
+                }
+            },
+            'pathPattern': {
+                'pattern': '^((\/)|((\/[^\/]+)+))$',
+                'type': 'string'
+            },
+            'devicePattern': {
+                'pattern': ('^((@(lvs|parteds|mds)(\/[1-9][0-9]*)+)'
+                            '|((\/)|((\/[^\/]+)+)))$'),
+                'type': 'string'
+            }
+        }
+    }
+
+    def validate(self, dict_scheme):
+        self.validate_schema(dict_scheme)
+        self.validate_device_existence_and_duplication(dict_scheme)
+        self.validate_vg_pv_assignment(dict_scheme)
+        self.validate_vg_existence_for_lvs(dict_scheme)
+        self.validate_pv_double_usage(dict_scheme)
+
+    def validate_schema(self, dict_scheme):
+        try:
+            checker = jsonschema.FormatChecker()
+            jsonschema.validate(dict_scheme, self.SIMPLE_FORMAT_SCHEMA,
+                                format_checker=checker)
+        except Exception as exc:
+            self.raise_error(str(exc))
+
+    def validate_device_existence_and_duplication(self, dict_scheme):
+        all_objects = itertools.chain.from_iterable([y for _, y in
+                                                     dict_scheme.iteritems()])
+        for object in (x for x in all_objects
+                       if 'device' in x and x['device'][0] == '@'):
+            splitted = object['device'].split('/')
+            key, ids = splitted[0], splitted[1:]
+            key = key[1:]
+
+            if key == 'parteds':
+                matching_parteds = [x for x in dict_scheme[key]
+                                    if int(x['id']) == int(ids[0])]
+                if len(matching_parteds) != 1:
+                    self.raise_error('Parted with id {0} does not exist'
+                                     ' or is duplicated'.format(ids[0]))
+                parent = matching_parteds[0]['partitions']
+                id = ids[1]
+            else:
+                parent = dict_scheme[key]
+                id = ids[0]
+
+            matching_devices = [
+                x for x in parent if int(x['id']) == int(id)]
+            if len(matching_devices) != 1:
+                self.raise_error(
+                    'Device {0} does not exist or is duplicated'.format(
+                        object['device'])
+                )
+
+    def validate_vg_pv_assignment(self, dict_scheme):
+        pvs_ids = [x['id'] for x in dict_scheme['pvs']]
+        for vg in dict_scheme['vgs']:
+            if any([pv_id not in pvs_ids for pv_id in vg['pvs']]):
+                self.raise_error('Volume group {0} consists of non-existent'
+                                 ' physical volumes'.format(vg['id']))
+
+    def validate_pv_double_usage(self, dict_scheme):
+        used_pvs_ids = itertools.chain.from_iterable([vg['pvs'] for vg in
+                                                      dict_scheme['vgs']])
+        pvs_frequencies = [(k, len(list(group))) for k, group in
+                           itertools.groupby(sorted(used_pvs_ids))]
+        if any(x[1] > 1 for x in pvs_frequencies):
+            failed_pvs = [x for x in pvs_frequencies if x[1] > 1]
+            self.raise_error(
+                'Following pvs were used too many times: {0}'.format(
+                    failed_pvs)
+            )
+
+    def validate_vg_existence_for_lvs(self, dict_scheme):
+        vgs_names = [x['name'] for x in dict_scheme['vgs']]
+        for lv in dict_scheme['lvs']:
+            if lv['vgname'] not in vgs_names:
+                self.raise_error(
+                    ('Logical volume {0} tries to use non-existent volume'
+                     ' group with name {1}').format(lv['id'], lv['vgname']))
+
+    def raise_error(self, message):
+        error = errors.WrongPartitionSchemeError(message)
+        LOG.exception(error)
+        raise error
