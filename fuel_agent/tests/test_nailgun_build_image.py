@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mock
 import os
+
+import mock
 import six
 from six.moves.urllib.parse import urlsplit
-
-from oslotest import base as test_base
+import unittest2
 
 from fuel_agent.drivers.nailgun import NailgunBuildImage
 from fuel_agent import errors
@@ -100,7 +100,7 @@ IMAGE_DATA_SAMPLE = {
 }
 
 
-class TestNailgunBuildImage(test_base.BaseTestCase):
+class TestNailgunBuildImage(unittest2.TestCase):
 
     def test_default_trusty_packages(self):
         self.assertEqual(NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES,
