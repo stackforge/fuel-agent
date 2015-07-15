@@ -303,7 +303,7 @@
             {
                 "metadatacopies": 2,
                 "metadatasize": 28,
-                "name": "/dev/sdc3"
+                "name": "/dev/sda7"
             }
         ],
         "vgs": [
@@ -312,7 +312,7 @@
                 "pvnames": [
                     "/dev/sda6",
                     "/dev/sdb3",
-                    "/dev/sdc3"
+                    "/dev/sda7"
                 ]
             },
             {
