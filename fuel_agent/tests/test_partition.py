@@ -60,6 +60,23 @@ class TestMultipleDevice(unittest2.TestCase):
         self.assertRaises(errors.MDDeviceDuplicationError, self.md.add_spare,
                           'device')
 
+    def test_get_all_devices(self):
+        devices = [
+            '/dev/sda',
+            '/dev/sdb',
+        ]
+        spares = [
+            '/dev/sdc',
+            '/dev/sdd',
+        ]
+        md = partition.MD(
+            name='some-md',
+            level='level',
+            devices=devices,
+            spares=spares,
+        )
+        self.assertItemsEqual(md.all_devices, devices + spares)
+
     def test_conversion(self):
         self.md.add_device('device_a')
         self.md.add_spare('device_b')
