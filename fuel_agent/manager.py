@@ -16,9 +16,9 @@ import os
 import shutil
 import signal
 import tempfile
-import yaml
 
 from oslo.config import cfg
+import yaml
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
@@ -479,11 +479,14 @@ class Manager(object):
                 # a corresponding file system will never be checked. We assume
                 # puppet or other configuration tool will care of it.
                 if fs.mount == '/':
-                    f.write('UUID=%s %s %s defaults,errors=panic 0 0\n' %
-                            (mount2uuid[fs.mount], fs.mount, fs.type))
+                    f.write(('UUID=%s %s %s defaults,errors=panic 0 0\n' %
+                            (mount2uuid[fs.mount], fs.mount, fs.type)).encode()
+                            )
                 else:
-                    f.write('UUID=%s %s %s defaults 0 0\n' %
-                            (mount2uuid[fs.mount], fs.mount, fs.type))
+                    f.write(
+                        ('UUID=%s %s %s defaults 0 0\n' %
+                         (mount2uuid[fs.mount], fs.mount, fs.type)).encode()
+                    )
 
         self.umount_target(chroot)
 
