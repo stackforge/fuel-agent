@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import StringIO
+import io
 
 import mock
 import six
+from six import StringIO
 import unittest2
 
 from fuel_agent import errors
@@ -303,14 +304,14 @@ class TestGrubUtils(unittest2.TestCase):
         mock_exec.return_value = ('stdout', 'stderr')
 
         # install_device != boot_disk
-        batch = 'device (hd0) /dev/foo\n'
-        batch += 'geometry (hd0) 130 255 63\n'
-        batch += 'device (hd1) /dev/bar\n'
-        batch += 'geometry (hd1) 130 255 63\n'
-        batch += 'root (hd1,0)\n'
-        batch += 'setup (hd0)\n'
-        batch += 'quit\n'
-        script = 'cat /tmp/grub.batch | /sbin/grub --no-floppy --batch'
+        batch = b'device (hd0) /dev/foo\n'
+        batch += b'geometry (hd0) 130 255 63\n'
+        batch += b'device (hd1) /dev/bar\n'
+        batch += b'geometry (hd1) 130 255 63\n'
+        batch += b'root (hd1,0)\n'
+        batch += b'setup (hd0)\n'
+        batch += b'quit\n'
+        script = b'cat /tmp/grub.batch | /sbin/grub --no-floppy --batch'
 
         mock_open = mock.mock_open()
         with mock.patch(OPEN_FUNCTION_NAME, new=mock_open, create=True):
@@ -339,12 +340,12 @@ class TestGrubUtils(unittest2.TestCase):
         mock_exec.return_value = ('stdout', 'stderr')
 
         # install_device == boot_disk
-        batch = 'device (hd0) /dev/foo\n'
-        batch += 'geometry (hd0) 130 255 63\n'
-        batch += 'root (hd0,0)\n'
-        batch += 'setup (hd0)\n'
-        batch += 'quit\n'
-        script = 'cat /tmp/grub.batch | /sbin/grub --no-floppy --batch'
+        batch = b'device (hd0) /dev/foo\n'
+        batch += b'geometry (hd0) 130 255 63\n'
+        batch += b'root (hd0,0)\n'
+        batch += b'setup (hd0)\n'
+        batch += b'quit\n'
+        script = b'cat /tmp/grub.batch | /sbin/grub --no-floppy --batch'
 
         mock_open = mock.mock_open()
         with mock.patch(OPEN_FUNCTION_NAME, new=mock_open, create=True):
@@ -399,7 +400,7 @@ class TestGrubUtils(unittest2.TestCase):
                                                  mock_kernel):
         mock_kernel.return_value = 'kernel-version'
         mock_initrd.return_value = 'initrd-version'
-        config = """
+        config = b"""
 default=0
 timeout=5
 title Default (kernel-version)
@@ -415,7 +416,7 @@ title Default (kernel-version)
         mock_open_file.write.assert_called_once_with(config)
 
     def test_grub1_cfg_kernel_initrd_are_set(self):
-        config = """
+        config = b"""
 default=0
 timeout=10
 title Default (kernel-version-set)
@@ -466,9 +467,9 @@ GRUB_RECORDFAIL_TIMEOUT=10
         with mock.patch(OPEN_FUNCTION_NAME,
                         new=mock.mock_open(read_data=orig_content),
                         create=True) as mock_open:
-            mock_open.return_value = mock.MagicMock(spec=file)
+            mock_open.return_value = mock.MagicMock(spec=io.IOBase)
             handle = mock_open.return_value.__enter__.return_value
-            handle.__iter__.return_value = StringIO.StringIO(orig_content)
+            handle.__iter__.return_value = StringIO(orig_content)
             gu.grub2_cfg(kernel_params='kernel-params-new', chroot='/target',
                          grub_timeout=10)
 
