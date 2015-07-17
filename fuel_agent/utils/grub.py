@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from io import open
 import os
 import re
 import shutil
@@ -161,13 +162,13 @@ def grub1_mbr(install_device, boot_disk, boot_part, chroot=''):
     batch += 'setup (hd0)\n'
     batch += 'quit\n'
 
-    with open(chroot + '/tmp/grub.batch', 'wb') as f:
+    with open(chroot + '/tmp/grub.batch', 'wt', encoding='utf-8') as f:
         LOG.debug('Grub batch content: \n%s' % batch)
         f.write(batch)
 
     script = 'cat /tmp/grub.batch | {0} --no-floppy --batch'.format(
         guess_grub(chroot=chroot))
-    with open(chroot + '/tmp/grub.sh', 'wb') as f:
+    with open(chroot + '/tmp/grub.sh', 'wt', encoding='utf-8') as f:
         LOG.debug('Grub script content: \n%s' % script)
         f.write(script)
 
@@ -210,7 +211,7 @@ title Default ({kernel})
     initrd /{initrd}
     """.format(kernel=kernel, initrd=initrd,
                kernel_params=kernel_params,
-               grub_timeout=grub_timeout)
+               grub_timeout=grub_timeout).encode()
     with open(chroot + '/boot/grub/grub.conf', 'wb') as f:
         f.write(config)
 
