@@ -15,9 +15,9 @@
 
 import socket
 
-import mock
 from oslo.config import cfg
 import requests
+import six
 import stevedore
 import unittest2
 import urllib3
@@ -25,6 +25,10 @@ import urllib3
 from fuel_agent import errors
 from fuel_agent.utils import utils
 
+if six.PY2:
+    import mock
+elif six.PY3:
+    from unittest import mock
 
 CONF = cfg.CONF
 
@@ -110,18 +114,32 @@ class ExecuteTestCase(unittest2.TestCase):
 
     def test_calculate_md5_ok(self):
         # calculated by 'printf %10000s | md5sum'
+        mock_open = mock.Mock()
+        mock_open.__enter__ = mock.Mock()
+        mock_open.__exit__ = mock.Mock(return_value=False)
         with mock.patch('six.moves.builtins.open',
-                        mock.mock_open(read_data=' ' * 10000), create=True):
+                        mock.Mock(return_value=mock_open), create=True):
+            mock_open.__enter__.return_value = six.BytesIO(b' ' * 10000)
             self.assertEqual('f38898bb69bb02bccb9594dfe471c5c0',
                              utils.calculate_md5('fake', 10000))
+
+            mock_open.__enter__.return_value = six.BytesIO(b' ' * 10000)
             self.assertEqual('6934d9d33cd2d0c005994e7d96d2e0d9',
                              utils.calculate_md5('fake', 1000))
+
+            mock_open.__enter__.return_value = six.BytesIO(b' ' * 10000)
             self.assertEqual('1e68934346ee57858834a205017af8b7',
                              utils.calculate_md5('fake', 100))
+
+            mock_open.__enter__.return_value = six.BytesIO(b' ' * 10000)
             self.assertEqual('41b394758330c83757856aa482c79977',
                              utils.calculate_md5('fake', 10))
+
+            mock_open.__enter__.return_value = six.BytesIO(b' ' * 10000)
             self.assertEqual('7215ee9c7d9dc229d2921a40e899ec5f',
                              utils.calculate_md5('fake', 1))
+
+            mock_open.__enter__.return_value = six.BytesIO(b' ' * 10000)
             self.assertEqual('d41d8cd98f00b204e9800998ecf8427e',
                              utils.calculate_md5('fake', 0))
 
