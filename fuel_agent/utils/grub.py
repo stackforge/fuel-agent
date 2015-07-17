@@ -142,7 +142,7 @@ def grub1_install(install_devices, boot_device, chroot=''):
 def grub1_mbr(install_device, boot_disk, boot_part, chroot=''):
     # The device on which we are going to install
     # stage1 needs to be mapped as hd0, otherwise system won't be able to boot.
-    batch = 'device (hd0) {0}\n'.format(install_device)
+    batch = 'device (hd0) {0}\n'.format(install_device).encode()
     # That is much easier to use grub-install, but unfortunately
     # it is not able to install bootloader on huge disks.
     # Instead we set drive geometry manually to avoid grub register
@@ -151,22 +151,22 @@ def grub1_mbr(install_device, boot_disk, boot_part, chroot=''):
     # 130 cylinders * (16065 * 512 = 8225280 bytes) = 1G
     # We also assume that boot partition is in the beginning
     # of disk between 0 and 1G.
-    batch += 'geometry (hd0) 130 255 63\n'
+    batch += 'geometry (hd0) 130 255 63\n'.encode()
     if boot_disk != install_device:
-        batch += 'device (hd1) {0}\n'.format(boot_disk)
-        batch += 'geometry (hd1) 130 255 63\n'
-        batch += 'root (hd1,{0})\n'.format(boot_part)
+        batch += 'device (hd1) {0}\n'.format(boot_disk).encode()
+        batch += b'geometry (hd1) 130 255 63\n'
+        batch += 'root (hd1,{0})\n'.format(boot_part).encode()
     else:
-        batch += 'root (hd0,{0})\n'.format(boot_part)
-    batch += 'setup (hd0)\n'
-    batch += 'quit\n'
+        batch += 'root (hd0,{0})\n'.format(boot_part).encode()
+    batch += b'setup (hd0)\n'
+    batch += b'quit\n'
 
     with open(chroot + '/tmp/grub.batch', 'wb') as f:
         LOG.debug('Grub batch content: \n%s' % batch)
         f.write(batch)
 
     script = 'cat /tmp/grub.batch | {0} --no-floppy --batch'.format(
-        guess_grub(chroot=chroot))
+        guess_grub(chroot=chroot)).encode()
     with open(chroot + '/tmp/grub.sh', 'wb') as f:
         LOG.debug('Grub script content: \n%s' % script)
         f.write(script)
@@ -210,7 +210,7 @@ title Default ({kernel})
     initrd /{initrd}
     """.format(kernel=kernel, initrd=initrd,
                kernel_params=kernel_params,
-               grub_timeout=grub_timeout)
+               grub_timeout=grub_timeout).encode()
     with open(chroot + '/boot/grub/grub.conf', 'wb') as f:
         f.write(config)
 
