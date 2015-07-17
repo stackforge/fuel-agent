@@ -54,17 +54,15 @@ class Parted(base.Serializable):
 
     @property
     def logical(self):
-        return filter(lambda x: x.type == 'logical', self.partitions)
+        return [x for x in self.partitions if x.type == 'logical']
 
     @property
     def primary(self):
-        return filter(lambda x: x.type == 'primary', self.partitions)
+        return [x for x in self.partitions if x.type == 'primary']
 
     @property
     def extended(self):
-        found = filter(lambda x: x.type == 'extended', self.partitions)
-        if found:
-            return found[0]
+        return next((x for x in self.partitions if x.type == 'extended'), None)
 
     def next_type(self):
         if self.label == 'gpt':
@@ -103,9 +101,7 @@ class Parted(base.Serializable):
         return '%s%s%s' % (self.name, separator, self.next_count())
 
     def partition_by_name(self, name):
-        found = filter(lambda x: (x.name == name), self.partitions)
-        if found:
-            return found[0]
+        return next((x for x in self.partitions if x.name == name), None)
 
     def to_dict(self):
         partitions = [partition.to_dict() for partition in self.partitions]
@@ -335,9 +331,7 @@ class PartitionScheme(object):
         return md
 
     def md_by_name(self, name):
-        found = filter(lambda x: x.name == name, self.mds)
-        if found:
-            return found[0]
+        return next((x for x in self.mds if x.name == name), None)
 
     def md_by_mount(self, mount):
         fs = self.fs_by_mount(mount)
@@ -377,14 +371,10 @@ class PartitionScheme(object):
                     if parted.partition_by_name(name)), None)
 
     def vg_by_name(self, vgname):
-        found = filter(lambda x: (x.name == vgname), self.vgs)
-        if found:
-            return found[0]
+        return next((x for x in self.vgs if x.name == vgname), None)
 
     def pv_by_name(self, pvname):
-        found = filter(lambda x: (x.name == pvname), self.pvs)
-        if found:
-            return found[0]
+        return next((x for x in self.pvs if x.name == pvname), None)
 
     def vg_attach_by_name(self, pvname, vgname,
                           metadatasize=16, metadatacopies=2):
@@ -395,14 +385,11 @@ class PartitionScheme(object):
         vg.add_pv(pv.name)
 
     def fs_by_mount(self, mount):
-        found = filter(lambda x: (x.mount and x.mount == mount), self.fss)
-        if found:
-            return found[0]
+        return next((x for x in self.fss if x.mount and x.mount == mount),
+                    None)
 
     def fs_by_device(self, device):
-        found = filter(lambda x: x.device == device, self.fss)
-        if found:
-            return found[0]
+        return next((x for x in self.fss if x.device == device), None)
 
     def fs_sorted_by_depth(self, reverse=False):
         """Getting file systems sorted by path length.
@@ -416,9 +403,8 @@ class PartitionScheme(object):
         return sorted(self.fss, key=key, reverse=reverse)
 
     def lv_by_device_name(self, device_name):
-        found = filter(lambda x: x.device_name == device_name, self.lvs)
-        if found:
-            return found[0]
+        return next((x for x in self.lvs if x.device_name == device_name),
+                    None)
 
     def root_device(self):
         fs = self.fs_by_mount('/')

@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import mock
+from oslo.config import cfg
 from oslotest import base as test_base
 import zlib
-
-from oslo.config import cfg
 
 from fuel_agent import errors
 from fuel_agent.utils import artifact as au
@@ -91,7 +90,7 @@ class TestHttpUrl(test_base.BaseTestCase):
 
 class TestGunzipStream(test_base.BaseTestCase):
     def test_gunzip_stream_next(self):
-        content = ['fake content #1']
+        content = [b'fake content #1']
         compressed_stream = [zlib.compress(data) for data in content]
         gunzip_stream = au.GunzipStream(compressed_stream)
         for data in enumerate(gunzip_stream):

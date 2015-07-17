@@ -63,16 +63,16 @@ def pvcreate(pvname, metadatasize=64, metadatacopies=2):
 
 
 def pvremove(pvname):
-    pv = filter(lambda x: x['name'] == pvname, pvdisplay())
+    pv = next((x for x in pvdisplay() if x['name'] == pvname), None)
 
     # check if pv exists
     if not pv:
         raise errors.PVNotFoundError(
             'Error while removing pv: pv %s not found' % pvname)
     # check if pv is attached to some vg
-    if pv[0]['vg'] is not None:
+    if pv['vg'] is not None:
         raise errors.PVBelongsToVGError('Error while removing pv: '
-                                        'pv belongs to vg %s' % pv[0]['vg'])
+                                        'pv belongs to vg %s' % pv['vg'])
     utils.execute('pvremove', '-ff', '-y', pvname, check_exit_code=[0])
 
 
@@ -196,17 +196,17 @@ def lvdisplay_parse(output):
 
 
 def lvcreate(vgname, lvname, size):
-    vg = filter(lambda x: x['name'] == vgname, vgdisplay())
+    vg = next((x for x in vgdisplay() if x['name'] == vgname), None)
 
     # check if vg exists
     if not vg:
         raise errors.VGNotFoundError(
             'Error while creating vg: vg %s not found' % vgname)
     # check if enough space is available
-    if vg[0]['free'] < size:
+    if vg['free'] < size:
         raise errors.NotEnoughSpaceError(
             'Error while creating lv: vg %s has only %s m of free space, '
-            'but at least %s m is needed' % (vgname, vg[0]['free'], size))
+            'but at least %s m is needed' % (vgname, vg['free'], size))
     # check if lv already exists
     if filter(lambda x: x['name'] == lvname and x['vg'] == vgname,
               lvdisplay()):
