@@ -18,6 +18,7 @@ import socket
 import mock
 from oslo.config import cfg
 import requests
+import six
 import stevedore
 import unittest2
 import urllib3
@@ -111,7 +112,8 @@ class ExecuteTestCase(unittest2.TestCase):
     def test_calculate_md5_ok(self):
         # calculated by 'printf %10000s | md5sum'
         with mock.patch('six.moves.builtins.open',
-                        mock.mock_open(read_data=' ' * 10000), create=True):
+                        mock.mock_open(read_data=six.b(' ') * 10000),
+                        create=True):
             self.assertEqual('f38898bb69bb02bccb9594dfe471c5c0',
                              utils.calculate_md5('fake', 10000))
             self.assertEqual('6934d9d33cd2d0c005994e7d96d2e0d9',
