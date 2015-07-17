@@ -53,7 +53,7 @@ def pvdisplay_parse(output):
 
 def pvcreate(pvname, metadatasize=64, metadatacopies=2):
     # check if pv already exists
-    if filter(lambda x: x['name'] == pvname, pvdisplay()):
+    if next((x for x in pvdisplay() if x['name'] == pvname), False):
         raise errors.PVAlreadyExistsError(
             'Error while creating pv: pv %s already exists' % pvname)
     utils.execute('pvcreate',
@@ -63,16 +63,16 @@ def pvcreate(pvname, metadatasize=64, metadatacopies=2):
 
 
 def pvremove(pvname):
-    pv = filter(lambda x: x['name'] == pvname, pvdisplay())
+    pv = next((x for x in pvdisplay() if x['name'] == pvname), None)
 
     # check if pv exists
     if not pv:
         raise errors.PVNotFoundError(
             'Error while removing pv: pv %s not found' % pvname)
     # check if pv is attached to some vg
-    if pv[0]['vg'] is not None:
+    if pv['vg'] is not None:
         raise errors.PVBelongsToVGError('Error while removing pv: '
-                                        'pv belongs to vg %s' % pv[0]['vg'])
+                                        'pv belongs to vg %s' % pv['vg'])
     utils.execute('pvremove', '-ff', '-y', pvname, check_exit_code=[0])
 
 
@@ -121,7 +121,7 @@ def _vg_attach_validate(pvnames):
 
 def vgcreate(vgname, pvname, *args):
     # check if vg already exists
-    if filter(lambda x: x['name'] == vgname, vgdisplay()):
+    if next((x for x in vgdisplay() if x['name'] == vgname), False):
         raise errors.VGAlreadyExistsError(
             'Error while creating vg: vg %s already exists' % vgname)
     pvnames = [pvname] + list(args)
@@ -131,7 +131,7 @@ def vgcreate(vgname, pvname, *args):
 
 def vgextend(vgname, pvname, *args):
     # check if vg exists
-    if not filter(lambda x: x['name'] == vgname, vgdisplay()):
+    if not next((x for x in vgdisplay() if x['name'] == vgname), False):
         raise errors.VGNotFoundError(
             'Error while extending vg: vg %s not found' % vgname)
     pvnames = [pvname] + list(args)
@@ -141,7 +141,7 @@ def vgextend(vgname, pvname, *args):
 
 def vgreduce(vgname, pvname, *args):
     # check if vg exists
-    if not filter(lambda x: x['name'] == vgname, vgdisplay()):
+    if not next((x for x in vgdisplay() if x['name'] == vgname), False):
         raise errors.VGNotFoundError(
             'Error while reducing vg: vg %s not found' % vgname)
     pvnames = [pvname] + list(args)
@@ -156,7 +156,7 @@ def vgreduce(vgname, pvname, *args):
 
 def vgremove(vgname):
     # check if vg exists
-    if not filter(lambda x: x['name'] == vgname, vgdisplay()):
+    if not next((x for x in vgdisplay() if x['name'] == vgname), False):
         raise errors.VGNotFoundError(
             'Error while removing vg: vg %s not found' % vgname)
     utils.execute('vgremove', '-f', vgname, check_exit_code=[0])
@@ -196,20 +196,22 @@ def lvdisplay_parse(output):
 
 
 def lvcreate(vgname, lvname, size):
-    vg = filter(lambda x: x['name'] == vgname, vgdisplay())
+    vg = next((x for x in vgdisplay() if x['name'] == vgname), None)
 
     # check if vg exists
     if not vg:
         raise errors.VGNotFoundError(
             'Error while creating vg: vg %s not found' % vgname)
     # check if enough space is available
-    if vg[0]['free'] < size:
+    if vg['free'] < size:
         raise errors.NotEnoughSpaceError(
             'Error while creating lv: vg %s has only %s m of free space, '
-            'but at least %s m is needed' % (vgname, vg[0]['free'], size))
+            'but at least %s m is needed' % (vgname, vg['free'], size))
     # check if lv already exists
-    if filter(lambda x: x['name'] == lvname and x['vg'] == vgname,
-              lvdisplay()):
+    if next(
+        (x for x in lvdisplay() if x['name'] == lvname and x['vg'] == vgname),
+        False
+    ):
         raise errors.LVAlreadyExistsError(
             'Error while creating lv: lv %s already exists' % lvname)
     # NOTE(agordeev): by default, lvcreate is configured to wipe signature
@@ -222,7 +224,7 @@ def lvcreate(vgname, lvname, size):
 
 def lvremove(lvpath):
     # check if lv exists
-    if not filter(lambda x: x['path'] == lvpath, lvdisplay()):
+    if not next((x for x in lvdisplay() if x['path'] == lvpath), False):
         raise errors.LVNotFoundError(
             'Error while removing lv: lv %s not found' % lvpath)
     utils.execute('lvremove', '-f', lvpath, check_exit_code=[0])

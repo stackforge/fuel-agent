@@ -14,6 +14,8 @@
 
 import re
 
+import six.moves
+
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import hardware as hu
@@ -79,7 +81,7 @@ def mdcreate(mdname, level, device, *args):
     mds = mddisplay()
 
     # check if md device already exists
-    if filter(lambda x: x['name'] == mdname, mds):
+    if next((x for x in mds if x['name'] == mdname), False):
         raise errors.MDAlreadyExistsError(
             'Error while creating md: md %s already exists' % mdname)
 
@@ -100,15 +102,15 @@ def mdcreate(mdname, level, device, *args):
 
     # check if devices are not parts of some md array
     if set(devices) & \
-            set(reduce(lambda x, y: x + y,
-                       [md.get('devices', []) for md in mds], [])):
+            set(six.moves.reduce(lambda x, y: x + y,
+                                 [md.get('devices', []) for md in mds], [])):
         raise errors.MDDeviceDuplicationError(
             'Error while creating md: at least one of devices is '
             'already in belongs to some md')
 
     # FIXME: mdadm will ask user to continue creating if any device appears to
     #       be a part of raid array. Superblock zeroing helps to avoid that.
-    map(mdclean, devices)
+    list(map(mdclean, devices))
     utils.execute('mdadm', '--create', '--force', mdname, '-e0.90',
                   '--level=%s' % level,
                   '--raid-devices=%s' % len(devices), *devices,

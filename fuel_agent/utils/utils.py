@@ -25,10 +25,10 @@ import time
 import jinja2
 from oslo.config import cfg
 import requests
+import six.moves
 import stevedore.driver
 import urllib3
 
-from six.moves import zip_longest
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
@@ -75,7 +75,7 @@ CONF.register_opts(u_opts)
 def execute(*cmd, **kwargs):
     command = ' '.join(cmd)
     LOG.debug('Trying to execute command: %s', command)
-    commands = [c.strip() for c in re.split(ur'\|', command)]
+    commands = [c.strip() for c in re.split(r'\|', command)]
     env = os.environ
     env['PATH'] = '/bin:/usr/bin:/sbin:/usr/sbin'
     env['LC_ALL'] = env['LANG'] = env['LANGUAGE'] = kwargs.pop('language', 'C')
@@ -95,18 +95,13 @@ def execute(*cmd, **kwargs):
     if to_filename:
         to_file = open(to_filename, 'wb')
 
-    for attempt in reversed(xrange(attempts)):
+    for attempt in reversed(six.moves.range(attempts)):
         try:
             process = []
             for c in commands:
                 try:
-                    # NOTE(eli): Python's shlex implementation doesn't like
-                    # unicode. We have to convert to ascii before shlex'ing
-                    # the command. http://bugs.python.org/issue6988
-                    encoded_command = c.encode('ascii')
-
                     process.append(subprocess.Popen(
-                        shlex.split(encoded_command),
+                        shlex.split(c),
                         env=env,
                         stdin=(process[-1].stdout if process else None),
                         stdout=(to_file
@@ -181,7 +176,7 @@ def calculate_md5(filename, size):
     processed = 0
     with open(filename, "rb") as f:
         while processed < size:
-            block = f.read(CONF.read_chunk_size)
+            block = f.read(CONF.read_chunk_size).encode('utf-8')
             if block:
                 block_len = len(block)
                 if processed + block_len < size:
@@ -240,7 +235,7 @@ def makedirs_if_not_exists(path, mode=0o755):
 def grouper(iterable, n, fillvalue=None):
     """Collect data into fixed-length chunks or blocks"""
     args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
+    return six.moves.zip_longest(*args, fillvalue=fillvalue)
 
 
 def guess_filename(path, regexp, sort=True, reverse=True):
