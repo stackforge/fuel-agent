@@ -16,8 +16,8 @@ import copy
 import os
 import signal
 
-import mock
 from oslo.config import cfg
+import six
 import unittest2
 
 from fuel_agent.drivers import nailgun
@@ -32,6 +32,11 @@ from fuel_agent.utils import lvm as lu
 from fuel_agent.utils import md as mu
 from fuel_agent.utils import partition as pu
 from fuel_agent.utils import utils
+
+if six.PY2:
+    import mock
+elif six.PY3:
+    import unittest.mock as mock
 
 CONF = cfg.CONF
 

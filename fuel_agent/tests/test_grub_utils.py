@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import StringIO
+import io
 
 import mock
 import six
+from six import StringIO
 import unittest2
 
 from fuel_agent import errors
@@ -466,9 +467,9 @@ GRUB_RECORDFAIL_TIMEOUT=10
         with mock.patch(OPEN_FUNCTION_NAME,
                         new=mock.mock_open(read_data=orig_content),
                         create=True) as mock_open:
-            mock_open.return_value = mock.MagicMock(spec=file)
+            mock_open.return_value = mock.MagicMock(spec=io.IOBase)
             handle = mock_open.return_value.__enter__.return_value
-            handle.__iter__.return_value = StringIO.StringIO(orig_content)
+            handle.__iter__.return_value = StringIO(orig_content)
             gu.grub2_cfg(kernel_params='kernel-params-new', chroot='/target',
                          grub_timeout=10)
 
