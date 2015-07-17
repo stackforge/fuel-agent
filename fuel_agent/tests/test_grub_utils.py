@@ -12,19 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import StringIO
+import io
 
 import mock
-import six
+from six import StringIO
 import unittest2
 
 from fuel_agent import errors
 from fuel_agent.utils import grub as gu
-
-if six.PY2:
-    OPEN_FUNCTION_NAME = '__builtin__.open'
-else:
-    OPEN_FUNCTION_NAME = 'builtins.open'
 
 
 class TestGrubUtils(unittest2.TestCase):
@@ -313,12 +308,13 @@ class TestGrubUtils(unittest2.TestCase):
         script = 'cat /tmp/grub.batch | /sbin/grub --no-floppy --batch'
 
         mock_open = mock.mock_open()
-        with mock.patch(OPEN_FUNCTION_NAME, new=mock_open, create=True):
+        with mock.patch('fuel_agent.utils.grub.open', new=mock_open,
+                        create=True):
             gu.grub1_mbr('/dev/foo', '/dev/bar', '0', chroot='/target')
         self.assertEqual(
             mock_open.call_args_list,
-            [mock.call('/target/tmp/grub.batch', 'wb'),
-             mock.call('/target/tmp/grub.sh', 'wb')]
+            [mock.call('/target/tmp/grub.batch', 'wt', encoding='utf-8'),
+             mock.call('/target/tmp/grub.sh', 'wt', encoding='utf-8')]
         )
         mock_open_file = mock_open()
         self.assertEqual(
@@ -347,12 +343,13 @@ class TestGrubUtils(unittest2.TestCase):
         script = 'cat /tmp/grub.batch | /sbin/grub --no-floppy --batch'
 
         mock_open = mock.mock_open()
-        with mock.patch(OPEN_FUNCTION_NAME, new=mock_open, create=True):
+        with mock.patch('fuel_agent.utils.grub.open', new=mock_open,
+                        create=True):
             gu.grub1_mbr('/dev/foo', '/dev/foo', '0', chroot='/target')
         self.assertEqual(
             mock_open.call_args_list,
-            [mock.call('/target/tmp/grub.batch', 'wb'),
-             mock.call('/target/tmp/grub.sh', 'wb')]
+            [mock.call('/target/tmp/grub.batch', 'wt', encoding='utf-8'),
+             mock.call('/target/tmp/grub.sh', 'wt', encoding='utf-8')]
         )
         mock_open_file = mock_open()
         self.assertEqual(
@@ -399,7 +396,7 @@ class TestGrubUtils(unittest2.TestCase):
                                                  mock_kernel):
         mock_kernel.return_value = 'kernel-version'
         mock_initrd.return_value = 'initrd-version'
-        config = """
+        config = b"""
 default=0
 timeout=5
 title Default (kernel-version)
@@ -408,14 +405,15 @@ title Default (kernel-version)
     """
 
         mock_open = mock.mock_open()
-        with mock.patch(OPEN_FUNCTION_NAME, new=mock_open, create=True):
+        with mock.patch('fuel_agent.utils.grub.open', new=mock_open,
+                        create=True):
             gu.grub1_cfg(chroot='/target', kernel_params='kernel-params')
         mock_open.assert_called_once_with('/target/boot/grub/grub.conf', 'wb')
         mock_open_file = mock_open()
         mock_open_file.write.assert_called_once_with(config)
 
     def test_grub1_cfg_kernel_initrd_are_set(self):
-        config = """
+        config = b"""
 default=0
 timeout=10
 title Default (kernel-version-set)
@@ -424,7 +422,8 @@ title Default (kernel-version-set)
     """
 
         mock_open = mock.mock_open()
-        with mock.patch(OPEN_FUNCTION_NAME, new=mock_open, create=True):
+        with mock.patch('fuel_agent.utils.grub.open', new=mock_open,
+                        create=True):
             gu.grub1_cfg(kernel='kernel-version-set',
                          initrd='initrd-version-set',
                          chroot='/target', kernel_params='kernel-params',
@@ -463,12 +462,12 @@ bar
 GRUB_RECORDFAIL_TIMEOUT=10
 """
 
-        with mock.patch(OPEN_FUNCTION_NAME,
+        with mock.patch('fuel_agent.utils.grub.open',
                         new=mock.mock_open(read_data=orig_content),
                         create=True) as mock_open:
-            mock_open.return_value = mock.MagicMock(spec=file)
+            mock_open.return_value = mock.MagicMock(spec=io.IOBase)
             handle = mock_open.return_value.__enter__.return_value
-            handle.__iter__.return_value = StringIO.StringIO(orig_content)
+            handle.__iter__.return_value = StringIO(orig_content)
             gu.grub2_cfg(kernel_params='kernel-params-new', chroot='/target',
                          grub_timeout=10)
 
