@@ -75,7 +75,7 @@ def mddisplay(names=None):
     return mds
 
 
-def mdcreate(mdname, level, device, *args):
+def mdcreate(mdname, level, devices):
     mds = mddisplay()
 
     # check if md device already exists
@@ -89,8 +89,6 @@ def mdcreate(mdname, level, device, *args):
         raise errors.MDWrongSpecError(
             'Error while creating md device: '
             'level must be one of: %s' % ', '.join(supported_levels))
-
-    devices = [device] + list(args)
 
     # check if all necessary devices exist
     if not set(devices).issubset(
