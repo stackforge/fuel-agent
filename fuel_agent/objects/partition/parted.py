@@ -120,7 +120,7 @@ class Parted(base.Serializable):
     @classmethod
     def from_dict(cls, data):
         data = copy.deepcopy(data)
-        raw_partitions = data.pop('partitions')
+        raw_partitions = data.pop('partitions', [])
         partitions = [Partition.from_dict(partition)
                       for partition in raw_partitions]
         return cls(partitions=partitions, **data)
@@ -140,6 +140,10 @@ class Partition(base.Serializable):
         self.flags = flags or []
         self.guid = guid
         self.configdrive = configdrive
+
+    @property
+    def size(self):
+        return self.end - self.begin
 
     def set_flag(self, flag):
         if flag not in self.flags:
