@@ -334,3 +334,30 @@ def unblacklist_udev_rules(udev_rules_dir, udev_rename_substr):
 
 def udevadm_settle():
     execute('udevadm', 'settle', '--quiet', check_exit_code=[0])
+
+
+def parse_kernel_cmdline():
+    """Parse linux kernel command line"""
+    with open('/proc/cmdline', 'rt') as f:
+        cmdline = f.read()
+    parameters = {}
+    for p in cmdline.split():
+        name, _, value = p.partition('=')
+        parameters[name] = value
+    return parameters
+
+
+def get_interface_ip(mac_addr):
+    """Get IP address of interface with mac_addr"""
+    ip_pattern = re.compile('inet ([\d\.]+)/')
+    out, err = execute('ip', 'addr', 'show')
+    lines = out.splitlines()
+    for num, line in enumerate(lines):
+        if mac_addr in line:
+            try:
+                ip_line = lines[num + 1]
+            except IndexError:
+                return
+            match = ip_pattern.search(ip_line)
+            if match:
+                return match.group(1)
