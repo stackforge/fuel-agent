@@ -269,6 +269,7 @@ class Nailgun(BaseDataDriver):
 
                     elif volume.get('mount') == '/boot' \
                             and not self._boot_partition_done \
+                            and 'nvme' not in disk['name'] \
                             and (disk in self.small_ks_disks or
                                  not self.small_ks_disks):
                         # NOTE(kozhukalov): On some hardware GRUB is not able
