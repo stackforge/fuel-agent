@@ -268,12 +268,8 @@ class TestManager(unittest2.TestCase):
             mock.call('swap', '', '', '/dev/mapper/os-swap')]
         self.assertEqual(mock_fu_mf_expected_calls, mock_fu_mf.call_args_list)
 
-    @mock.patch('six.moves.builtins.open')
-    @mock.patch.object(os, 'symlink')
-    @mock.patch.object(os, 'remove')
-    @mock.patch.object(os, 'path')
-    @mock.patch.object(os, 'listdir')
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(manager, 'os', create=True)
+    @mock.patch.object(manager, 'utils', create=True)
     @mock.patch.object(mu, 'mdclean_all')
     @mock.patch.object(lu, 'lvremove_all')
     @mock.patch.object(lu, 'vgremove_all')
@@ -291,12 +287,10 @@ class TestManager(unittest2.TestCase):
     def test_do_partitioning_md(self, mock_hu_lbd, mock_pu_ml, mock_pu_mp,
                                 mock_pu_spf, mock_pu_sgt, mock_mu_m, mock_lu_p,
                                 mock_lu_v, mock_lu_l, mock_fu_mf, mock_pvr,
-                                mock_vgr, mock_lvr, mock_mdr, mock_exec,
-                                mock_os_ld, mock_os_p, mock_os_r, mock_os_s,
-                                mock_open):
-        mock_os_ld.return_value = ['not_a_rule', 'fake.rules']
-        mock_os_p.exists.return_value = True
+                                mock_vgr, mock_lvr, mock_mdr, mock_utils,
+                                mock_os):
         mock_hu_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
+        mock_os.path.exists.return_value = True
         self.mgr.driver.partition_scheme.mds = [
             objects.MD('fake_md1', 'mirror', devices=['/dev/sda1',
                                                       '/dev/sdb1']),
@@ -310,12 +304,8 @@ class TestManager(unittest2.TestCase):
                                     ['/dev/sdb3', '/dev/sdc1'])],
                          mock_mu_m.call_args_list)
 
-    @mock.patch('six.moves.builtins.open')
-    @mock.patch.object(os, 'symlink')
-    @mock.patch.object(os, 'remove')
-    @mock.patch.object(os, 'path')
-    @mock.patch.object(os, 'listdir')
-    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(manager, 'os', create=True)
+    @mock.patch.object(manager, 'utils', create=True)
     @mock.patch.object(mu, 'mdclean_all')
     @mock.patch.object(lu, 'lvremove_all')
     @mock.patch.object(lu, 'vgremove_all')
@@ -333,13 +323,13 @@ class TestManager(unittest2.TestCase):
     def test_do_partitioning(self, mock_hu_lbd, mock_pu_ml, mock_pu_mp,
                              mock_pu_spf, mock_pu_sgt, mock_mu_m, mock_lu_p,
                              mock_lu_v, mock_lu_l, mock_fu_mf, mock_pvr,
-                             mock_vgr, mock_lvr, mock_mdr, mock_exec,
-                             mock_os_ld, mock_os_p, mock_os_r, mock_os_s,
-                             mock_open):
-        mock_os_ld.return_value = ['not_a_rule', 'fake.rules']
-        mock_os_p.exists.return_value = True
+                             mock_vgr, mock_lvr, mock_mdr, mock_utils,
+                             mock_os):
+        mock_os.path.exists.return_value = True
         mock_hu_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         self.mgr.do_partitioning()
+        mock_utils.unblacklist_udev_rules.assert_called_once_with()
+        mock_utils.blacklist_udev_rules.assert_called_once_with()
         mock_pu_ml_expected_calls = [mock.call('/dev/sda', 'gpt'),
                                      mock.call('/dev/sdb', 'gpt'),
                                      mock.call('/dev/sdc', 'gpt')]
