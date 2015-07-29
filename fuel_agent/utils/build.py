@@ -91,13 +91,15 @@ ROOT_PASSWORD = '$6$IInX3Cqo$5xytL1VZbZTusOewFnG6couuF0Ia61yS3rbC6P5YbZP2TYcl'\
 
 
 def run_debootstrap(uri, suite, chroot, arch='amd64', eatmydata=False,
-                    attempts=CONF.fetch_packages_attempts):
+                    attempts=None):
     """Builds initial base system.
 
     debootstrap builds initial base system which is capable to run apt-get.
     debootstrap is well known for its glithcy resolving of package dependecies,
     so the rest of packages will be installed later by run_apt_get.
     """
+    if attempts is None:
+        attempts = CONF.fetch_packages_attempts
     cmds = ['debootstrap', '--verbose', '--no-check-gpg', '--arch=%s' % arch,
             suite, chroot, uri]
     if eatmydata:
@@ -114,8 +116,7 @@ def set_apt_get_env():
     os.environ['LC_ALL'] = os.environ['LANG'] = os.environ['LANGUAGE'] = 'C'
 
 
-def run_apt_get(chroot, packages, eatmydata=False,
-                attempts=CONF.fetch_packages_attempts):
+def run_apt_get(chroot, packages, eatmydata=False, attempts=None):
     """Runs apt-get install <packages>.
 
     Unlike debootstrap, apt-get has a perfect package dependecies resolver
@@ -124,6 +125,8 @@ def run_apt_get(chroot, packages, eatmydata=False,
     dpkg/apt-get tools. It's dangerous, but could decrease package install
     time in X times.
     """
+    if attempts is None:
+        attempts = CONF.fetch_packages_attempts
     cmds = ['chroot', chroot, 'apt-get', '-y', 'update']
     stdout, stderr = utils.execute(*cmds, attempts=attempts)
     LOG.debug('Running apt-get update completed.\nstdout: %s\nstderr: %s',
@@ -178,9 +181,12 @@ def remove_files(chroot, files):
             LOG.debug('Removed file: %s', path)
 
 
-def clean_apt_settings(chroot, allow_unsigned_file=CONF.allow_unsigned_file,
-                       force_ipv4_file=CONF.force_ipv4_file):
+def clean_apt_settings(chroot, allow_unsigned_file=None, force_ipv4_file=None):
     """Cleans apt settings such as package sources and repo pinning."""
+    if allow_unsigned_file is None:
+        allow_unsigned_file = CONF.allow_unsigned_file
+    if force_ipv4_file is None:
+        force_ipv4_file = CONF.force_ipv4_file
     files = [DEFAULT_APT_PATH['sources_file'],
              DEFAULT_APT_PATH['preferences_file'],
              os.path.join(DEFAULT_APT_PATH['conf_dir'], force_ipv4_file),
@@ -282,9 +288,8 @@ def stop_chrooted_processes(chroot, signal=sig.SIGTERM,
     return True
 
 
-def get_free_loop_device(
-        loop_device_major_number=CONF.loop_device_major_number,
-        max_loop_devices_count=CONF.max_loop_devices_count):
+def get_free_loop_device(loop_device_major_number=None,
+                         max_loop_devices_count=None):
     """Returns the name of free loop device.
 
     It should return the name of free loop device or raise an exception.
@@ -293,6 +298,10 @@ def get_free_loop_device(
     If there's no free loop it will try to create new one and ask a system for
     free loop again.
     """
+    if loop_device_major_number is None:
+        loop_device_major_number = CONF.loop_device_major_number
+    if max_loop_devices_count is None:
+        max_loop_devices_count = CONF.max_loop_devices_count
     for minor in range(0, max_loop_devices_count):
         cur_loop = "/dev/loop%s" % minor
         if not os.path.exists(cur_loop):
@@ -305,12 +314,14 @@ def get_free_loop_device(
     raise errors.NoFreeLoopDevices('Free loop device not found')
 
 
-def create_sparse_tmp_file(dir, suffix, size=CONF.sparse_file_size):
+def create_sparse_tmp_file(dir, suffix, size=None):
     """Creates sparse file.
 
     Creates file which consumes disk space more efficiently when the file
     itself is mostly empty.
     """
+    if size is None:
+        size = CONF.sparse_file_size
     tf = tempfile.NamedTemporaryFile(dir=dir, suffix=suffix, delete=False)
     utils.execute('truncate', '-s', '%sM' % size, tf.name)
     return tf.name
@@ -472,9 +483,12 @@ def add_apt_preference(name, priority, suite, section, chroot, uri):
             f.write('Pin-Priority: {priority}\n'.format(priority=priority))
 
 
-def pre_apt_get(chroot, allow_unsigned_file=CONF.allow_unsigned_file,
-                force_ipv4_file=CONF.force_ipv4_file):
+def pre_apt_get(chroot, allow_unsigned_file=None, force_ipv4_file=None):
     """It must be called prior run_apt_get."""
+    if allow_unsigned_file is None:
+        allow_unsigned_file = CONF.allow_unsigned_file
+    if force_ipv4_file is None:
+        force_ipv4_file = CONF.force_ipv4_file
     clean_apt_settings(chroot)
     # NOTE(agordeev): allow to install packages without gpg digest
     with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
@@ -485,7 +499,9 @@ def pre_apt_get(chroot, allow_unsigned_file=CONF.allow_unsigned_file,
         f.write('Acquire::ForceIPv4 "true";\n')
 
 
-def containerize(filename, container, chunk_size=CONF.data_chunk_size):
+def containerize(filename, container, chunk_size=None):
+    if chunk_size is None:
+        chunk_size = CONF.data_chunk_size
     if container == 'gzip':
         output_file = filename + '.gz'
         with open(filename, 'rb') as f:
