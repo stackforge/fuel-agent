@@ -430,23 +430,36 @@ class TestManager(unittest2.TestCase):
         mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         self.assertEqual(1, len(self.mgr.driver.image_scheme.images))
         self.mgr.do_configdrive()
+        self.assertEqual('7.0', self.mgr.driver.configdrive_scheme.environment)
         mock_u_ras_expected_calls = [
             mock.call(CONF.nc_template_path,
-                      ['cloud_config_pro_fi-le.jinja2',
+                      ['cloud_config_7.0_pro_fi-le.jinja2',
+                       'cloud_config_pro_fi-le.jinja2',
+                       'cloud_config_7.0_pro.jinja2',
                        'cloud_config_pro.jinja2',
+                       'cloud_config_7.0_pro_fi.jinja2',
                        'cloud_config_pro_fi.jinja2',
+                       'cloud_config_7.0.jinja2',
                        'cloud_config.jinja2'],
                       mock.ANY, '%s/%s' % (CONF.tmp_path, 'cloud_config.txt')),
             mock.call(CONF.nc_template_path,
-                      ['boothook_pro_fi-le.jinja2',
+                      ['boothook_7.0_pro_fi-le.jinja2',
+                       'boothook_pro_fi-le.jinja2',
+                       'boothook_7.0_pro.jinja2',
                        'boothook_pro.jinja2',
+                       'boothook_7.0_pro_fi.jinja2',
                        'boothook_pro_fi.jinja2',
+                       'boothook_7.0.jinja2',
                        'boothook.jinja2'],
                       mock.ANY, '%s/%s' % (CONF.tmp_path, 'boothook.txt')),
             mock.call(CONF.nc_template_path,
-                      ['meta-data_pro_fi-le.jinja2',
+                      ['meta-data_7.0_pro_fi-le.jinja2',
+                       'meta-data_pro_fi-le.jinja2',
+                       'meta-data_7.0_pro.jinja2',
                        'meta-data_pro.jinja2',
+                       'meta-data_7.0_pro_fi.jinja2',
                        'meta-data_pro_fi.jinja2',
+                       'meta-data_7.0.jinja2',
                        'meta-data.jinja2'],
                       mock.ANY, '%s/%s' % (CONF.tmp_path, 'meta-data'))]
         self.assertEqual(mock_u_ras_expected_calls, mock_u_ras.call_args_list)

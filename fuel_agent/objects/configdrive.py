@@ -56,11 +56,12 @@ class ConfigDriveMcollective(object):
 
 class ConfigDriveScheme(object):
     def __init__(self, common=None, puppet=None,
-                 mcollective=None, profile=None):
+                 mcollective=None, profile=None, environment=None):
         self.common = common
         self.puppet = puppet
         self.mcollective = mcollective
         self._profile = profile or 'ubuntu'
+        self._environment = environment or '7.0'
 
     # TODO(kozhukalov) make it possible to validate scheme according to
     # chosen profile which means chosen set of cloud-init templates.
@@ -90,6 +91,13 @@ class ConfigDriveScheme(object):
         # TODO(kozhukalov) validate profile
         self._profile = profile
 
+    def set_environment(self, environment):
+        self._environment = environment
+
+    @property
+    def environment(self):
+        return self._environment
+
     @property
     def profile(self):
         return self._profile
@@ -99,9 +107,18 @@ class ConfigDriveScheme(object):
         # which might be either dash or underline separated
         # ubuntu_1404_x86_64
         # centos-65_x86_64
+        # NOTE(agordeev): prefer templates with fuel environment version set.
+        # Eg.: boothook_7.0_centos.jinja2 takes precedence over
+        # boothook_centos.jinja2
         return [
+            '%s_%s_%s.jinja2' % (what, self.environment, self._profile),
             '%s_%s.jinja2' % (what, self._profile),
+            '%s_%s_%s.jinja2' % (what, self.environment,
+                                 self._profile.split('_')[0]),
             '%s_%s.jinja2' % (what, self._profile.split('_')[0]),
+            '%s_%s_%s.jinja2' % (what, self.environment,
+                                 self._profile.split('-')[0]),
             '%s_%s.jinja2' % (what, self._profile.split('-')[0]),
+            '%s_%s.jinja2' % (what, self.environment),
             '%s.jinja2' % what
         ]
