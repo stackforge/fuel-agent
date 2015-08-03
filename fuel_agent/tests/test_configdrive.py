@@ -25,13 +25,26 @@ class TestConfigDriveScheme(unittest2.TestCase):
         super(TestConfigDriveScheme, self).setUp()
         self.cd_scheme = configdrive.ConfigDriveScheme()
 
+    def test_environment_default(self):
+        self.assertEqual('7.0', self.cd_scheme.environment)
+
+    def test_set_environment_(self):
+        environment = 'fake_env_version'
+        self.cd_scheme.set_environment(environment)
+        self.assertEqual(environment, self.cd_scheme.environment)
+
     def test_template_names(self):
+        self.cd_scheme._environment = '1.2.3'
         self.cd_scheme._profile = 'pro_fi-le'
         actual = self.cd_scheme.template_names('what')
         expected = [
+            'what_1.2.3_pro_fi-le.jinja2',
             'what_pro_fi-le.jinja2',
+            'what_1.2.3_pro.jinja2',
             'what_pro.jinja2',
+            'what_1.2.3_pro_fi.jinja2',
             'what_pro_fi.jinja2',
+            'what_1.2.3.jinja2',
             'what.jinja2'
         ]
         self.assertEqual(expected, actual)

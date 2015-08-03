@@ -515,6 +515,8 @@ class Nailgun(BaseDataDriver):
 
         LOG.debug('Setting configdrive profile %s' % data['profile'])
         configdrive_scheme.set_profile(profile=data['profile'])
+        configdrive_scheme.set_environment(
+            environment=data['ks_meta'].get('environment_version', '7.0'))
         return configdrive_scheme
 
     def parse_grub(self):
