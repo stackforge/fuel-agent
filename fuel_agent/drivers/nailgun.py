@@ -643,6 +643,10 @@ class NailgunBuildImage(BaseDataDriver):
         "vlan",
     ]
 
+    DKMS_TRUSTY_PACKAGES = [
+	"i40e-dkms",
+    ]
+
     def __init__(self, data):
         super(NailgunBuildImage, self).__init__(data)
         self._image_scheme = objects.ImageScheme()
@@ -677,7 +681,7 @@ class NailgunBuildImage(BaseDataDriver):
                 'Currently, only Ubuntu Trusty is supported, given '
                 'codename is {0}'.format(self.data.get('codename')))
 
-        packages = self.data.get('packages', self.DEFAULT_TRUSTY_PACKAGES)
+        packages = self.data.get('packages', sorted(self.DEFAULT_TRUSTY_PACKAGES + self.DKMS_TRUSTY_PACKAGES))
 
         repos = []
         for repo in self.data['repos']:
