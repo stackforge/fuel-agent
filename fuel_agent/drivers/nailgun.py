@@ -610,6 +610,7 @@ class NailgunBuildImage(BaseDataDriver):
         "curl",
         "daemonize",
         "debconf-utils",
+        "fm10k-dkms",
         "gdisk",
         "grub-pc",
         "linux-firmware",
