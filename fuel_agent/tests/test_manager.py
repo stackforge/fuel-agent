@@ -869,6 +869,9 @@ class TestImageBuild(unittest2.TestCase):
             mock_utils.makedirs_if_not_exists.call_args_list)
         self.assertEqual([
             mock.call('tune2fs', '-O', '^has_journal', '/dev/loop0'),
+            mock.call('chroot', '/tmp/imgdir', 'rm', '-fr', '/dev/fd'),
+            mock.call('chroot', '/tmp/imgdir', 'ln', '-s', '/proc/self/fd',
+                      '/dev/fd'),
             mock.call('tune2fs', '-O', 'has_journal', '/dev/loop0')],
             mock_utils.execute.call_args_list)
         mock_fu.mount_bind.assert_called_once_with('/tmp/imgdir', '/proc')

@@ -652,6 +652,11 @@ class Manager(object):
             utils.makedirs_if_not_exists(proc_path)
             fu.mount_bind(chroot, '/proc')
 
+            # prevent failures related with /dev/fd/62
+            utils.execute('chroot', chroot, 'rm', '-fr', '/dev/fd')
+            utils.execute('chroot', chroot,
+                          'ln', '-s', '/proc/self/fd', '/dev/fd')
+
             LOG.debug('Installing packages using apt-get: %s',
                       ' '.join(packages))
             bu.run_apt_get(chroot, packages=packages,
