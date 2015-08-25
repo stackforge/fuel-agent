@@ -52,6 +52,30 @@ SMBIOS_TYPES = {'bios': '0',
                 'memory_device': '17'}
 
 
+def parse_udevadm_attribute_walk(devname):
+    output = utils.execute('udevadm', 'info', '--attribute-walk', '--name',
+                           devname)
+    lines = output[0].split('\n')
+    info = {}
+    expected_lines = ('looking', 'KERNEL', 'SUBSYSTEM', 'DRIVER', 'ATTR')
+    for line in lines:
+        stripped = line.split()
+        if any(n in stripped for n in expected_lines):
+            if stripped.startswith('looking'):
+                device = line.split("'")[1]
+                info[device] = {}
+            else:
+                key, value = stripped.split('==')
+                info[device][key.split()] = value.split().replace('"', '')
+    return info
+
+
+def get_pci_vendor_id(udevadm_info):
+    for device, device_info in udevadm_info:
+        if 'SUBSYSTEMS' in device_info and device_info['SUBSYSTEMS'] == 'pci':
+            return device_info['ATTRS{vendor}']
+
+
 def parse_dmidecode(type):
     """Parses `dmidecode` output.
 
