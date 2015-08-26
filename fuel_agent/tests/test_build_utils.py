@@ -359,7 +359,6 @@ class BuildUtilsTestCase(unittest2.TestCase):
             self.assertIn("n=testcodename", calls_args[2])
             self.assertIn("a=test-archive", calls_args[2])
             self.assertIn("o=TestOrigin", calls_args[2])
-            self.assertIn("c=section1", calls_args[2])
             self.assertEqual(calls_args[3], 'Pin-Priority: 123\n')
 
         expected_mock_path_calls = [
