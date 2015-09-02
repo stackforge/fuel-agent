@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import copy
 import hashlib
 import locale
@@ -81,7 +82,7 @@ def execute(*cmd, **kwargs):
     env['PATH'] = '/bin:/usr/bin:/sbin:/usr/sbin'
     env['LC_ALL'] = env['LANG'] = env['LANGUAGE'] = kwargs.pop('language', 'C')
     if len(commands) >= 2 and 'process_input' in kwargs:
-        raise ValueError('not implemented: passing input to a pipeline')
+        raise ValueError('Not supported: passing input to a pipeline')
     process_input = kwargs.pop('process_input', None)
     attempts = kwargs.pop('attempts', 1)
     check_exit_code = kwargs.pop('check_exit_code', [0])
@@ -140,6 +141,29 @@ def execute(*cmd, **kwargs):
                 raise
             else:
                 time.sleep(CONF.execute_retry_delay)
+
+
+@contextlib.contextmanager
+def temporary_environ(**kwargs):
+    """Temporarily set environment variables for the current process
+
+    with temporary_environ(LC_ALL='C', TZ='UTC'):
+        timestamp = time.strptime('%c', 'Fri Sep  4 12:24:36 2015')
+    """
+    old_environ = dict([(var, os.environ.get(var)) for var in kwargs])
+    for var, val in kwargs.iteritems():
+        os.environ[var] = val
+    try:
+        yield
+    finally:
+        for var, old_val in old_environ.iteritems():
+            if old_val is None:
+                try:
+                    del os.environ[var]
+                except KeyError:
+                    pass
+            else:
+                os.environ[var] = old_val
 
 
 def parse_unit(s, unit, ceil=True):
