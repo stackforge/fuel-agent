@@ -80,6 +80,9 @@ def execute(*cmd, **kwargs):
     env = kwargs.pop('env_variables', copy.deepcopy(os.environ))
     env['PATH'] = '/bin:/usr/bin:/sbin:/usr/sbin'
     env['LC_ALL'] = env['LANG'] = env['LANGUAGE'] = kwargs.pop('language', 'C')
+    if len(commands) >= 2 and 'process_input' in kwargs:
+        raise ValueError('not implemented: passing input to a pipeline')
+    process_input = kwargs.pop('process_input', None)
     attempts = kwargs.pop('attempts', 1)
     check_exit_code = kwargs.pop('check_exit_code', [0])
     ignore_exit_code = False
@@ -109,7 +112,8 @@ def execute(*cmd, **kwargs):
                     process.append(subprocess.Popen(
                         shlex.split(encoded_command),
                         env=env,
-                        stdin=(process[-1].stdout if process else None),
+                        stdin=(process[-1].stdout if process else
+                               subprocess.PIPE if process_input else None),
                         stdout=(to_file
                                 if ((len(process) == len(commands) - 1) and
                                     to_file)
@@ -122,7 +126,7 @@ def execute(*cmd, **kwargs):
                                                        stderr=e, cmd=command)
                 if len(process) >= 2:
                     process[-2].stdout.close()
-            stdout, stderr = process[-1].communicate()
+            stdout, stderr = process[-1].communicate(input=process_input)
             if (not ignore_exit_code and
                process[-1].returncode not in check_exit_code):
                     raise errors.ProcessExecutionError(
