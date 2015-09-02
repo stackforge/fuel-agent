@@ -105,10 +105,11 @@ class TemplateWriteError(BaseError):
 
 class ProcessExecutionError(BaseError):
     def __init__(self, stdout=None, stderr=None, exit_code=None, cmd=None,
-                 description=None):
+                 description=None, stdin=None):
         self.exit_code = exit_code
         self.stderr = stderr
         self.stdout = stdout
+        self.stdin = stdin
         self.cmd = cmd
         self.description = description
 
@@ -119,11 +120,13 @@ class ProcessExecutionError(BaseError):
         message = ('%(description)s\n'
                    'Command: %(cmd)s\n'
                    'Exit code: %(exit_code)s\n'
+                   'Stdin: %(stdin)r\n'
                    'Stdout: %(stdout)r\n'
                    'Stderr: %(stderr)r') % {'description': description,
                                             'cmd': cmd,
                                             'exit_code': exit_code,
                                             'stdout': stdout,
+                                            'stdin': stdin,
                                             'stderr': stderr}
         super(ProcessExecutionError, self).__init__(message)
 
