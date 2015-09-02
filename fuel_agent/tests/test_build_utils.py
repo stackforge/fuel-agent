@@ -21,6 +21,7 @@ import unittest2
 
 from fuel_agent import errors
 from fuel_agent.utils import build as bu
+from fuel_agent.utils import fs as fu
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
 
@@ -303,9 +304,10 @@ class BuildUtilsTestCase(unittest2.TestCase):
         ]
         self.assertEqual(mock_exec.call_args_list, mock_exec_expected_calls)
 
+    @mock.patch.object(fu, 'distant_past_ext234_superblock_timestamps')
     @mock.patch.object(hu, 'parse_simple_kv')
     @mock.patch.object(utils, 'execute')
-    def test_shrink_sparse_file(self, mock_exec, mock_parse):
+    def test_shrink_sparse_file(self, mock_exec, mock_parse, mock_sb_ts):
         mock_parse.return_value = {'block count': 1, 'block size': 2}
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
@@ -315,6 +317,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
         expected_mock_exec_calls = [mock.call('e2fsck', '-y', '-f', 'file'),
                                     mock.call('resize2fs', '-M', 'file')]
         mock_parse.assert_called_once_with('dumpe2fs', 'file')
+        mock_sb_ts.assert_called_once_with('file')
         self.assertEqual(expected_mock_exec_calls, mock_exec.call_args_list)
 
     @mock.patch.object(os, 'path')
