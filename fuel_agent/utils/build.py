@@ -26,6 +26,7 @@ import yaml
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
+from fuel_agent.utils import fs
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
 
@@ -299,6 +300,12 @@ def shrink_sparse_file(filename):
     """Shrinks file to its size of actual data. Only ext fs are supported."""
     utils.execute('e2fsck', '-y', '-f', filename)
     utils.execute('resize2fs', '-F', '-M', filename)
+    # NOTE(asheplyakov): e2fsck is very picky about the timestamps. In
+    # particular the last write time being in the future is considered
+    # an error. Thereore reset the superblock timestamps to make the image
+    # usable on a machine which is not synchronized to the one where
+    # the image has been built.
+    fs.distant_past_ext234_superblock_timestamps(filename)
     data = hu.parse_simple_kv('dumpe2fs', filename)
     block_count = int(data['block count'])
     block_size = int(data['block size'])
