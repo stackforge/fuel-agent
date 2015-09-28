@@ -15,6 +15,7 @@
 import mock
 from oslo.config import cfg
 import unittest2
+import uuid
 import zlib
 
 
@@ -48,6 +49,24 @@ class TestTarget(unittest2.TestCase):
         self.assertEqual(mock_write_expected_calls,
                          file_handle.write.call_args_list)
         file_handle.flush.assert_called_once_with()
+
+    @mock.patch.object(au, 'os')
+    @mock.patch.object(au, 'stat', autospec=True)
+    def test_target_accepts_special_device_file_only(self, mock_stat, mock_os):
+        mock_stat.S_ISBLK.return_value = False
+        mock_stat.S_ISCHR.return_value = False
+
+        with self.assertRaises(errors.WrongDeviceError):
+            self.tgt.target()
+        mock_stat.S_ISBLK.assert_called_once_with(mock_os.stat().st_mode)
+        mock_stat.S_ISCHR.assert_called_once_with(mock_os.stat().st_mode)
+
+    @mock.patch.object(au, 'os', autospec=True)
+    def test_target_file_doesnt_exist(self, mock_os):
+        mock_os.path.exists.return_value = False
+        with self.assertRaises(errors.WrongDeviceError):
+            self.tgt.target(filename=str(uuid.uuid4()))
+        self.assertTrue(mock_os.path.exists.called)
 
 
 class TestLocalFile(unittest2.TestCase):
