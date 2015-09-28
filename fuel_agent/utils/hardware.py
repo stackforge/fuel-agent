@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import stat
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
@@ -243,6 +244,12 @@ def extrareport(dev):
             pass
 
     return spec
+
+
+def is_special_device_file(self, filepath):
+    """Check whether `filepath` is block device or character device."""
+    mode = os.stat(filepath).st_mode
+    return stat.S_ISBLK(mode) or stat.S_ISCHR(mode)
 
 
 def get_block_devices_from_udev_db():
