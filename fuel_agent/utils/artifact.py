@@ -14,6 +14,7 @@
 
 import abc
 import os
+import stat
 import tarfile
 import tempfile
 import zlib
@@ -48,8 +49,18 @@ class Target(object):
     def next(self):
         raise StopIteration()
 
+    def _is_special_device_file(self, filepath):
+        """Check whether `filepath` is block device or character device."""
+        mode = os.stat(filepath).st_mode
+        return stat.S_ISBLK(mode) or stat.S_ISCHR(mode)
+
     def target(self, filename='/dev/null'):
         LOG.debug('Opening file: %s for write' % filename)
+        if not self._is_special_device_file(filename):
+            error = 'File \'{0}\' is neither block nor character device.'
+            error = error.format(filename)
+            LOG.error(error)
+            raise errors.WrongDeviceError(error)
         with open(filename, 'wb') as f:
             count = 0
             for chunk in self:
