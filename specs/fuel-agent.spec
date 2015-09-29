@@ -56,6 +56,13 @@ Requires:    coreutils
 %description
 Fuel-agent package
 
+%package      bootstrap-ironic-configs
+Summary:      Ironic bootstrap config files
+Group:        Development/Libraries
+
+%description  bootstrap-ironic-configs
+Ironic bootstrap config files
+
 %prep
 %setup -cq -n %{name}-%{version}
 
@@ -70,6 +77,10 @@ install -p -D -m 644 %{_builddir}/%{name}-%{version}/etc/fuel-agent/fuel-agent.c
 install -d -m 755 %{buildroot}%{_datadir}/fuel-agent/cloud-init-templates
 install -p -D -m 644 %{_builddir}/%{name}-%{version}/cloud-init-templates/* %{buildroot}%{_datadir}/fuel-agent/cloud-init-templates
 
+#ironic bootstrap config files
+install -d -m 755 %{buildroot}%{_datadir}/fuel-agent-bootstrap-ironic-configs/
+cp -a %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/* %{buildroot}%{_datadir}/fuel-agent-bootstrap-ironic-configs/
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -77,3 +88,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %config(noreplace) %{_sysconfdir}/fuel-agent/fuel-agent.conf
 %{_datadir}/fuel-agent/cloud-init-templates/*
+
+%files bootstrap-ironic-configs
+%attr(0644,root,root) %config(noreplace) %{_datadir}/fuel-agent-bootstrap-ironic-configs/*
