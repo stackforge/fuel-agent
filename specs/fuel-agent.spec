@@ -56,6 +56,13 @@ Requires:    coreutils
 %description
 Fuel-agent package
 
+%package      bootstrap-ironic-configs
+Summary:      Ironic bootstrap config files
+Group:        Development/Libraries
+
+%description  bootstrap-ironic-configs
+Ironic bootstrap config files
+
 %prep
 %setup -cq -n %{name}-%{version}
 
@@ -70,6 +77,19 @@ install -p -D -m 644 %{_builddir}/%{name}-%{version}/etc/fuel-agent/fuel-agent.c
 install -d -m 755 %{buildroot}%{_datadir}/fuel-agent/cloud-init-templates
 install -p -D -m 644 %{_builddir}/%{name}-%{version}/cloud-init-templates/* %{buildroot}%{_datadir}/fuel-agent/cloud-init-templates
 
+#ironic bootstrap config files
+install -m 644 %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/etc/hostname $RPM_BUILD_ROOT%{_sysconfdir}/
+install -m 644 %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/etc/rsyslog.conf $RPM_BUILD_ROOT%{_sysconfdir}/
+install -d -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/fuel-agent/
+install -m 644  %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/etc/fuel-agent/fuel-agent.conf $RPM_BUILD_ROOT%{_sysconfdir}/fuel-agent/
+install -d -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/init/
+install -m 644  %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/etc/init/ironic-callback.conf $RPM_BUILD_ROOT%{_sysconfdir}/init/
+install -d -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/rsyslog.d/
+install -m 644  %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/etc/rsyslog.d/00-remote.conf $RPM_BUILD_ROOT%{_sysconfdir}/rsyslog.d/
+install -d -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/ssh/
+install -m 644  %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/etc/ssh/sshd_config $RPM_BUILD_ROOT%{_sysconfdir}/ssh/
+install -m 755  %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/usr/bin/configure-remote-logging.sh $RPM_BUILD_ROOT%{_bindir}/
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -77,3 +97,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %config(noreplace) %{_sysconfdir}/fuel-agent/fuel-agent.conf
 %{_datadir}/fuel-agent/cloud-init-templates/*
+
+%files bootstrap-ironic-configs
+%attr(0644,root,root) %config(noreplace) %{_sysconfdir}/*
+%attr(0755,root,root) %{_bindir}/*
