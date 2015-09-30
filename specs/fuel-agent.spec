@@ -63,11 +63,22 @@ Group:        Development/Libraries
 %description  bootstrap-ironic-configs
 Ironic bootstrap config files
 
+%package -n      ironic-fa-deploy
+Summary:         Ironic Fuel Agent driver
+Group:           Development/Libraries
+
+%description -n  ironic-fa-deploy
+Ironic-fa-deploy package
+
 %prep
 %setup -cq -n %{name}-%{version}
 
 %build
 cd %{_builddir}/%{name}-%{version} && python setup.py build
+
+#building ironic-fa-deploy
+cd %{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/  && python setup.py build
+
 
 %install
 cd %{_builddir}/%{name}-%{version} && python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/INSTALLED_FILES
@@ -90,6 +101,10 @@ install -d -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/ssh/
 install -m 644  %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/etc/ssh/sshd_config $RPM_BUILD_ROOT%{_sysconfdir}/ssh/
 install -m 755  %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/usr/bin/configure-remote-logging.sh $RPM_BUILD_ROOT%{_bindir}/
 
+#Install ironic-fa-deploy files
+cd %{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/ && python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/INSTALLED_FILES
+install -d -m 755 %{buildroot}%{_sysconfdir}/ironic-fa-deplo
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -101,3 +116,6 @@ rm -rf $RPM_BUILD_ROOT
 %files bootstrap-ironic-configs
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/*
 %attr(0755,root,root) %{_bindir}/*
+
+%files -n ironic-fa-deploy -f %{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/INSTALLED_FILES
+%defattr(-,root,root)
