@@ -224,6 +224,11 @@ class Nailgun(BaseDataDriver):
         return self.get_os_by_image_meta(os_release) or \
             self.get_os_by_profile(self.data['profile'].lower())
 
+    def _is_os_disk(self, disk):
+        for vol in disk['volumes']:
+            if vol['type'] == 'pv' and vol['vg'] == 'os' and vol['size'] > 0:
+                return True
+
     def parse_partition_scheme(self):
         LOG.debug('--- Preparing partition scheme ---')
         data = self.partition_data()
@@ -244,21 +249,34 @@ class Nailgun(BaseDataDriver):
                 if v["type"] != "boot" and v.get("mount") != "/boot"
             )):
                 continue
+
+            # TODO(agordeev): figure out, why the above logic wasn't enough
+            if sum([v['size'] for v in disk['volumes'] if not
+                   (v['type'] == 'lvm_meta_pool' or
+                    v['type'] == 'boot' or
+                    (v.get('mount') == '/boot' and
+                     not self._is_os_disk(disk)))]) == 0:
+                continue
+
             LOG.debug('Processing disk %s' % disk['name'])
             LOG.debug('Adding gpt table on disk %s' % disk['name'])
             parted = partition_scheme.add_parted(
                 name=self._disk_dev(disk), label='gpt')
-            # we install bootloader on every disk
-            LOG.debug('Adding bootloader stage0 on disk %s' % disk['name'])
-            parted.install_bootloader = True
-            # legacy boot partition
-            LOG.debug('Adding bios_grub partition on disk %s: size=24' %
-                      disk['name'])
-            parted.add_partition(size=24, flags=['bios_grub'])
-            # uefi partition (for future use)
-            LOG.debug('Adding UEFI partition on disk %s: size=200' %
-                      disk['name'])
-            parted.add_partition(size=200)
+
+            if self._is_os_disk(disk):
+                # we install bootloader only on os disk
+                # otherwise, we'll end up with broken grub-install
+                LOG.debug('Adding bootloader stage0 on disk %s' % disk['name'])
+                parted.install_bootloader = True
+
+                # legacy boot partition
+                LOG.debug('Adding bios_grub partition on disk %s: size=24' %
+                          disk['name'])
+                parted.add_partition(size=24, flags=['bios_grub'])
+                # uefi partition (for future use)
+                LOG.debug('Adding UEFI partition on disk %s: size=200' %
+                          disk['name'])
+                parted.add_partition(size=200)
 
             LOG.debug('Looping over all volumes on disk %s' % disk['name'])
             for volume in disk['volumes']:
@@ -317,11 +335,11 @@ class Nailgun(BaseDataDriver):
                             keep_data=volume.get('keep_data', False))
                         LOG.debug('Partition name: %s' % prt.name)
 
+                    # TODO(agordeev): why small_ks_disks were skipped?
                     elif volume.get('mount') == '/boot' \
                             and not self._boot_partition_done \
                             and 'nvme' not in disk['name'] \
-                            and (disk in self.small_ks_disks or
-                                 not self.small_ks_disks):
+                            and self._is_os_disk(disk):
                         # FIXME(agordeev): NVMe drives should be skipped as
                         # accessing such drives during the boot typically
                         # requires using UEFI which is still not supported
