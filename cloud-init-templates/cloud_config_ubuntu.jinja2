@@ -78,6 +78,8 @@ puppet:
       rundir: /var/run/puppet
       ssldir: $vardir/ssl
       pluginsync: true
+      prerun_command:
+      postrun_command:
     agent:
       classfile: $vardir/classes.txt
       localconfig: $vardir/localconfig
