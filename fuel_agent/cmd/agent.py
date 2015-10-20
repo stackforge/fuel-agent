@@ -62,6 +62,9 @@ def bootloader():
 def build_image():
     main(['do_build_image'])
 
+def mkbootstrap():
+    main(['do_mkbootstrap'])
+
 
 def print_err(line):
     sys.stderr.write(six.text_type(line))
