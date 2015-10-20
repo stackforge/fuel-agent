@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from fuel_agent import errors
+from fuel_agent.utils import build as bu
 
 
 class Image(object):
@@ -34,6 +35,19 @@ class Image(object):
         self.container = container
         self.size = size
         self.md5 = md5
+        self.img_tmp_file = None
+        self.tmp_file_attached = False
+
+    def attach_tmp_file_to_loop_device(self):
+        bu.attach_file_to_loop(self.img_tmp_file, str(self.target_device))
+        self.tmp_file_attached = True
+
+    def deattach_tmp_file_from_loop_device(self, check_exit_code=[0]):
+        bu.deattach_loop(str(self), check_exit_code)
+        self.tmp_file_attached = False
+
+    def is_tmp_file_attached(self):
+        return self.tmp_file_attached
 
 
 class ImageScheme(object):
