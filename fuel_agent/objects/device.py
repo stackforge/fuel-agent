@@ -13,11 +13,24 @@
 # limitations under the License.
 
 from fuel_agent import errors
+from fuel_agent.utils import build as bu
 
 
 class Loop(object):
-    def __init__(self, name=None):
+    def __init__(self, name=None, attached=False):
         self.name = name
+        self.attached = False
+
+    def attach_file(self, filename):
+        bu.attach_file_to_loop(filename, str(self))
+        self.attached = True
+
+    def deattach_file(self, check_exit_code=[0]):
+        bu.deattach_loop(str(self), check_exit_code)
+        self.attached = False
+
+    def is_attached(self):
+        return self.attached
 
     def __str__(self):
         if self.name:

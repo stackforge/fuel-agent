@@ -34,6 +34,8 @@ class Image(object):
         self.container = container
         self.size = size
         self.md5 = md5
+        self.img_tmp_file = None
+        self.attached = False
 
 
 class ImageScheme(object):
