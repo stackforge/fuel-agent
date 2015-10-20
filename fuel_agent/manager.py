@@ -549,6 +549,103 @@ class Manager(object):
         self.do_bootloader()
         LOG.debug('--- Provisioning END (do_provisioning) ---')
 
+    def do_mkbootstrap(self):
+        """Building bootstrap image
+        Currently support only Ubuntu-Trusty
+
+        Includes the following steps
+        1) create temporary sparse files for root directory.
+        """
+        LOG.info('--- Building bootstrap image (do_mkbootstrap) ---')
+
+        metadata = {}
+        metadata['os'] = self.driver.operating_system.to_dict()
+        try:
+            LOG.debug('Creating temporary chroot directory')
+            utils.makedirs_if_not_exists(CONF.image_build_dir)
+            chroot = tempfile.mkdtemp(
+                dir=CONF.image_build_dir, suffix=CONF.image_build_suffix)
+            LOG.debug('Temporary chroot: %s', chroot)
+
+            proc_path = os.path.join(chroot, 'proc')
+            LOG.info('*** Preparing image space ***')
+            for image in self.driver.image_scheme.images:
+                CONF.sparse_file_size = '4096'
+                LOG.debug('Creating temporary sparsed file for the '
+                          'image: %s', image.uri)
+                img_tmp_file = bu.create_sparse_tmp_file(
+                    dir=CONF.image_build_dir, suffix=CONF.image_build_suffix,
+                    size=CONF.sparse_file_size)
+                LOG.debug('Temporary file: %s', img_tmp_file)
+
+                # we need to remember those files
+                # to be able to shrink them and move in the end
+                image.img_tmp_file = img_tmp_file
+
+                LOG.debug('Looking for a free loop device')
+                image.target_device.name = bu.get_free_loop_device(
+                    loop_device_major_number=CONF.loop_device_major_number,
+                    max_loop_devices_count=CONF.max_loop_devices_count)
+
+                LOG.debug('Attaching temporary image file to free loop device')
+                bu.attach_file_to_loop(img_tmp_file, str(image.target_device))
+
+                # find fs with the same loop device object
+                # as image.target_device
+
+                fs = self.driver.partition_scheme.fs_by_device(
+                    image.target_device)
+                LOG.debug('Creating file system on the image')
+                fu.make_fs(
+                    fs_type=fs.type,
+                    fs_options=fs.options,
+                    fs_label=fs.label,
+                    dev=str(fs.device))
+                if fs.type == 'ext4':
+                    LOG.debug('Trying to disable journaling for ext4 '
+                              'in order to speed up the build')
+                    utils.execute('tune2fs', '-O', '^has_journal',
+                                  str(fs.device))
+
+            # mounting all images into chroot tree
+            self.mount_target(chroot, treat_mtab=False, pseudo=False)
+        except Exception as exc:
+            LOG.error('Failed to build image: %s', exc)
+            raise
+        finally:
+            LOG.debug('Finally: stopping processes inside chroot: %s', chroot)
+
+            if not bu.stop_chrooted_processes(chroot, signal=signal.SIGTERM):
+                bu.stop_chrooted_processes(chroot, signal=signal.SIGKILL)
+            LOG.debug('Finally: umounting procfs %s', proc_path)
+            fu.umount_fs(proc_path)
+            LOG.debug('Finally: umounting chroot tree %s', chroot)
+            self.umount_target(chroot, pseudo=False )
+            for image in self.driver.image_scheme.images:
+
+                LOG.debug('Finally: detaching loop device: %s',
+                          str(image.target_device))
+                try:
+                    bu.deattach_loop(str(image.target_device))
+                except errors.ProcessExecutionError as e:
+                    LOG.warning('Error occured while trying to detach '
+                                'loop device %s. Error message: %s',
+                                str(image.target_device), e)
+
+                LOG.debug('Finally: removing temporary file: %s',
+                          image.img_tmp_file)
+                try:
+                    os.unlink(image.img_tmp_file)
+                except OSError:
+                    LOG.debug('Finally: file %s seems does not exist '
+                              'or can not be removed', image.img_tmp_file)
+            LOG.debug('Finally: removing chroot directory: %s', chroot)
+            try:
+                os.rmdir(chroot)
+            except OSError:
+                LOG.debug('Finally: directory %s seems does not exist '
+                          'or can not be removed', chroot)
+
     # TODO(kozhukalov): Split this huge method
     # into a set of smaller ones
     # https://bugs.launchpad.net/fuel/+bug/1444090
