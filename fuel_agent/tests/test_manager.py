@@ -63,8 +63,8 @@ class TestManager(unittest2.TestCase):
 
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.gu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_bootloader_grub1_kernel_initrd_guessed(self, mock_umount,
@@ -97,8 +97,8 @@ class TestManager(unittest2.TestCase):
 
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.gu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_bootloader_grub1_kernel_initrd_set(self, mock_umount,
@@ -126,8 +126,8 @@ class TestManager(unittest2.TestCase):
     @mock.patch('fuel_agent.objects.bootloader.Grub', autospec=True)
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.gu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_bootloader_rootfs_uuid(self, mock_umount, mock_mount,
@@ -150,7 +150,7 @@ class TestManager(unittest2.TestCase):
             'root=UUID=FAKE_ROOTFS_UUID ')
         self.assertEqual(2, mock_grub.version)
 
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     def test_do_bootloader_rootfs_not_found(self, mock_umount, mock_utils):
         mock_utils.execute.return_value = ('fake', 'fake')
@@ -164,8 +164,8 @@ class TestManager(unittest2.TestCase):
 
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.gu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_bootloader_grub_version_changes(
@@ -180,8 +180,8 @@ class TestManager(unittest2.TestCase):
 
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.gu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_bootloader_grub1(self, mock_umount, mock_mount, mock_utils,
@@ -209,8 +209,8 @@ class TestManager(unittest2.TestCase):
 
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.gu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_bootloader_grub2(self, mock_umount, mock_mount, mock_utils,
@@ -231,8 +231,8 @@ class TestManager(unittest2.TestCase):
         self.assertFalse(mock_gu.grub1_cfg.called)
         self.assertFalse(mock_gu.grub1_install.called)
 
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.gu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_bootloader_writes(self, mock_umount, mock_mount, mock_utils,
@@ -676,11 +676,11 @@ class TestManager(unittest2.TestCase):
         self.assertRaises(errors.ImageChecksumMismatchError,
                           self.mgr.do_copyimage)
 
-    @mock.patch('fuel_agent.manager.fu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.fu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.os', create=True)
+    @mock.patch('fuel_agent.manager.os', autospec=True)
     def test_mount_target_mtab_is_link(self, mock_os, mock_open, mock_utils,
                                        mock_fu):
         mock_os.path.islink.return_value = True
@@ -692,11 +692,11 @@ class TestManager(unittest2.TestCase):
         mock_os.path.islink.assert_called_once_with('fake_chroot/etc/mtab')
         mock_os.remove.assert_called_once_with('fake_chroot/etc/mtab')
 
-    @mock.patch('fuel_agent.manager.fu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
+    @mock.patch('fuel_agent.manager.fu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.os', create=True)
+    @mock.patch('fuel_agent.manager.os', autospec=True)
     def test_mount_target(self, mock_os, mock_open, mock_utils, mock_fu):
         mock_os.path.islink.return_value = False
         self.mgr.driver._partition_scheme = objects.PartitionScheme()
@@ -747,7 +747,7 @@ none /run/shm tmpfs rw,nosuid,nodev 0 0"""
         mock_os.path.islink.assert_called_once_with('fake_chroot/etc/mtab')
         self.assertFalse(mock_os.remove.called)
 
-    @mock.patch('fuel_agent.manager.fu', create=True)
+    @mock.patch('fuel_agent.manager.fu', autospec=True)
     def test_umount_target(self, mock_fu):
         self.mgr.driver._partition_scheme = objects.PartitionScheme()
         self.mgr.driver.partition_scheme.add_fs(
@@ -802,8 +802,8 @@ class TestImageBuild(unittest2.TestCase):
         }
         self.mgr = manager.Manager(image_conf)
 
-    @mock.patch('fuel_agent.manager.bu', create=True)
-    @mock.patch('fuel_agent.manager.fu', create=True)
+    @mock.patch('fuel_agent.manager.bu', autospec=True)
+    @mock.patch('fuel_agent.manager.fu', autospec=True)
     @mock.patch('fuel_agent.manager.utils', create=True)
     @mock.patch('fuel_agent.manager.os', create=True)
     @mock.patch('fuel_agent.manager.shutil.move')
@@ -955,7 +955,7 @@ class TestImageBuild(unittest2.TestCase):
                 '/tmp/imgdir', pseudo=False)] * 2,
             mock_umount_target.call_args_list)
         self.assertEqual(
-            [mock.call('/dev/loop0'), mock.call('/dev/loop1')] * 2,
+            [mock.call('/dev/loop0'), mock.call('/dev/loop1')],
             mock_bu.deattach_loop.call_args_list)
         self.assertEqual([mock.call('/tmp/img'), mock.call('/tmp/img-boot')],
                          mock_bu.shrink_sparse_file.call_args_list)
@@ -1021,3 +1021,175 @@ class TestImageBuild(unittest2.TestCase):
             }
         ]
         mock_yaml_dump.assert_called_once_with(metadata, stream=mock_open())
+
+    @mock.patch('fuel_agent.manager.bu', autospec=True)
+    @mock.patch('fuel_agent.manager.fu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
+    @mock.patch('fuel_agent.manager.os', autospec=True)
+    @mock.patch('fuel_agent.manager.shutil.move')
+    @mock.patch('fuel_agent.manager.open',
+                create=True, new_callable=mock.mock_open)
+    @mock.patch('fuel_agent.manager.tempfile.mkdtemp')
+    @mock.patch('fuel_agent.manager.yaml.safe_dump')
+    @mock.patch.object(manager.Manager, 'mount_target')
+    @mock.patch.object(manager.Manager, 'umount_target')
+    def test_do_build_image_retries_attach_image_max_attempts_exceeded(
+            self, mock_umount_target, mock_mount_target,
+            mock_yaml_dump, mock_mkdtemp,
+            mock_open, mock_shutil_move, mock_os,
+            mock_utils, mock_fu, mock_bu):
+
+        CONF.max_allowed_attempts_attach_image = 3
+
+        mock_bu.attach_file_to_loop.side_effect = \
+            errors.ProcessExecutionError()
+
+        loops = [objects.Loop(name='loop0'),
+                 objects.Loop(name='loop1'),
+                 objects.Loop(name='loop2')]
+
+        self.mgr.driver._image_scheme = objects.ImageScheme([
+            objects.Image('file:///fake/img.img.gz', loops[0], 'ext4', 'gzip'),
+            objects.Image('file:///fake/img-boot.img.gz',
+                          loops[1], 'ext2', 'gzip'),
+            objects.Image('file:///fake/fake.img.gz',
+                          loops[2], 'ext3', 'gzip')])
+        self.mgr.driver._partition_scheme = objects.PartitionScheme()
+        self.mgr.driver.partition_scheme.add_fs(
+            device=loops[0], mount='/', fs_type='ext4')
+        self.mgr.driver.partition_scheme.add_fs(
+            device=loops[1], mount='/boot', fs_type='ext2')
+        self.mgr.driver.metadata_uri = 'file:///fake/img.yaml'
+        self.mgr.driver._operating_system = objects.Ubuntu(
+            repos=[
+                objects.DEBRepo('ubuntu', 'http://fakeubuntu',
+                                'trusty', 'fakesection', priority=900),
+                objects.DEBRepo('ubuntu_zero', 'http://fakeubuntu_zero',
+                                'trusty', 'fakesection', priority=None),
+                objects.DEBRepo('mos', 'http://fakemos',
+                                'mosX.Y', 'fakesection', priority=1000)],
+            packages=['fakepackage1', 'fakepackage2'])
+        self.mgr.driver.operating_system.minor = 4
+        self.mgr.driver.operating_system.major = 14
+        mock_os.path.exists.return_value = False
+        mock_os.path.join.return_value = '/tmp/imgdir/proc'
+        mock_os.path.basename.side_effect = ['img.img.gz', 'img-boot.img.gz']
+        mock_bu.create_sparse_tmp_file.side_effect = \
+            ['/tmp/img', '/tmp/img-boot', '/tmp/fake-boot']
+        mock_bu.get_free_loop_device.side_effect = [
+            '/dev/loop0', '/dev/loop1', '/dev/loop2', '/dev/loop3']
+        mock_mkdtemp.return_value = '/tmp/imgdir'
+        getsize_side = [20, 2, 10, 1]
+        mock_os.path.getsize.side_effect = getsize_side
+        md5_side = ['fakemd5_raw', 'fakemd5_gzip',
+                    'fakemd5_raw_boot', 'fakemd5_gzip_boot']
+        mock_utils.calculate_md5.side_effect = md5_side
+        mock_bu.containerize.side_effect = ['/tmp/img.gz', '/tmp/img-boot.gz']
+        mock_bu.stop_chrooted_processes.side_effect = [
+            False, True, False, True]
+
+        with self.assertRaises(errors.NoFreeLoopDevices):
+            self.mgr.do_build_image()
+
+        self.assertEqual(mock_bu.attach_file_to_loop.call_count, 3)
+        self.assertFalse(mock_fu.make_fs.called)
+
+    @mock.patch('fuel_agent.manager.bu', autospec=True)
+    @mock.patch('fuel_agent.manager.fu', autospec=True)
+    @mock.patch('fuel_agent.manager.utils', autospec=True)
+    @mock.patch('fuel_agent.manager.os', autospec=True)
+    @mock.patch('fuel_agent.manager.shutil.move')
+    @mock.patch('fuel_agent.manager.open',
+                create=True, new_callable=mock.mock_open)
+    @mock.patch('fuel_agent.manager.tempfile.mkdtemp')
+    @mock.patch('fuel_agent.manager.yaml.safe_dump')
+    @mock.patch.object(manager.Manager, 'mount_target')
+    @mock.patch.object(manager.Manager, 'umount_target')
+    def test_do_build_image_retries_attach_image(
+            self, mock_umount_target, mock_mount_target,
+            mock_yaml_dump, mock_mkdtemp,
+            mock_open, mock_shutil_move, mock_os,
+            mock_utils, mock_fu, mock_bu):
+
+        CONF.max_allowed_attempts_attach_image = 3
+
+        mock_bu.attach_file_to_loop.side_effect = \
+            [errors.ProcessExecutionError(),
+             errors.ProcessExecutionError(),
+             True] * 3
+
+        loops = [
+            objects.Loop(name='loop{0}'.format(n)) for n in range(0, 20)]
+
+        self.mgr.driver._image_scheme = objects.ImageScheme([
+            objects.Image('file:///fake/img.img.gz', loops[0], 'ext4', 'gzip'),
+            objects.Image('file:///fake/img-boot.img.gz',
+                          loops[1], 'ext2', 'gzip'),
+            objects.Image('file:///fake/fake.img.gz',
+                          loops[2], 'ext3', 'gzip')])
+        self.mgr.driver._partition_scheme = objects.PartitionScheme()
+        for n in range(0, 20):
+            self.mgr.driver.partition_scheme.add_fs(
+                device=loops[n], mount='/dev/mnt{0}'.format(n), fs_type='ext3')
+        self.mgr.driver.metadata_uri = 'file:///fake/img.yaml'
+        self.mgr.driver._operating_system = objects.Ubuntu(
+            repos=[
+                objects.DEBRepo('ubuntu', 'http://fakeubuntu',
+                                'trusty', 'fakesection', priority=900),
+                objects.DEBRepo('ubuntu_zero', 'http://fakeubuntu_zero',
+                                'trusty', 'fakesection', priority=None),
+                objects.DEBRepo('mos', 'http://fakemos',
+                                'mosX.Y', 'fakesection', priority=1000)],
+            packages=['fakepackage1', 'fakepackage2'])
+        self.mgr.driver.operating_system.minor = 4
+        self.mgr.driver.operating_system.major = 14
+        mock_os.path.exists.return_value = False
+        mock_os.path.join.return_value = '/tmp/imgdir/proc'
+        mock_os.path.basename.side_effect = [
+            'img.img.gz', 'img-boot.img.gz', 'fake.img.gz']
+        mock_bu.create_sparse_tmp_file.side_effect = \
+            ['/tmp/img', '/tmp/img-boot', '/tmp/fake-boot']
+        mock_bu.get_free_loop_device.side_effect = [
+            '/dev/loop0', '/dev/loop1', '/dev/loop2', '/dev/loop3']
+        mock_bu.get_free_loop_device.side_effect = [
+            '/dev/loop{0}'.format(n) for n in range(0, 20)]
+        mock_mkdtemp.return_value = '/tmp/imgdir'
+        import random
+        getsize_side = [random.randint(0, 20) for i in range(0, 40)]
+        mock_os.path.getsize.side_effect = getsize_side
+        md5_side = ['fakemd5_raw', 'fakemd5_gzip',
+                    'fakemd5_raw_boot', 'fakemd5_gzip_boot']
+        md5_side = [
+            'fake_md5_raw{0}'.format(random.random()) for i in range(0, 40)
+        ]
+        mock_utils.calculate_md5.side_effect = md5_side
+        containerize_side_effect = [
+            '/tmp/{0}.gz'.format(n) for i in range(0, 40)]
+        mock_bu.containerize.side_effect = containerize_side_effect
+        mock_bu.stop_chrooted_processes.side_effect = [
+            False, True, False, True]
+
+        self.mgr.do_build_image()
+
+        self.assertEqual(
+            [mock.call(loop_device_major_number=CONF.loop_device_major_number,
+                       max_loop_devices_count=CONF.max_loop_devices_count),
+             ] * 9,
+            mock_bu.get_free_loop_device.call_args_list)
+        self.assertEqual([mock.call('/tmp/img', '/dev/loop0'),
+                          mock.call('/tmp/img', '/dev/loop1'),
+                          mock.call('/tmp/img', '/dev/loop2'),
+                          mock.call('/tmp/img-boot', '/dev/loop3'),
+                          mock.call('/tmp/img-boot', '/dev/loop4'),
+                          mock.call('/tmp/img-boot', '/dev/loop5'),
+                          mock.call('/tmp/fake-boot', '/dev/loop6'),
+                          mock.call('/tmp/fake-boot', '/dev/loop7'),
+                          mock.call('/tmp/fake-boot', '/dev/loop8')],
+                         mock_bu.attach_file_to_loop.call_args_list)
+        make_fs_calls = []
+        for fs in self.mgr.driver.partition_scheme.fss:
+            if str(fs.device) in ['/dev/loop2', '/dev/loop5', '/dev/loop8']:
+                make_fs_calls.append(
+                    mock.call(fs_type=fs.type, fs_options=fs.options,
+                              fs_label=fs.label, dev=str(fs.device)))
+        self.assertEqual(make_fs_calls, mock_fu.make_fs.call_args_list)
