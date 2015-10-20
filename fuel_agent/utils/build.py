@@ -455,3 +455,43 @@ def containerize(filename, container, chunk_size=1048576):
     raise errors.WrongImageDataError(
         'Error while image initialization: '
         'unsupported image container: {container}'.format(container=container))
+
+
+def attach_file_to_loop_device(filename, max_loop_devices_count,
+                               loop_device_major_number, max_attempts):
+    """Find free loop device and try to attach `filename` to it.
+
+    If attaching fails then retry again. Max allowed attempts is
+    `max_attempts`.
+
+    Returns loop device to which file is attached. Otherwise, raises
+    errors.NoFreeLoopDevices.
+    """
+    loop_device = None
+    for i in range(0, max_attempts):
+        try:
+            LOG.debug('Looking for a free loop device')
+            loop_device = get_free_loop_device(
+                loop_device_major_number=loop_device_major_number,
+                max_loop_devices_count=max_loop_devices_count)
+
+            LOG.debug('Attaching temporary image file to free loop device')
+            utils.execute('losetup', loop_device, filename)
+            break
+        except errors.ProcessExecutionError:
+            log_msg = ("Couldn't attach temporary image file "
+                       "to loop device '{0}'.")
+            LOG.debug(log_msg.format(loop_device))
+
+            if i == max_attempts - 1:
+                log_msg = ("Maximum allowed attempts ({0}) to attach image "
+                           "file to loop device '{1}' is exceeded.")
+                LOG.debug(log_msg.format(max_attempts, loop_device))
+                raise errors.NoFreeLoopDevices('Free loop device not found.')
+            else:
+                log_msg = ("Trying again to attach image file "
+                           "to free loop device '{0}'. "
+                           "Attempt #{1} out of {2}")
+                LOG.debug(log_msg.format(loop_device, i + 1, max_attempts))
+
+    return loop_device
