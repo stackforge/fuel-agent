@@ -89,6 +89,11 @@ opts = [
         help='Maximum allowed loop devices count to use'
     ),
     cfg.IntOpt(
+        'max_allowed_attempts_attach_image',
+        default=10,
+        help='Maximum allowed attempts to attach image file to loop device'
+    ),
+    cfg.IntOpt(
         'sparse_file_size',
         # XXX: Apparently Fuel configures the node root filesystem to span
         # the whole hard drive. However 2 GB filesystem created with default
@@ -608,13 +613,35 @@ class Manager(object):
                 # to be able to shrink them and move in the end
                 image.img_tmp_file = img_tmp_file
 
-                LOG.debug('Looking for a free loop device')
-                image.target_device.name = bu.get_free_loop_device(
-                    loop_device_major_number=CONF.loop_device_major_number,
-                    max_loop_devices_count=CONF.max_loop_devices_count)
+                for i in range(0, CONF.max_allowed_attempts_attach_image):
+                    try:
+                        LOG.debug('Looking for a free loop device')
+                        # loop device major number
+                        ld_major_number = CONF.loop_device_major_number
+                        image.target_device.name = bu.get_free_loop_device(
+                            loop_device_major_number=ld_major_number,
+                            max_loop_devices_count=CONF.max_loop_devices_count)
 
-                LOG.debug('Attaching temporary image file to free loop device')
-                bu.attach_file_to_loop(img_tmp_file, str(image.target_device))
+                        LOG.debug('Attaching temporary image '
+                                  'file to free loop device')
+                        bu.attach_file_to_loop(img_tmp_file,
+                                               str(image.target_device))
+                        break
+                    except errors.ProcessExecutionError:
+                        LOG.debug(
+                            "Couldn't attach temporary image file to free "
+                            "loop device.")
+                        if i == CONF.max_allowed_attempts_attach_image - 1:
+                            LOG.debug(
+                                "Maximum attempts to attach image file "
+                                "to loop device is exceeded.")
+                            raise
+                        else:
+                            LOG.debug(
+                                "Trying again to attach image file to free "
+                                "loop device. Attempt #%s out of %s".format(
+                                    i + 1,
+                                    CONF.max_allowed_attempts_attach_image))
 
                 # find fs with the same loop device object
                 # as image.target_device
