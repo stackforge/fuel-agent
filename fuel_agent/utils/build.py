@@ -237,28 +237,6 @@ def stop_chrooted_processes(chroot, signal=sig.SIGTERM,
     return True
 
 
-def get_free_loop_device(loop_device_major_number=7,
-                         max_loop_devices_count=255):
-    """Returns the name of free loop device.
-
-    It should return the name of free loop device or raise an exception.
-    Unfortunately, free loop device couldn't be reversed for the later usage,
-    so we must start to use it as fast as we can.
-    If there's no free loop it will try to create new one and ask a system for
-    free loop again.
-    """
-    for minor in range(0, max_loop_devices_count):
-        cur_loop = "/dev/loop%s" % minor
-        if not os.path.exists(cur_loop):
-            os.mknod(cur_loop, 0o660 | stat.S_IFBLK,
-                     os.makedev(loop_device_major_number, minor))
-        try:
-            return utils.execute('losetup', '--find')[0].split()[0]
-        except (IndexError, errors.ProcessExecutionError):
-            LOG.debug("Couldn't find free loop device, trying again")
-    raise errors.NoFreeLoopDevices('Free loop device not found')
-
-
 def populate_basic_dev(chroot):
     """Populates /dev with basic files, links, device nodes."""
     # prevent failures related with /dev/fd/62
@@ -276,10 +254,6 @@ def create_sparse_tmp_file(dir, suffix, size=8192):
     tf = tempfile.NamedTemporaryFile(dir=dir, suffix=suffix, delete=False)
     utils.execute('truncate', '-s', '%sM' % size, tf.name)
     return tf.name
-
-
-def attach_file_to_loop(filename, loop):
-    utils.execute('losetup', loop, filename)
 
 
 def deattach_loop(loop, check_exit_code=[0]):

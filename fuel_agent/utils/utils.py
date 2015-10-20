@@ -17,6 +17,7 @@ import hashlib
 import locale
 import math
 import os
+import stat
 import re
 import shlex
 import socket
@@ -364,3 +365,69 @@ def get_interface_ip(mac_addr):
             match = ip_pattern.search(ip_line)
             if match:
                 return match.group(1)
+
+
+def get_free_loop_device(loop_device_major_number=7,
+                         max_loop_devices_count=255):
+    """Returns the name of free loop device.
+
+    It should return the name of free loop device or raise an exception.
+    Unfortunately, free loop device couldn't be reversed for the later usage,
+    so we must start to use it as fast as we can.
+    If there's no free loop it will try to create new one and ask a system for
+    free loop again.
+    """
+    for minor in range(0, max_loop_devices_count):
+        cur_loop = "/dev/loop%s" % minor
+        if not os.path.exists(cur_loop):
+            os.mknod(cur_loop, 0o660 | stat.S_IFBLK,
+                     os.makedev(loop_device_major_number, minor))
+        try:
+            return execute('losetup', '--find')[0].split()[0]
+        except (IndexError, errors.ProcessExecutionError):
+            LOG.debug("Couldn't find free loop device, trying again")
+    raise errors.NoFreeLoopDevices('Free loop device not found')
+
+
+def attach_file_to_free_loop_device(img_tmp_file, CONF):
+    """Find free loop device and try to attach `img_tmp_file` to it.
+
+    If attaching fails then retry again. Max allowed attempts are
+    defined in `CONF.max_allowed_attempts_attach_image`.
+
+    Return free loop device which was found and to which file is
+    attached.
+    """
+    free_loop_device = None
+    for i in range(0, CONF.max_allowed_attempts_attach_image):
+        try:
+            LOG.debug('Looking for a free loop device')
+            free_loop_device = get_free_loop_device(
+                loop_device_major_number=CONF.loop_device_major_number,
+                max_loop_devices_count=CONF.max_loop_devices_count)
+
+            LOG.debug('Attaching temporary image '
+                      'file to free loop device')
+            execute('losetup', free_loop_device, img_tmp_file)
+            break
+        except errors.ProcessExecutionError:
+            log_msg = ("Couldn't attach temporary image file "
+                       "to loop device '{0}'.")
+            LOG.debug(log_msg.format(free_loop_device))
+
+            if i == CONF.max_allowed_attempts_attach_image - 1:
+                log_msg = ("Maximum attempts to attach image file "
+                           "to loop device '{0}' is exceeded.")
+                LOG.debug(log_msg.format(free_loop_device))
+                raise errors.NoFreeLoopDevices(
+                    'Free loop device not found.')
+            else:
+                log_msg = ("Trying again to attach image file "
+                           "to free loop device '{0}'. "
+                           "Attempt #{1} out of {2}")
+                LOG.debug(
+                    log_msg.format(
+                        free_loop_device,
+                        i + 1,
+                        CONF.max_allowed_attempts_attach_image))
+    return free_loop_device
