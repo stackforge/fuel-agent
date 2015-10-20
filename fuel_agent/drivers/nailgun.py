@@ -15,6 +15,7 @@
 import itertools
 import math
 import os
+import uuid
 
 from oslo_config import cfg
 import six
@@ -724,7 +725,6 @@ class NailgunBuildImage(BaseDataDriver):
         return os
 
     def parse_schemes(self):
-
         for mount, image in six.iteritems(self.data['image_data']):
             filename = os.path.basename(urlsplit(image['uri']).path)
             # Loop does not allocate any loop device
@@ -746,3 +746,58 @@ class NailgunBuildImage(BaseDataDriver):
                 metadata_filename = filename.split('.', 1)[0] + '.yaml'
                 self.metadata_uri = 'file://' + os.path.join(
                     self.data['output'], metadata_filename)
+
+
+class NailgunMkBootstrap(NailgunBuildImage):
+
+    # Packages required for the master node to discover a bootstrap node
+    BOOTSTRAP_PACKAGES = [
+        "openssh-client",
+        "openssh-server",
+        "ntp",
+        "mcollective",
+        "nailgun-agent",
+        "nailgun-mcagents",
+        "nailgun-net-check",
+        "fuel-agent",
+        "wget",
+        "biosdevname"
+    ]
+
+    def __init__(self, data):
+        super(NailgunBuildImage, self).__init__(data)
+        self._image_scheme = objects.ImageScheme()
+        self._partition_scheme = objects.PartitionScheme()
+        self.parse_schemes()
+
+        self._operating_system = self.parse_operating_system()
+
+    def parse_schemes(self):
+        # Check for predetermined uuid
+        if 'uuid' not in self.data:
+            self.data['uuid'] = str(uuid.uuid4())
+            (LOG.info('Cannot find predetermined UUID, so new generated UUID: '
+                      '%s' % self.data['uuid']))
+        # Currently we can use only one build scheme, so
+        # just append input data.
+        m_kernel = {'format': '',
+                    'uri': 'http://127.0.0.1:8080/bootstraps/%s_%s/linux' %
+                    (self.data['codename'], self.data['uuid'])}
+        m_initramfs = {'compress_format': 'xz',
+                       'uri': 'http://127.0.0.1:8080/bootstraps/%s_%s/'
+                              'initramfs.img' % (self.data['codename'],
+                                                 self.data['uuid'])}
+        m_rootfs = {'compress_format': 'xz',
+                    'uri': 'http://127.0.0.1:8080/bootstraps/%s_%s/'
+                           'root.squashfs' % (self.data['codename'],
+                                              self.data['uuid'])}
+        self.data['bootstrap_modules'] = [m_kernel, m_initramfs, m_rootfs]
+        # Actually, we need only / system for build.
+        # so lets create it with existed funcs:
+        self.data['image_data'] = {
+            "/": {'uri': 'http://127.0.0.1:8080/bootstraps/%s_%s/root.squashfs'
+                         % (self.data['codename'], self.data['uuid']),
+                  'format': 'ext4',
+                  'container': 'gzip'}}
+
+        super(NailgunMkBootstrap, self).parse_schemes()
