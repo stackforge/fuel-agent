@@ -17,6 +17,7 @@ import hashlib
 import locale
 import math
 import os
+import stat
 import re
 import shlex
 import socket
