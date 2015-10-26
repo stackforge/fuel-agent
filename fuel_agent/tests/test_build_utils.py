@@ -187,10 +187,14 @@ class BuildUtilsTestCase(unittest2.TestCase):
                       'ZTusOewFnG6couuF0Ia61yS3rbC6P5YbZP2TYclwHqMq9e3Tg8rvQx'
                       'hxSlBXP1DZhdUamxdOBXK0.%', 'fake_path'),
             mock.call('chroot', 'chroot', 'update-rc.d', 'puppet', 'disable'),
+            mock.call('chroot', 'chroot', 'dpkg-divert', '--local', '--add',
+                      bu.GRUB2_DMRAID_SETTINGS),
             mock.call('chroot', 'chroot', 'apt-get', 'clean')]
 
         self.assertEqual(mock_exec_expected_calls, mock_exec.call_args_list)
-        mock_files.assert_called_once_with('chroot', ['usr/sbin/policy-rc.d'])
+        self.assertEqual([mock.call('chroot', ['usr/sbin/policy-rc.d']),
+                          mock.call('chroot', [bu.GRUB2_DMRAID_SETTINGS])],
+                         mock_files.call_args_list)
         mock_clean.assert_called_once_with('chroot',
                                            allow_unsigned_file='fake_unsigned',
                                            force_ipv4_file='fake_force_ipv4')
