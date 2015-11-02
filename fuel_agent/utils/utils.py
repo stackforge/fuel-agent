@@ -85,6 +85,7 @@ def execute(*cmd, **kwargs):
     ignore_exit_code = False
     to_filename = kwargs.get('to_filename')
     cwd = kwargs.get('cwd')
+    logged = kwargs.pop('logged', False)
 
     if isinstance(check_exit_code, bool):
         ignore_exit_code = not check_exit_code
@@ -105,7 +106,6 @@ def execute(*cmd, **kwargs):
                     # unicode. We have to convert to ascii before shlex'ing
                     # the command. http://bugs.python.org/issue6988
                     encoded_command = c.encode('ascii') if six.PY2 else c
-
                     process.append(subprocess.Popen(
                         shlex.split(encoded_command),
                         env=env,
@@ -128,6 +128,9 @@ def execute(*cmd, **kwargs):
                     raise errors.ProcessExecutionError(
                         exit_code=process[-1].returncode, stdout=stdout,
                         stderr=stderr, cmd=command)
+            if logged:
+                LOG.debug('Extended log: \nstdout:{0}\nstderr:{1}'.
+                          format(stdout, stderr))
             return (stdout, stderr)
         except errors.ProcessExecutionError as e:
             LOG.warning('Failed to execute command: %s', e)

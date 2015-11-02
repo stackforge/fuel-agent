@@ -809,12 +809,13 @@ class TestImageBuild(unittest2.TestCase):
     @mock.patch('fuel_agent.manager.shutil.move')
     @mock.patch('fuel_agent.manager.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.tempfile.mkdtemp')
+    #@mock.patch('fuel_agent.manager.tempfile.mkdtemp')
+    @mock.patch('fuel_agent.manager.bu.create_temp_chroot_directory')
     @mock.patch('fuel_agent.manager.yaml.safe_dump')
     @mock.patch.object(manager.Manager, 'mount_target')
     @mock.patch.object(manager.Manager, 'umount_target')
     def test_do_build_image(self, mock_umount_target, mock_mount_target,
-                            mock_yaml_dump, mock_mkdtemp,
+                            mock_yaml_dump, mock_create_temp_chroot_directory,
                             mock_open, mock_shutil_move, mock_os,
                             mock_utils, mock_fu, mock_bu):
 
@@ -848,7 +849,7 @@ class TestImageBuild(unittest2.TestCase):
             ['/tmp/img', '/tmp/img-boot']
         mock_bu.attach_file_to_free_loop_device.side_effect = [
             '/dev/loop0', '/dev/loop1']
-        mock_mkdtemp.return_value = '/tmp/imgdir'
+        mock_create_temp_chroot_directory.return_value = '/tmp/imgdir'
         getsize_side = [20, 2, 10, 1]
         mock_os.path.getsize.side_effect = getsize_side
         md5_side = ['fakemd5_raw', 'fakemd5_gzip',
@@ -885,8 +886,10 @@ class TestImageBuild(unittest2.TestCase):
                           mock.call(fs_type='ext2', fs_options='',
                                     fs_label='', dev='/dev/loop1')],
                          mock_fu.make_fs.call_args_list)
-        mock_mkdtemp.assert_called_once_with(dir=CONF.image_build_dir,
-                                             suffix=CONF.image_build_suffix)
+        # mock_mkdtemp.assert_called_once_with(dir=CONF.image_build_dir,
+        #                                      suffix=CONF.image_build_suffix)
+        mock_create_temp_chroot_directory.assert_called_once_with(
+            dir=CONF.image_build_dir, suffix=CONF.image_build_suffix)
         mock_mount_target.assert_called_once_with(
             '/tmp/imgdir', treat_mtab=False, pseudo=False)
         self.assertEqual([mock.call('/tmp/imgdir')] * 2,
