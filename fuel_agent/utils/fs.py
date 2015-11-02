@@ -51,17 +51,24 @@ def extend_fs(fs_type, fs_dev):
         raise errors.FsUtilsError('Unsupported file system type')
 
 
-def mount_fs(fs_type, fs_dev, fs_mount):
-    utils.execute('mount', '-t', fs_type, fs_dev, fs_mount,
+def mount_fs(fs_type, fs_dev, fs_mount, opts=None):
+    # ugly cover None inputs
+    fs_type = '-t {0}'.format(fs_type) if fs_type != None else ' '
+    opts = '-o {0}'.format(opts) if opts != None else ' '
+    fs_dev = fs_dev if fs_dev != None else ' '
+
+    utils.execute('mount', fs_type, opts, fs_dev, fs_mount,
                   check_exit_code=[0])
 
+def mount_pfd(fs_dev, fs_mount):
+    utils.execute('mount', '-p', fs_dev, fs_mount,
+                  check_exit_code=[0])
 
 def mount_bind(chroot, path, path2=None):
     if not path2:
         path2 = path
     utils.execute('mount', '--bind', path, chroot + path2,
                   check_exit_code=[0])
-
 
 def umount_fs(fs_mount, try_lazy_umount=False):
     try:
