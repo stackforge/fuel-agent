@@ -18,16 +18,20 @@ import re
 import shutil
 import signal as sig
 import stat
+import tarfile
 import tempfile
 import time
 
+import signal
 import six
 import yaml
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
+from fuel_agent.utils import fs as fu
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
+
 
 LOG = logging.getLogger(__name__)
 
@@ -145,7 +149,7 @@ def clean_apt_settings(chroot, allow_unsigned_file='allow_unsigned_packages',
 
 
 def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
-                 force_ipv4_file='force_ipv4'):
+                 force_ipv4_file='force_ipv4', fix_puppet=True):
     # NOTE(agordeev): set up password for root
     utils.execute('sed', '-i',
                   's%root:[\*,\!]%root:' + ROOT_PASSWORD + '%',
@@ -155,9 +159,10 @@ def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
     # should be disabled on a node startup.
     # Being enabled by default, sometimes it leads to puppet service hanging
     # and recognizing the deployment as failed.
-    # TODO(agordeev): take care of puppet service for other distros, once
-    # fuel-agent will be capable of building images for them too.
-    utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
+    if fix_puppet:
+        # TODO(agordeev): take care of puppet service for other distros, once
+        # fuel-agent will be capable of building images for them too.
+        utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
     # NOTE(agordeev): disable mcollective to be automatically started on boot
     # to prevent confusing messages in its log (regarding connection errors).
     with open(os.path.join(chroot, 'etc/init/mcollective.override'), 'w') as f:
@@ -497,3 +502,167 @@ def attach_file_to_free_loop_device(filename, max_loop_devices_count=255,
                                          i + 1, max_attempts))
 
     return loop_device
+
+
+def folder_to_tar_gz(d_input, d_output, name):
+    f_name = name + '.tgz'
+    o_file = os.path.join(os.path.normpath(d_output), f_name)
+    LOG.info('Creating archive: %s', o_file)
+    try:
+        os.chdir(d_input)
+        tar = tarfile.open(o_file, "w:gz")
+        for i in os.listdir(os.path.normpath(d_input)):
+            LOG.info('Adding %s into archive..', os.path.join(d_input, i))
+            tar.add(os.path.join(d_input, i), recursive=False, arcname=i)
+        tar.close()
+        LOG.info('Creating archive finished: %s', o_file)
+    except Exception as exc:
+        LOG.error('Failed to create archive: %s', exc)
+        raise
+    return o_file
+
+
+def run_script_in_chroot(chroot, script):
+
+    LOG.info('Copy user-script {0} into chroot:{1}'.format(script, chroot))
+
+    utils.execute('cp', '-r', script, chroot + '/')
+
+    LOG.info('Make user-script {0} executable:'.format(script))
+    utils.execute('chmod', '0755', chroot + '/' + os.path.basename(script))
+
+    stdout, stderr = utils.execute(
+        'chroot', chroot, '/bin/bash', '-c', '/' + os.path.basename(script))
+    LOG.debug('Running user-script completed: \nstdout: {0}\nstderr: {1}'.
+              format(stdout, stderr))
+
+
+def recompress_initramfs(chroot, compress):
+
+    LOG.info('Change initramfs compression type to:{0}'.format(compress))
+    utils.execute(
+        'sed', '-i', 's/COMPRESS\s*=\s*gzip/COMPRESS={0}/'.format(compress),
+        os.path.join(chroot, 'etc/initramfs-tools/initramfs.conf'))
+
+    stdout, stderr = utils.execute(
+        'find', os.path.join(chroot, 'boot/'), '-iname', '"initrd*"',
+        '-exec', 'rm', '-vf', '{} \;')
+
+    LOG.info('Removing old initramfs completed: \nstdout:{0}'
+             '\nstderr:{1}'.format(stdout, stderr))
+
+    cmds = ['chroot', chroot, 'bash -c "''export TMPDIR=/tmp;',
+            'export TMP=/tmp;', 'update-initramfs -v -c -k all "']
+
+    stdout, stderr = utils.execute(*cmds)
+    LOG.debug('Running "update-initramfs" completed.\nstdout: '
+              '%s\nstderr: %s', stdout, stderr)
+
+
+def propagate_host_resolv_conf(chroot):
+    """Backup hosts/resolv files in chroot
+
+    i have no idea why we need this hack :( "
+    opposite to restore_resolv_conf
+    """
+    c_etc = os.path.join(chroot, '/etc/')
+
+    utils.makedirs_if_not_exists(c_etc)
+    for conf in 'resolv.conf' 'hosts':
+        if os.path.isfile(c_etc + conf):
+            LOG.info('Disabling default {0} inside chroot'.format(conf))
+            utils.execute('cp', '-va', c_etc + conf, c_etc + conf + '.bup',
+                          logged=True)
+
+
+def restore_resolv_conf(chroot):
+    " restore hosts/resolv files in chroot "
+    # opposite to propagate_host_resolv_conf
+
+    c_etc = os.path.join(chroot, '/etc/')
+    utils.makedirs_if_not_exists(c_etc)
+    for conf in 'resolv.conf' 'hosts':
+        if os.path.isfile(c_etc + conf + '.bup'):
+            LOG.info('Restoring default {0} inside chroot'.format(conf))
+            utils.execute(
+                'mv', '-vfa', c_etc + conf + '.bup', c_etc + conf, logged=True)
+
+
+def populate_squashfs(chroot, compress, dstdir):
+    """Create squashfs
+
+    1)Mount tmpfs under chroot/mnt
+    2)run mksquashfs inside a chroot
+    3)move result files to dstdir
+
+    :return:
+    """
+    # TODO(azvyagintsev) fetch from uri driver
+    files = {'squashfs': 'root.squashfs',
+             'kernel': 'vmlinuz',
+             'initrd': 'initrd.img'
+             }
+    temp = 'squashfs_tmp'
+
+    s_dst = (os.path.join(chroot, 'mnt/dst/'))
+    s_src = (os.path.join(chroot, 'mnt/src/'))
+    try:
+        utils.execute(
+            'find', os.path.join(chroot, 'boot/'),
+            '-maxdepth 1', '-type', 'f', '\( -iname', '"initrd*"', '-o -iname',
+            '"vmlinuz*" \)', '-exec sh -c',
+            '\'cp -va {{}} {0}/`basename {{}}`.{1}\' \;'.format(
+                os.path.normcase(dstdir), temp), logged=True)
+
+        utils.execute(
+            'find', os.path.join(chroot, 'boot/'),
+            '-maxdepth 1', '-type', 'f', '\( -iname', '"initrd*"',
+            '-o -iname', '"vmlinuz*" \)', '-exec', 'rm -vf {} \;', logged=True)
+
+        fu.mount_fs(
+            'tmpfs', 'mnt_{0}'.format(temp),
+            (os.path.join(chroot, 'mnt/'.format(temp))),
+            'rw,nodev,nosuid,noatime,mode=0755,size=4M')
+
+        utils.makedirs_if_not_exists(s_src)
+        utils.makedirs_if_not_exists(s_dst)
+        fu.mount_bind(s_src, chroot, ' ')
+
+        fu.mount_fs(None, None, s_src, 'remount,bind,ro')
+        fu.mount_bind(s_dst, dstdir, ' ')
+        utils.execute(
+            'chroot', chroot, 'mksquashfs', '/mnt/src',
+            '/mnt/dst/{0}.{1}'.format(files['squashfs'], temp),
+            '-comp {0} -no-progress -noappend'.format(compress), logged=True)
+        # move to result names
+        for file in files.keys():
+            utils.execute(
+                'find', s_dst, '-maxdepth 1', '-type', 'f',
+                '-iname "{0}*"'.format(files[file]), '-exec', 'sh', '-c',
+                '" mv -v {{}} {0}/{1} " \;'.format(os.path.normcase(dstdir),
+                                                   files[file]), logged=True)
+
+    except Exception as exc:
+        LOG.error('squashfs_image build failed: %s', exc)
+        raise
+    finally:
+        LOG.info('squashfs_image clean-up')
+        stop_chrooted_processes(chroot, signal=signal.SIGTERM)
+        fu.umount_fs(os.path.join(chroot, 'mnt/dst/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/src/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/'))
+
+
+def dpkg_list(chroot):
+    """return simple dpkg list"""
+    stdout, stderr = utils.execute('chroot', chroot, 'dpkg-query',
+                                   '-W -f=\'${Package} ${Version}\\t\' ')
+    # split, output will be = package - version
+    p_list = stdout.split('\t')
+    # remove last empty ''
+    p_list.pop()
+
+    p_dict = {}
+    for item in p_list:
+        p_dict[item.split(' ')[0]] = item.split(' ')[1]
+    return p_dict
