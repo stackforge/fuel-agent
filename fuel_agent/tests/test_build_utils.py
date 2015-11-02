@@ -42,7 +42,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
         bu.run_debootstrap('uri', 'suite', 'chroot', 'arch', attempts=2)
         mock_exec.assert_called_once_with('debootstrap', '--verbose',
                                           '--no-check-gpg', '--arch=arch',
-                                          'suite', 'chroot', 'uri', attempts=2)
+                                          'suite', 'chroot', 'uri', attempts=2,
+                                          env_variables={})
 
     @mock.patch.object(utils, 'execute', return_value=(None, None))
     def test_run_debootstrap_eatmydata(self, mock_exec):
@@ -51,7 +52,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
         mock_exec.assert_called_once_with('debootstrap', '--verbose',
                                           '--no-check-gpg', '--arch=arch',
                                           '--include=eatmydata', 'suite',
-                                          'chroot', 'uri', attempts=2)
+                                          'chroot', 'uri', attempts=2,
+                                          env_variables={})
 
     @mock.patch.object(utils, 'execute', return_value=(None, None))
     def test_run_apt_get(self, mock_exec):
