@@ -16,6 +16,7 @@ from io import open
 import os
 import shutil
 import signal
+import tempfile
 
 from oslo_config import cfg
 import six
@@ -732,6 +733,118 @@ class Manager(object):
         self.do_bootloader()
         LOG.debug('--- Provisioning END (do_provisioning) ---')
 
+    def do_mkbootstrap(self):
+        """Building bootstrap image
+
+        Currently supports only Ubuntu-Trusty
+        Includes the following steps
+        1) Allocate and configure debootstrap.
+        2) Install packages
+        3) Run user-post script(is defined)
+        4) populate squashfs\init\vmlinuz files
+        5) create metadata.yaml and pack thats all into tar.gz
+        """
+
+        LOG.info('--- Building bootstrap image (do_mkbootstrap) ---')
+
+        try:
+            chroot = bu.mkdtemp_smart(
+                CONF.image_build_dir, CONF.image_build_suffix)
+            self.install_base_os(chroot)
+
+            # c_dir = output container directory, where all builded files will
+            # be stored, before packaging into archive
+            c_dir = tempfile.mkdtemp(
+                dir=CONF.image_build_dir,
+                suffix=CONF.image_build_suffix + '_container')
+            LOG.debug('Temporary container folder: {0}'.format(c_dir))
+
+            metadata = {}
+            metadata['os'] = self.driver.operating_system.to_dict()
+
+            packages = self.driver.operating_system.packages
+            metadata['packages'] = packages
+            self._set_apt_repos(chroot, self.driver.operating_system.repos)
+            self._update_metadata_with_repos(
+                metadata, self.driver.operating_system.repos)
+            LOG.debug('Installing packages using apt-get: %s',
+                      ' '.join(packages))
+            # disable hosts/resolv files
+            bu.propagate_host_resolv_conf(chroot)
+            bu.run_apt_get(chroot, packages=packages,
+                           attempts=CONF.fetch_packages_attempts)
+
+            LOG.debug('Post-install OS configuration')
+            # Allow user to drop and run script inside chroot:
+            if 'post_script_file' in self.driver.data:
+                bu.run_script_in_chroot(
+                    chroot, self.driver.data['post_script_file'])
+
+            bu.do_post_inst(chroot,
+                            allow_unsigned_file=CONF.allow_unsigned_file,
+                            force_ipv4_file=CONF.force_ipv4_file)
+
+            # restore disabled hosts/resolv files
+            bu.restore_resolv_conf(chroot)
+
+            # Hard clean-up
+#            clean_dirs = ['var/cache/apt/archives/',
+#                          'tmp/']
+#            bu.clean_dirs(os.path.join(chroot, clean_dirs))
+
+            metadata['all_packages'] = bu.dpkg_list(chroot)
+            # We need to recompress initramfs with new compression:
+            bu.recompress_initramfs(
+                chroot, self.driver.data['bootstrap_modules']['m_initrd']
+                ['compress_format'])
+
+            LOG.debug('Creating bootstrap container')
+            utils.makedirs_if_not_exists(CONF.image_build_dir)
+            bu.run_mksquashfs(
+                chroot, c_dir, self.driver.data['bootstrap_modules']
+                ['m_rootfs']['compress_format'])
+
+            LOG.debug('Making sure there are no running processes '
+                      'inside chroot before trying to umount chroot')
+            if not bu.stop_chrooted_processes(chroot, signal=signal.SIGTERM):
+                if not bu.stop_chrooted_processes(
+                        chroot, signal=signal.SIGKILL):
+                    raise errors.UnexpectedProcessError(
+                        'Stopping chrooted processes failed. '
+                        'There are some processes running in chroot %s',
+                        chroot)
+
+            # finally, lets do output arch!
+
+            # Copy data from driver to metadata:
+            metadata['bootstrap_modules'] = \
+                self.driver.data['bootstrap_modules']
+            metadata['uuid'] = self.driver.data['uuid']
+            metadata['extend_kopts'] = self.driver.data['extend_kopts']
+            metadata['raw_repos'] = self.driver.data['repos']
+            metadata['meta_file'] = self.driver.data['meta_file']
+
+            bu.dump_mkbootstrap_yaml(metadata, c_dir)
+            arch_file = bu.folder_to_archive(c_dir,
+                                             self.driver.data['output'],
+                                             self.driver.data['uuid'],
+                                             self.driver.date['container'])
+
+            LOG.debug('Output archive file : {0}'.format(arch_file))
+            LOG.info('--- Building bootstrap image END (do_mkbootstrap) ---')
+            return arch_file
+        except Exception as exc:
+            LOG.error('Failed to bootstrap image: %s', exc)
+            raise
+        finally:
+            LOG.info('Cleanup chroot')
+            self.destroy_chroot(chroot)
+            try:
+                shutil.rmtree(c_dir)
+            except OSError:
+                LOG.debug('Finally: directory %s seems does not exist '
+                          'or can not be removed', c_dir)
+
     # TODO(kozhukalov): Split this huge method
     # into a set of smaller ones
     # https://bugs.launchpad.net/fuel/+bug/1444090
@@ -752,6 +865,7 @@ class Manager(object):
         11) containerize (gzip) temporary sparse files
         12) move temporary gzipped files to their final location
         """
+
         LOG.info('--- Building image (do_build_image) ---')
         # TODO(kozhukalov): Implement metadata
         # as a pluggable data driver to avoid any fixed format.
@@ -769,6 +883,7 @@ class Manager(object):
             return
         LOG.debug('At least one of the necessary images is unavailable. '
                   'Starting build process.')
+
         try:
             chroot = bu.mkdtemp_smart(
                 CONF.image_build_dir, CONF.image_build_suffix)
