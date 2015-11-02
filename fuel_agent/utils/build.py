@@ -21,13 +21,16 @@ import stat
 import tempfile
 import time
 
+import signal
 import six
 import yaml
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
+from fuel_agent.utils import fs as fu
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
+
 
 LOG = logging.getLogger(__name__)
 
@@ -57,6 +60,7 @@ def run_debootstrap(uri, suite, chroot, arch='amd64', eatmydata=False,
     debootstrap is well known for its glithcy resolving of package dependecies,
     so the rest of packages will be installed later by run_apt_get.
     """
+
     env_vars = {}
     if proxies:
         if 'http' in proxies:
@@ -166,7 +170,7 @@ def clean_apt_settings(chroot, allow_unsigned_file='allow_unsigned_packages',
 
 
 def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
-                 force_ipv4_file='force_ipv4'):
+                 force_ipv4_file='force_ipv4', fix_puppet=True):
     # NOTE(agordeev): set up password for root
     utils.execute('sed', '-i',
                   's%root:[\*,\!]%root:' + ROOT_PASSWORD + '%',
@@ -176,9 +180,11 @@ def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
     # should be disabled on a node startup.
     # Being enabled by default, sometimes it leads to puppet service hanging
     # and recognizing the deployment as failed.
-    # TODO(agordeev): take care of puppet service for other distros, once
-    # fuel-agent will be capable of building images for them too.
-    utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
+    if fix_puppet:
+        # we don't have puppet in bootstrap
+        # TODO(agordeev): take care of puppet service for other distros, once
+        # fuel-agent will be capable of building images for them too.
+        utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
     # NOTE(agordeev): disable mcollective to be automatically started on boot
     # to prevent confusing messages in its log (regarding connection errors).
     with open(os.path.join(chroot, 'etc/init/mcollective.override'), 'w') as f:
@@ -448,14 +454,20 @@ def add_apt_preference(name, priority, suite, section, chroot, uri):
 
 
 def set_apt_proxy(chroot, proxies):
+    protocols = dict(
+        http='01mirantis-use-proxy-http',
+        https='01mirantis-use-proxy-https',
+        ftp='01mirantis-use-proxy-ftp'
+    )
+
     def set_proxy(protocol):
-        with open(os.path.join(PROXY_PROTOCOLS[protocol]), 'w') as f:
+        with open(os.path.join(protocols[protocol]), 'w') as f:
                 f.write('Acquire::{0}::Proxy "{1}";\n'
                         ''.format(protocol, proxies[protocol]))
                 LOG.debug('Apply apt-proxy: \nprotocol: {0}\nurl: {1}'
                           ''.format(protocol, proxies[protocol]))
 
-    for protocol in PROXY_PROTOCOLS:
+    for protocol in protocols:
         if protocol in proxies:
             set_proxy(protocol)
 
@@ -535,3 +547,213 @@ def attach_file_to_free_loop_device(filename, max_loop_devices_count=255,
                                          i + 1, max_attempts))
 
     return loop_device
+
+
+def folder_to_tar_gz(d_input, d_output, name):
+    o_file = os.path.join(os.path.normpath(d_output), name + '.tgz')
+    LOG.info('Creating archive: %s', o_file)
+    try:
+        utils.execute('tar', '-czf', o_file, '--directory',
+                      os.path.normcase(d_input), '.', logged=True)
+        LOG.info('Creating archive finished: %s', o_file)
+    except Exception as exc:
+        LOG.error('Failed to create archive: %s', exc)
+        raise
+    return o_file
+
+
+def run_script_in_chroot(chroot, script):
+
+    LOG.info('Copy user-script {0} into chroot:{1}'.format(script, chroot))
+
+    utils.execute('cp', '-r', script, chroot)
+    LOG.info('Make user-script {0} executable:'.format(script))
+    utils.execute('chmod', '0755', os.path.join(chroot, os.path.basename(
+        script)))
+
+    stdout, stderr = utils.execute(
+        'chroot', chroot, '/bin/bash', '-c', os.path.join(
+            '/', os.path.basename(script)))
+    LOG.debug('Running user-script completed: \nstdout: {0}\nstderr: {1}'.
+              format(stdout, stderr))
+
+
+def recompress_initramfs(chroot, compress):
+
+    LOG.info('Change initramfs compression type to:{0}'.format(compress))
+    utils.execute(
+        'sed', '-i', 's/COMPRESS\s*=\s*gzip/COMPRESS={0}/'.format(compress),
+        os.path.join(chroot, 'etc/initramfs-tools/initramfs.conf'))
+
+    stdout, stderr = utils.execute(
+        'find', os.path.join(chroot, 'boot/'), '-iname', '"initrd*"',
+        '-exec', 'rm', '-vf', '{} \;')
+
+    LOG.info('Removing old initramfs completed: \nstdout:{0}'
+             '\nstderr:{1}'.format(stdout, stderr))
+
+    cmds = ['chroot', chroot, 'update-initramfs -v -c -k all']
+
+    stdout, stderr = utils.execute(*cmds,
+                                   env_variables={'TMPDIR': '/tmp',
+                                                  'TMP': '/tmp'})
+    LOG.debug('Running "update-initramfs" completed.\nstdout: '
+              '%s\nstderr: %s', stdout, stderr)
+
+
+def propagate_host_resolv_conf(chroot):
+    """Backup hosts/resolv files in chroot
+
+    i have no idea why we need this hack :( "
+    opposite to restore_resolv_conf
+    """
+    c_etc = os.path.join(chroot, 'etc/')
+
+    utils.makedirs_if_not_exists(c_etc)
+    for conf in ('resolv.conf', 'hosts'):
+        if os.path.isfile(os.path.join(c_etc, conf)):
+            LOG.info('Disabling default {0} inside chroot'.format(conf))
+            utils.execute('cp', '-va', os.path.join(c_etc, conf),
+                          os.path.join(c_etc, conf) + '.bup',
+                          logged=True)
+
+
+def restore_resolv_conf(chroot):
+    """restore hosts/resolv files in chroot """
+
+    # opposite to propagate_host_resolv_conf
+
+    c_etc = os.path.join(chroot, '/etc/')
+    utils.makedirs_if_not_exists(c_etc)
+    for conf in 'resolv.conf' 'hosts':
+        if os.path.isfile(c_etc + conf + '.bup'):
+            LOG.info('Restoring default {0} inside chroot'.format(conf))
+            utils.execute(
+                'mv', '-vfa', os.path.join(c_etc, conf) + '.bup',
+                os.path.join(c_etc, conf), logged=True)
+
+
+def populate_squashfs(chroot, compress, dstdir):
+    """Create squashfs
+
+    1)Mount tmpfs under chroot/mnt
+    2)run mksquashfs inside a chroot
+    3)move result files to dstdir
+
+    :return:
+    """
+    # TODO(azvyagintsev) fetch from uri driver
+    files = {'squashfs': 'root.squashfs',
+             'kernel': 'vmlinuz',
+             'initrd': 'initrd.img'
+             }
+    temp = 'squashfs_tmp'
+
+    s_dst = os.path.join(chroot, 'mnt/dst/')
+    s_src = os.path.join(chroot, 'mnt/src/')
+    try:
+        utils.execute(
+            'find', os.path.join(chroot, 'boot/'),
+            '-maxdepth 1', '-type', 'f', '\( -iname', '"initrd*"', '-o -iname',
+            '"vmlinuz*" \)', '-exec', 'sh', '-c',
+            '"cp -va {{}} {0}/`basename {{}}`.{1}" \;'.format(
+                os.path.normcase(dstdir), temp), logged=True)
+
+        utils.execute(
+            'find', os.path.join(chroot, 'boot/'),
+            '-maxdepth 1', '-type', 'f', '\( -iname', '"initrd*"',
+            '-o -iname', '"vmlinuz*" \)', '-exec', 'rm -vf {} \;', logged=True)
+
+        fu.mount_fs(
+            'tmpfs', 'mnt_{0}'.format(temp),
+            (os.path.join(chroot, 'mnt/'.format(temp))),
+            'rw,nodev,nosuid,noatime,mode=0755,size=4M')
+
+        utils.makedirs_if_not_exists(s_src)
+        utils.makedirs_if_not_exists(s_dst)
+        fu.mount_bind(s_src, chroot, ' ')
+
+        fu.mount_fs(None, None, s_src, 'remount,bind,ro')
+        fu.mount_bind(s_dst, dstdir, ' ')
+        utils.execute(
+            'chroot', chroot, 'mksquashfs', '/mnt/src',
+            '/mnt/dst/{0}.{1}'.format(files['squashfs'], temp),
+            '-comp {0} -no-progress -noappend'.format(compress), logged=True)
+        # move to result names
+        for file in six.iterkeys(files):
+            utils.execute(
+                'find', s_dst, '-maxdepth 1', '-type', 'f',
+                '-iname "{0}*"'.format(files[file]), '-exec', 'sh', '-c',
+                '" mv -v {{}} {0}/{1} " \;'.format(os.path.normcase(dstdir),
+                                                   files[file]), logged=True)
+
+    except Exception as exc:
+        LOG.error('squashfs_image build failed: %s', exc)
+        raise
+    finally:
+        LOG.info('squashfs_image clean-up')
+        stop_chrooted_processes(chroot, signal=signal.SIGTERM)
+        fu.umount_fs(os.path.join(chroot, 'mnt/dst/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/src/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/'))
+
+
+def dpkg_list(chroot):
+    """return simple dpkg list"""
+    stdout, stderr = utils.execute('chroot', chroot, 'dpkg-query',
+                                   '-W -f=\'${Package} ${Version}\\t\' ')
+    # split, output will be = package - version
+    p_list = stdout.split('\t')
+    # remove last empty ''
+    p_list.pop()
+
+    p_dict = {}
+    for item in p_list:
+        p_dict[item.split(' ')[0]] = item.split(' ')[1]
+    return p_dict
+
+
+def create_temp_chroot_directory(root_dir, suffix):
+    LOG.debug('Creating temporary chroot directory')
+    utils.makedirs_if_not_exists(root_dir)
+    chroot = tempfile.mkdtemp(
+        dir=root_dir, suffix=suffix)
+    LOG.debug('Temporary chroot dir: %s', chroot)
+    return chroot
+
+
+def dump_mkbootstrap_yaml(metadata, c_dir):
+    """fetch some data rom metadata
+
+    :param c_dir: folder,where yaml should be saved
+    """
+
+    drop_data = {'modules': {}}
+    for module in metadata['bootstrap_modules']:
+        fname = os.path.basename(metadata['bootstrap_modules']
+                                 [module]['uri'])
+        fs_file = os.path.join(c_dir, fname)
+        try:
+            raw_size = os.path.getsize(fs_file)
+        except IOError as exc:
+            LOG.error('There was an error while getting file size: {0}'.format(
+                exc))
+            raise
+        raw_md5 = utils.calculate_md5(fs_file, raw_size)
+        drop_data['modules'][module] = {
+            'raw_md5': raw_md5,
+            'raw_size': raw_size,
+            'file': fname,
+            'uri': metadata['bootstrap_modules'][module]['uri']
+        }
+
+    drop_data['uuid'] = metadata['uuid']
+    drop_data['os'] = metadata['os']
+    drop_data['extend_kopts'] = metadata['extend_kopts']
+    drop_data['all_packages'] = metadata['all_packages']
+    drop_data['repos'] = metadata['raw_repos']
+
+    LOG.debug('Image metadata: %s', drop_data)
+    with open(os.path.join(c_dir, metadata['meta_file']),
+              'wt') as f:
+        yaml.safe_dump(drop_data, stream=f, encoding='utf-8')
