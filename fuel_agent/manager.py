@@ -16,6 +16,7 @@ from io import open
 import os
 import shutil
 import signal
+import tempfile
 
 from oslo_config import cfg
 import six
@@ -733,6 +734,142 @@ class Manager(object):
         self.do_bootloader()
         LOG.debug('--- Provisioning END (do_provisioning) ---')
 
+    def do_mkbootstrap(self):
+        """Building bootstrap image
+
+        Currently supports only Ubuntu-Trusty
+        Includes the following steps
+        1) Allocate and configure debootstrap.
+        2) Install packages
+        3) Run user-post script(is defined)
+        4) populate squashfs\init\vmlinuz files
+        5) create metadata.yaml and pack thats all into tar.gz
+        """
+
+        LOG.info('--- Building bootstrap image (do_mkbootstrap) ---')
+        # c_dir = output container directory, where all builded files will
+        # be stored, before packaging into archive
+        c_dir = tempfile.mkdtemp(
+            dir=CONF.image_build_dir,
+            suffix=CONF.image_build_suffix + '_container')
+        try:
+            chroot = bu.mkdtemp_smart(
+                CONF.image_build_dir, CONF.image_build_suffix)
+            self.install_base_os(chroot)
+
+            LOG.debug('Temporary container folder: {0}'.format(c_dir))
+
+            metadata = {}
+            metadata['os'] = self.driver.operating_system.to_dict()
+
+            packages = self.driver.operating_system.packages
+            metadata['packages'] = packages
+            self._set_apt_repos(chroot, self.driver.operating_system.repos)
+            self._update_metadata_with_repos(
+                metadata, self.driver.operating_system.repos)
+            LOG.debug('Installing packages using apt-get: %s',
+                      ' '.join(packages))
+            # disable hosts/resolv files
+            bu.propagate_host_resolv_conf(chroot)
+            bu.run_apt_get(chroot, packages=packages,
+                           attempts=CONF.fetch_packages_attempts)
+
+            LOG.debug('Post-install OS configuration')
+            bu.rsync_dirs(chroot, self.driver.data['extra_files'])
+            if 'ssh_authorized_keys' in self.driver.data:
+                LOG.debug('Put ssh auth file %s',
+                          self.driver.data['ssh_authorized_keys'])
+                auth_file = os.path.join(chroot, 'root/.ssh/authorized_keys')
+                utils.makedirs_if_not_exists(os.path.dirname(
+                    auth_file), mode=0o700)
+                shutil.copy(self.driver.data['ssh_authorized_keys'], auth_file)
+                os.chmod(auth_file, 0o700)
+            # Allow user to drop and run script inside chroot:
+            if 'post_script_file' in self.driver.data:
+                bu.run_script_in_chroot(
+                    chroot, self.driver.data['post_script_file'])
+            # Save runtime_uuid into bootstrap
+            bu.dump_runtime_uuid(self.driver.data['uuid'],
+                                 os.path.join(chroot,
+                                              'etc/nailgun-agent/config.yaml'))
+            bu.do_post_inst(chroot,
+                            allow_unsigned_file=CONF.allow_unsigned_file,
+                            force_ipv4_file=CONF.force_ipv4_file)
+            # restore disabled hosts/resolv files
+            bu.restore_resolv_conf(chroot)
+            metadata['all_packages'] = bu.get_installed_packages(chroot)
+            # We need to recompress initramfs with new compression:
+            bu.recompress_initramfs(
+                chroot, self.driver.data['bootstrap_modules']['m_initrd']
+                ['compress_format'])
+            LOG.debug('Creating bootstrap container folder')
+            utils.makedirs_if_not_exists(CONF.image_build_dir)
+            # Bootstrap nodes load the kernel and initramfs via the network,
+            # therefore remove the kernel and initramfs located in root
+            # filesystem to make the image smaller (and save the network
+            # bandwidth and the boot time)
+            bu.copy_kernel_initramfs(chroot, c_dir, clean=True)
+            bu.run_mksquashfs(
+                chroot, os.path.join(c_dir, 'root.squashfs'),
+                self.driver.data['bootstrap_modules']
+                ['m_rootfs']['compress_format'])
+
+            LOG.debug('Making sure there are no running processes '
+                      'inside chroot before trying to umount chroot')
+            if not bu.stop_chrooted_processes(chroot, signal=signal.SIGTERM):
+                if not bu.stop_chrooted_processes(
+                        chroot, signal=signal.SIGKILL):
+                    raise errors.UnexpectedProcessError(
+                        'Stopping chrooted processes failed. '
+                        'There are some processes running in chroot %s',
+                        chroot)
+            drop_data = {'modules': {}}
+            for module in self.driver.data['bootstrap_modules']:
+                fname = os.path.basename(self.driver.data['bootstrap_modules']
+                                         [module]['uri'])
+                fs_file = os.path.join(c_dir, fname)
+                try:
+                    raw_size = os.path.getsize(fs_file)
+                except IOError as exc:
+                    LOG.error('There was an error while getting file'
+                              ' size: {0}'.format(exc))
+                    raise
+                raw_md5 = utils.calculate_md5(fs_file, raw_size)
+                drop_data['modules'][module] = {
+                    'raw_md5': raw_md5,
+                    'raw_size': raw_size,
+                    'file': fname,
+                    'uri': self.driver.data['bootstrap_modules'][module]['uri']
+                }
+            drop_data['uuid'] = self.driver.data['uuid']
+            drop_data['os'] = metadata['os']
+            drop_data['extend_kopts'] = self.driver.data.get(
+                'extend_kopts', None)
+            drop_data['all_packages'] = metadata['all_packages']
+            drop_data['repos'] = self.driver.data['repos']
+
+            LOG.debug('Image metadata: %s', drop_data)
+            with open(os.path.join(c_dir, self.driver.data['meta_file']),
+                      'wt') as f:
+                yaml.safe_dump(drop_data, stream=f, encoding='utf-8')
+
+            arch_file = bu.make_targz(c_dir, self.driver.data['output'])
+
+            LOG.debug('Output archive file : {0}'.format(arch_file))
+            LOG.info('--- Building bootstrap image END (do_mkbootstrap) ---')
+            return arch_file
+        except Exception as exc:
+            LOG.error('Failed to bootstrap image: %s', exc)
+            raise
+        finally:
+            LOG.info('Cleanup chroot')
+            self.destroy_chroot(chroot)
+            try:
+                shutil.rmtree(c_dir)
+            except OSError:
+                LOG.debug('Finally: directory %s seems does not exist '
+                          'or can not be removed', c_dir)
+
     # TODO(kozhukalov): Split this huge method
     # into a set of smaller ones
     # https://bugs.launchpad.net/fuel/+bug/1444090
@@ -753,6 +890,7 @@ class Manager(object):
         11) containerize (gzip) temporary sparse files
         12) move temporary gzipped files to their final location
         """
+
         LOG.info('--- Building image (do_build_image) ---')
         # TODO(kozhukalov): Implement metadata
         # as a pluggable data driver to avoid any fixed format.
@@ -770,6 +908,7 @@ class Manager(object):
             return
         LOG.debug('At least one of the necessary images is unavailable. '
                   'Starting build process.')
+
         try:
             chroot = bu.mkdtemp_smart(
                 CONF.image_build_dir, CONF.image_build_suffix)
