@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import utils
@@ -51,8 +52,16 @@ def extend_fs(fs_type, fs_dev):
         raise errors.FsUtilsError('Unsupported file system type')
 
 
-def mount_fs(fs_type, fs_dev, fs_mount):
-    utils.execute('mount', '-t', fs_type, fs_dev, fs_mount,
+def mount_fs(fs_type, fs_dev, fs_mount, opts=None):
+    fs_type = ('-t', '{0}'.format(fs_type)) if fs_type is not None else ()
+    opts = ('-o', '{0}'.format(opts)) if opts is not None else ()
+    fs_dev = (fs_dev,) if fs_dev is not None else ()
+    cmd = ('mount',) + fs_type + opts + fs_dev + (fs_mount,)
+    utils.execute(*cmd, check_exit_code=[0])
+
+
+def mount_pfd(fs_dev, fs_mount):
+    utils.execute('mount', '-p', fs_dev, fs_mount,
                   check_exit_code=[0])
 
 
