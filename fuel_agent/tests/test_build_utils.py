@@ -40,7 +40,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
     @mock.patch.object(utils, 'execute', return_value=(None, None))
     def test_run_debootstrap(self, mock_exec):
         bu.run_debootstrap('uri', 'suite', 'chroot', 'arch', attempts=2)
-        mock_exec.assert_called_once_with('debootstrap', '--verbose',
+        mock_exec.assert_called_once_with([], 'debootstrap', '--verbose',
                                           '--no-check-gpg', '--arch=arch',
                                           'suite', 'chroot', 'uri', attempts=2)
 
@@ -48,7 +48,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
     def test_run_debootstrap_eatmydata(self, mock_exec):
         bu.run_debootstrap('uri', 'suite', 'chroot', 'arch', eatmydata=True,
                            attempts=2)
-        mock_exec.assert_called_once_with('debootstrap', '--verbose',
+        mock_exec.assert_called_once_with([], 'debootstrap', '--verbose',
                                           '--no-check-gpg', '--arch=arch',
                                           '--include=eatmydata', 'suite',
                                           'chroot', 'uri', attempts=2)
