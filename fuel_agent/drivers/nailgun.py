@@ -15,6 +15,7 @@
 import itertools
 import math
 import os
+import uuid
 
 from oslo_config import cfg
 import six
@@ -753,3 +754,90 @@ class NailgunBuildImage(BaseDataDriver):
                 metadata_filename = filename.split('.', 1)[0] + '.yaml'
                 self.metadata_uri = 'file://' + os.path.join(
                     self.data['output'], metadata_filename)
+
+
+class NailgunMkBootstrap(NailgunBuildImage):
+
+    # Packages required for the master node to discover a bootstrap node
+    # Hardcoded list used for disable user-factor : when user can accidentally
+    # remove fuel-required packages, and create totally non-working bootstrap
+    FUEL_PKGS_DFLT = [
+        "openssh-client",
+        "openssh-server",
+        "ntp",
+        "mcollective",
+        "nailgun-agent",
+        "nailgun-mcagents",
+        "network-checker",
+        "fuel-agent"
+    ]
+
+    def __init__(self, data):
+        super(NailgunMkBootstrap, self).__init__(data)
+        self._image_scheme = objects.ImageScheme()
+        self._partition_scheme = objects.PartitionScheme()
+        self.parse_schemes()
+
+        # Packages required for ubuntu, also includes kernel-related:
+        ubuntu_pkgs_default = [
+            "ubuntu-minimal",
+            "live-boot",
+            "live-boot-initramfs-tools",
+            "wget",
+            "biosdevname",
+            "linux-image-{0}".format(self.data.get('kernel_flavor',
+                                                   'generic-lts-trusty')),
+            "linux-firmware",
+            "linux-firmware-nonfree",
+            "xz-utils",
+            "squashfs-tools",
+            "msmtp-mta"
+        ]
+
+        self.data['packages'] = self.data.get('packages', [])
+        self.data['packages'].extend(ubuntu_pkgs_default + self.FUEL_PKGS_DFLT)
+
+        self._operating_system = self.parse_operating_system()
+
+    def parse_schemes(self):
+        # Check for predetermined uuid
+        if 'uuid' not in self.data:
+            self.data['uuid'] = six.text_type(uuid.uuid4())
+            LOG.info('No predefined UUID, generating new UUID:'
+                     ' {0}'.format(self.data['uuid']))
+        if 'extend_kopts' not in self.data:
+            self.data['extend_kopts'] = None
+            (LOG.warning('Additional kernel options are not defined, '
+                         'using default'))
+
+        # Currently we can use only one build scheme, so
+        # just append input data.
+        # And also, currently we don't use uri format - but lets use
+        # one format, for future implementation.
+
+        m_kernel = {
+            'uri': 'http://127.0.0.1:8080/bootstraps/{0}/vmlinuz'.format(
+                self.data['uuid'])}
+        m_initrd = {
+            'compress_format': 'xz',
+            'uri': 'http://127.0.0.1:8080/bootstraps/{0}/initrd.img'.format(
+                self.data['uuid'])}
+        m_rootfs = {
+            'compress_format': 'xz',
+            'uri': 'http://127.0.0.1:8080/bootstraps/{0}/root.squashfs'.format(
+                self.data['uuid']),
+            'format': 'ext4', 'container': 'gzip'}
+
+        self.data['bootstrap_modules'] = {
+            'm_kernel': m_kernel,
+            'm_initrd': m_initrd,
+            'm_rootfs': m_rootfs
+        }
+
+        self.data['meta_file'] = 'metadata.yaml'
+        self.data['container'] = 'gzip'
+
+        # Actually, we need only / system for build.
+        # so lets create it with existing funcs:
+        self.data['image_data'] = {"/": m_rootfs}
+        super(NailgunMkBootstrap, self).parse_schemes()
