@@ -768,3 +768,40 @@ def get_installed_packages(chroot):
     # remove last empty ''
     p_list.pop()
     return dict([pkgver.split() for pkgver in p_list])
+
+
+def dump_mkbootstrap_yaml(metadata, c_dir):
+    """fetch some data rom metadata
+
+    :param c_dir: folder,where yaml should be saved
+    """
+
+    drop_data = {'modules': {}}
+    for module in metadata['bootstrap_modules']:
+        fname = os.path.basename(metadata['bootstrap_modules']
+                                 [module]['uri'])
+        fs_file = os.path.join(c_dir, fname)
+        try:
+            raw_size = os.path.getsize(fs_file)
+        except IOError as exc:
+            LOG.error('There was an error while getting file size: {0}'.format(
+                exc))
+            raise
+        raw_md5 = utils.calculate_md5(fs_file, raw_size)
+        drop_data['modules'][module] = {
+            'raw_md5': raw_md5,
+            'raw_size': raw_size,
+            'file': fname,
+            'uri': metadata['bootstrap_modules'][module]['uri']
+        }
+
+    drop_data['uuid'] = metadata['uuid']
+    drop_data['os'] = metadata['os']
+    drop_data['extend_kopts'] = metadata['extend_kopts']
+    drop_data['all_packages'] = metadata['all_packages']
+    drop_data['repos'] = metadata['raw_repos']
+
+    LOG.debug('Image metadata: %s', drop_data)
+    with open(os.path.join(c_dir, metadata['meta_file']),
+              'wt') as f:
+        yaml.safe_dump(drop_data, stream=f, encoding='utf-8')
