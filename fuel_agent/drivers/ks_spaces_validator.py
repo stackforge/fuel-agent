@@ -140,10 +140,16 @@ def validate(scheme):
             'Partition scheme seems empty')
 
     for space in scheme:
+        rootcount = 0
         for volume in space.get('volumes', []):
             if volume['size'] > 16777216 and volume['mount'] == '/':
                 raise errors.WrongPartitionSchemeError(
                     'Root file system must be less than 16T')
+            if volume['mount'] == '/':
+                rootcount += 1
+        if rootcount > 1:
+            raise errors.WrongPartitionSchemeError(
+                    'Multiple root partitions')
 
     # TODO(kozhukalov): need to have additional logical verifications
     # maybe sizes and format of string values
