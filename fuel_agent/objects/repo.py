@@ -26,3 +26,21 @@ class DEBRepo(Repo):
         self.suite = suite
         self.section = section
         self.meta = meta
+
+
+class RepoProxies(object):
+    def __init__(self, proxies=None, direct_repo_addr=None):
+        """RepoProxies object
+
+        :param proxies: dict with proto:uri format
+        :param direct_repo_addr: list of addr
+        :return:
+        """
+        self.proxies = proxies or {}
+        self.direct_repo_addr = direct_repo_addr or []
+
+    def add_proxy(self, protocol, uri):
+        self.proxies[protocol] = uri
+
+    def add_direct_repo_addr(self, repo_addr):
+        self.direct_repo_addr.append(repo_addr)
