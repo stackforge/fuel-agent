@@ -653,7 +653,9 @@ class Manager(object):
             bu.suppress_services_start(chroot)
             LOG.debug('Installing base operating system using debootstrap')
             bu.run_debootstrap(uri=uri, suite=suite, chroot=chroot,
-                               attempts=CONF.fetch_packages_attempts)
+                               attempts=CONF.fetch_packages_attempts,
+                               proxies=self.driver.proxies,
+                               direct_repo_addr=self.driver.direct_repo_addr)
 
             # APT-GET
             LOG.debug('Configuring apt inside chroot')
@@ -662,7 +664,9 @@ class Manager(object):
             LOG.debug('Allowing unauthenticated repos')
             bu.pre_apt_get(chroot,
                            allow_unsigned_file=CONF.allow_unsigned_file,
-                           force_ipv4_file=CONF.force_ipv4_file)
+                           force_ipv4_file=CONF.force_ipv4_file,
+                           proxies=self.driver.proxies,
+                           direct_repo_addr=self.driver.direct_repo_addr)
 
             for repo in self.driver.operating_system.repos:
                 LOG.debug('Adding repository source: name={name}, uri={uri},'
