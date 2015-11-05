@@ -704,6 +704,15 @@ class NailgunBuildImage(BaseDataDriver):
     def configdrive_scheme(self):
         return None
 
+    @property
+    def proxies(self):
+        return self.data.get('proxies')
+
+    @property
+    def direct_repo_addr(self):
+        """Return address for proxy ignoring """
+        return self.data.get('direct_repo_addr')
+
     def parse_operating_system(self):
         if self.data.get('codename').lower() != 'trusty':
             raise errors.WrongInputDataError(
