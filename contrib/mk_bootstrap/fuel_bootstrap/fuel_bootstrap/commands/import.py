@@ -1,0 +1,40 @@
+# -*- coding: utf-8 -*-
+
+#    Copyright 2015 Mirantis, Inc.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+from cliff import command as cmd
+
+from fuel_bootstrap.utils import bootstrap_image as bs_image
+
+
+class ImportCommand(cmd.Command):
+    """Import already created bootstrap image to the system."""
+
+    def get_parser(self, prog_name):
+        parser = super(ImportCommand, self).get_parser(prog_name)
+        # shouldn't we check archive file type?
+        parser.add_argument(
+            'filename',
+            type=str,
+            metavar='ARCHIVE_FILE',
+            help='File name of bootstrap archive file'
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        # cliff handles errors on his own
+        image_uuid = bs_image.import_image(parsed_args.filename)
+        self.app.stdout.write("Image with uuid={0} was successfuly imported"
+                              .format(image_uuid))
