@@ -44,18 +44,29 @@ ROOT_PASSWORD = '$6$IInX3Cqo$5xytL1VZbZTusOewFnG6couuF0Ia61yS3rbC6P5YbZP2TYcl'\
 
 
 def run_debootstrap(uri, suite, chroot, arch='amd64', eatmydata=False,
-                    attempts=10):
+                    attempts=10, proxies=None):
     """Builds initial base system.
 
     debootstrap builds initial base system which is capable to run apt-get.
     debootstrap is well known for its glithcy resolving of package dependecies,
     so the rest of packages will be installed later by run_apt_get.
     """
-    cmds = ['debootstrap', '--verbose', '--no-check-gpg', '--arch=%s' % arch,
-            suite, chroot, uri]
+    env_vars = {}
+    if proxies:
+        if 'http' in proxies:
+            env_vars['http_proxy'] = proxies['http']
+        if 'https' in proxies:
+            env_vars['https_proxy'] = proxies['https']
+        if 'ftp' in proxies:
+            env_vars['ftp_proxy'] = proxies['ftp']
+
+    cmds = ['debootstrap', '--verbose', '--no-check-gpg',
+            '--arch={0}'.format(arch)]
     if eatmydata:
-        cmds.insert(4, '--include=eatmydata')
-    stdout, stderr = utils.execute(*cmds, attempts=attempts)
+        cmds.extend(['--include=eatmydata'])
+    cmds.extend([suite, chroot, uri])
+    stdout, stderr = utils.execute(*cmds, attempts=attempts,
+                                   env_variables=env_vars)
     LOG.debug('Running deboostrap completed.\nstdout: %s\nstderr: %s', stdout,
               stderr)
 
@@ -426,8 +437,28 @@ def add_apt_preference(name, priority, suite, section, chroot, uri):
         f.write('Pin-Priority: {priority}\n'.format(priority=priority))
 
 
+def set_apt_proxy(chroot, proxies):
+    protocols = dict(
+        http='01mirantis-use-proxy-http',
+        https='01mirantis-use-proxy-https',
+        ftp='01mirantis-use-proxy-ftp'
+    )
+
+    def set_proxy(protocol):
+        with open(os.path.join(protocols[protocol]), 'w') as f:
+                f.write('Acquire::{0}::Proxy "{1}";\n'
+                        ''.format(protocol, proxies[protocol]))
+                LOG.debug('Apply apt-proxy: \nprotocol: {0}\nurl: {1}'
+                          ''.format(protocol, proxies[protocol]))
+
+    for protocol in protocols:
+        if protocol in proxies:
+            set_proxy(protocol)
+
+
 def pre_apt_get(chroot, allow_unsigned_file='allow_unsigned_packages',
-                force_ipv4_file='force_ipv4'):
+                force_ipv4_file='force_ipv4',
+                proxies=None):
     """It must be called prior run_apt_get."""
     clean_apt_settings(chroot, allow_unsigned_file=allow_unsigned_file,
                        force_ipv4_file=force_ipv4_file)
@@ -438,6 +469,9 @@ def pre_apt_get(chroot, allow_unsigned_file='allow_unsigned_packages',
     with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
                            force_ipv4_file), 'w') as f:
         f.write('Acquire::ForceIPv4 "true";\n')
+
+    if proxies:
+        set_apt_proxy(chroot, proxies)
 
 
 def containerize(filename, container, chunk_size=1048576):
