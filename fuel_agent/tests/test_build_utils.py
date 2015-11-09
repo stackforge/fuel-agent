@@ -187,6 +187,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
                       'ZTusOewFnG6couuF0Ia61yS3rbC6P5YbZP2TYclwHqMq9e3Tg8rvQx'
                       'hxSlBXP1DZhdUamxdOBXK0.%', 'fake_path'),
             mock.call('chroot', 'chroot', 'update-rc.d', 'puppet', 'disable')]
+
         self.assertEqual(mock_exec_expected_calls, mock_exec.call_args_list)
         mock_files.assert_called_once_with('chroot', ['usr/sbin/policy-rc.d'])
         mock_clean.assert_called_once_with('chroot',
