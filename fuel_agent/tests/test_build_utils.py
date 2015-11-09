@@ -170,13 +170,14 @@ class BuildUtilsTestCase(unittest2.TestCase):
 
     @mock.patch('fuel_agent.utils.build.open',
                 create=True, new_callable=mock.mock_open)
-    @mock.patch.object(os, 'path')
+    @mock.patch('fuel_agent.utils.build.os.path')
     @mock.patch.object(bu, 'clean_apt_settings')
     @mock.patch.object(bu, 'remove_files')
     @mock.patch.object(utils, 'execute')
     def test_do_post_inst(self, mock_exec, mock_files, mock_clean, mock_path,
                           mock_open):
         mock_path.join.return_value = 'fake_path'
+        mock_path.exists.return_value = True
         bu.do_post_inst('chroot', allow_unsigned_file='fake_unsigned',
                         force_ipv4_file='fake_force_ipv4')
         file_handle_mock = mock_open.return_value.__enter__.return_value
@@ -186,6 +187,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
                       'ZTusOewFnG6couuF0Ia61yS3rbC6P5YbZP2TYclwHqMq9e3Tg8rvQx'
                       'hxSlBXP1DZhdUamxdOBXK0.%', 'fake_path'),
             mock.call('chroot', 'chroot', 'update-rc.d', 'puppet', 'disable')]
+
         self.assertEqual(mock_exec_expected_calls, mock_exec.call_args_list)
         mock_files.assert_called_once_with('chroot', ['usr/sbin/policy-rc.d'])
         mock_clean.assert_called_once_with('chroot',
@@ -193,6 +195,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
                                            force_ipv4_file='fake_force_ipv4')
         mock_path_join_expected_calls = [
             mock.call('chroot', 'etc/shadow'),
+            mock.call('chroot', 'etc/init.d/puppet'),
             mock.call('chroot', 'etc/init/mcollective.override')]
         self.assertEqual(mock_path_join_expected_calls,
                          mock_path.join.call_args_list)

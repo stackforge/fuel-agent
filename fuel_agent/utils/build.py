@@ -30,6 +30,7 @@ from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
 
+
 LOG = logging.getLogger(__name__)
 
 DEFAULT_APT_PATH = {
@@ -182,7 +183,8 @@ def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
     # and recognizing the deployment as failed.
     # TODO(agordeev): take care of puppet service for other distros, once
     # fuel-agent will be capable of building images for them too.
-    utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
+    if os.path.exists(os.path.join(chroot, 'etc/init.d/puppet')):
+        utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
     # NOTE(agordeev): disable mcollective to be automatically started on boot
     # to prevent confusing messages in its log (regarding connection errors).
     with open(os.path.join(chroot, 'etc/init/mcollective.override'), 'w') as f:
@@ -548,3 +550,57 @@ def attach_file_to_free_loop_device(filename, max_loop_devices_count=255,
                                          i + 1, max_attempts))
 
     return loop_device
+
+
+def propagate_host_resolv_conf(chroot):
+    """Copy DNS settings from host system to chroot.
+
+    Make a backup of original /etc/resolv.conf and /etc/hosts.
+
+    # In case user pass some custom rules in hosts\resolv.conf.
+    opposite to restore_resolv_conf
+    """
+    c_etc = os.path.join(chroot, 'etc/')
+    utils.makedirs_if_not_exists(c_etc)
+    for conf_name in ('resolv.conf', 'hosts'):
+        full_conf_name = os.path.join(c_etc, conf_name)
+        if os.path.isfile(os.path.join('/etc/', conf_name)):
+            LOG.info('Copy host system {0} inside chroot'.
+                     format(conf_name))
+            try:
+                shutil.copy(full_conf_name, full_conf_name + '.bak')
+                shutil.copy(os.path.join('/etc/', conf_name), full_conf_name)
+            except IOError:
+                LOG.warning('Unable to copy host system {0} inside chroot'.
+                            format(conf_name))
+                pass
+
+
+def restore_resolv_conf(chroot):
+    """Restore hosts/resolv files in chroot
+
+    opposite to propagate_host_resolv_conf
+    """
+    c_etc = os.path.join(chroot, 'etc/')
+    utils.makedirs_if_not_exists(c_etc)
+    for conf_name in ('resolv.conf', 'hosts'):
+        full_conf_name = os.path.join(c_etc, conf_name)
+        if os.path.isfile(full_conf_name + '.bak'):
+            LOG.info('Restoring default {0} inside chroot'.
+                     format(conf_name))
+            shutil.move(full_conf_name + '.bak', full_conf_name)
+
+
+def mkdtemp_smart(root_dir, suffix):
+    """Create a unique temporary directory in root_dir
+
+     Automatically creates root_dir if it does not exist.
+    Otherwise same as tempfile.mkdtemp
+    """
+
+    LOG.debug('Creating temporary chroot directory')
+    utils.makedirs_if_not_exists(root_dir)
+    chroot = tempfile.mkdtemp(
+        dir=root_dir, suffix=suffix)
+    LOG.debug('Temporary chroot dir: %s', chroot)
+    return chroot
