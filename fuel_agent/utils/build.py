@@ -30,6 +30,7 @@ from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
 
+
 LOG = logging.getLogger(__name__)
 
 DEFAULT_APT_PATH = {
@@ -170,7 +171,7 @@ def clean_apt_settings(chroot, allow_unsigned_file='allow_unsigned_packages',
 
 
 def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
-                 force_ipv4_file='force_ipv4'):
+                 force_ipv4_file='force_ipv4', fix_puppet=True):
     # NOTE(agordeev): set up password for root
     utils.execute('sed', '-i',
                   's%root:[\*,\!]%root:' + ROOT_PASSWORD + '%',
@@ -180,9 +181,11 @@ def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
     # should be disabled on a node startup.
     # Being enabled by default, sometimes it leads to puppet service hanging
     # and recognizing the deployment as failed.
-    # TODO(agordeev): take care of puppet service for other distros, once
-    # fuel-agent will be capable of building images for them too.
-    utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
+    if fix_puppet:
+        # we don't have puppet in bootstrap
+        # TODO(agordeev): take care of puppet service for other distros, once
+        # fuel-agent will be capable of building images for them too.
+        utils.execute('chroot', chroot, 'update-rc.d', 'puppet', 'disable')
     # NOTE(agordeev): disable mcollective to be automatically started on boot
     # to prevent confusing messages in its log (regarding connection errors).
     with open(os.path.join(chroot, 'etc/init/mcollective.override'), 'w') as f:
@@ -548,3 +551,44 @@ def attach_file_to_free_loop_device(filename, max_loop_devices_count=255,
                                          i + 1, max_attempts))
 
     return loop_device
+
+
+def propagate_host_resolv_conf(chroot):
+    """Backup hosts/resolv files in chroot
+
+    i have no idea why we need this hack :( "
+    opposite to restore_resolv_conf
+    """
+    c_etc = os.path.join(chroot, 'etc/')
+
+    utils.makedirs_if_not_exists(c_etc)
+    for conf in ('resolv.conf', 'hosts'):
+        if os.path.isfile(os.path.join(c_etc, conf)):
+            LOG.info('Disabling default {0} inside chroot'.format(conf))
+            utils.execute('cp', '-va', os.path.join(c_etc, conf),
+                          os.path.join(c_etc, conf) + '.bup',
+                          logged=True)
+
+
+def restore_resolv_conf(chroot):
+    """restore hosts/resolv files in chroot """
+
+    # opposite to propagate_host_resolv_conf
+
+    c_etc = os.path.join(chroot, '/etc/')
+    utils.makedirs_if_not_exists(c_etc)
+    for conf in 'resolv.conf' 'hosts':
+        if os.path.isfile(c_etc + conf + '.bup'):
+            LOG.info('Restoring default {0} inside chroot'.format(conf))
+            utils.execute(
+                'mv', '-vfa', os.path.join(c_etc, conf) + '.bup',
+                os.path.join(c_etc, conf), logged=True)
+
+
+def create_temp_chroot_directory(root_dir, suffix):
+    LOG.debug('Creating temporary chroot directory')
+    utils.makedirs_if_not_exists(root_dir)
+    chroot = tempfile.mkdtemp(
+        dir=root_dir, suffix=suffix)
+    LOG.debug('Temporary chroot dir: %s', chroot)
+    return chroot
