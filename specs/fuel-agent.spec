@@ -70,6 +70,13 @@ Group:           Development/Libraries
 %description -n  ironic-fa-deploy
 Ironic-fa-deploy package
 
+%package -n fuel-bootstrap-cli
+Summary: Fuel-bootstrap wrapper tool
+Group: Development/Libraries
+
+%description -n fuel-bootstrap-cli
+User-friendly wrapper for user set of scripts from fuel-agent
+
 %prep
 %setup -cq -n %{name}-%{version}
 
@@ -78,6 +85,9 @@ cd %{_builddir}/%{name}-%{version} && python setup.py build
 
 #building ironic-fa-deploy
 cd %{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/  && PBR_VERSION=%{version} python setup.py build
+
+#building fuel-bootstrap-cli
+cd %{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/fuel_bootstrap/ && python setup.py build
 
 
 %install
@@ -96,6 +106,13 @@ cp -a %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/* %{buildro
 cd %{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/ && PBR_VERSION=%{version} python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/INSTALLED_FILES
 install -d -m 755 %{buildroot}%{_sysconfdir}/ironic-fa-deploy
 
+#fuel-bootstrap bootstrap config files
+install -d -m 755 %{buildroot}%{_datadir}/mk_bootstrap/files/
+cp -a %{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/files/* %{buildroot}%{_datadir}/mk_bootstrap/files/
+
+#Install fuel-bootstrap-cli files
+cd %{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/fuel_bootstrap/ && python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/INSTALLED_FILES
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -110,3 +127,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n ironic-fa-deploy -f %{_builddir}/%{name}-%{version}/contrib/ironic/ironic-fa-deploy/INSTALLED_FILES
 %defattr(-,root,root)
+
+%files -n fuel-bootstrap-cli
+%attr(0644,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/*
+###########
