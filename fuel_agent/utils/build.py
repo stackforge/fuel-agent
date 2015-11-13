@@ -38,7 +38,7 @@ DEFAULT_APT_PATH = {
     'sources_dir': 'etc/apt/sources.list.d',
     'preferences_file': 'etc/apt/preferences',
     'preferences_dir': 'etc/apt/preferences.d',
-    'conf_dir': 'etc/apt/apt.conf.d',
+    'conf_dir': 'etc/apt/apt.conf.d'
 }
 # protocol : conf_file_name
 # FIXME(azvyagintsev): Move to oslo_config
@@ -192,6 +192,8 @@ def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
     # NOTE(agordeev): remove custom policy-rc.d which is needed to disable
     # execution of post/pre-install package hooks and start of services
     remove_files(chroot, ['usr/sbin/policy-rc.d'])
+    # remove cached apt files
+    utils.execute('chroot', chroot, 'apt-get', 'clean')
     clean_apt_settings(chroot, allow_unsigned_file=allow_unsigned_file,
                        force_ipv4_file=force_ipv4_file)
 
