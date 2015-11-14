@@ -418,7 +418,11 @@ class Manager(object):
     def umount_target(self, chroot, pseudo=True):
         LOG.debug('Umounting target file systems: %s', chroot)
         if pseudo:
-            for path in ('/proc', '/dev', '/sys'):
+        # NOTE(dteselkin): umount /tmp/target/sys fails because it is used.
+        # 'mount' shows that there is a mountpoint at
+        #   /tmp/target/sys/fs/fuse/connections
+        # Try to umount it first.
+            for path in ('/proc', '/dev', '/sys/fs/fuse/connections', '/sys'):
                 fu.umount_fs(chroot + path)
         for fs in self.driver.partition_scheme.fs_sorted_by_depth(
                 reverse=True):
