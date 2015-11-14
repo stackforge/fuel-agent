@@ -212,8 +212,16 @@ def stop_chrooted_processes(chroot, signal=sig.SIGTERM,
         raise ValueError('Signal must be either SIGTERM or SIGKILL')
 
     def get_running_processes():
-        return utils.execute(
+        procs = utils.execute(
             'fuser', '-v', chroot, check_exit_code=False)[0].split()
+        # NOTE(dteselkin): Ignore string 'kernel' as pid
+        # From 'man fuser':
+        #   -v Verbose mode.
+        # Processes are shown in a ps-like style. The fields PID, USER and
+        # COMMAND are similar to ps. ACCESS shows how the process accesses the
+        # file. If the access is by the kernel (e.g. in the case of a mount
+        # point, a swap file, etc.), *kernel* is shown instead of the PID.
+        return [pid for pid in procs if pid != 'kernel']
 
     for i in six.moves.range(attempts):
         running_processes = get_running_processes()
