@@ -15,6 +15,7 @@
 import itertools
 import math
 import os
+import uuid
 
 from oslo_config import cfg
 import six
@@ -756,3 +757,66 @@ class NailgunBuildImage(BaseDataDriver):
                 metadata_filename = filename.split('.', 1)[0] + '.yaml'
                 self.metadata_uri = 'file://' + os.path.join(
                     self.data['output'], metadata_filename)
+
+
+class NailgunMkBootstrap(NailgunBuildImage):
+
+    def __init__(self, data):
+
+        data['packages'] = data.get('packages', [])
+
+        super(NailgunMkBootstrap, self).__init__(data)
+
+    def parse_schemes(self):
+        # Check for predetermined uuid
+        if 'uuid' not in self.data:
+            self.data['uuid'] = six.text_type(uuid.uuid4())
+            LOG.info('No predefined UUID, generating new UUID:'
+                     ' {0}'.format(self.data['uuid']))
+        if 'extend_kopts' not in self.data:
+            self.data['extend_kopts'] = None
+            (LOG.warning('Additional kernel options are not defined, '
+                         'using default'))
+
+        # Currently we can use only one build scheme, so
+        # just append input data.
+        # And also, currently we don't use uri format - but lets use
+        # one format, for future implementation.
+        # compress_format - compress format for module
+        m_kernel = {
+            'uri': 'http://127.0.0.1:8080/bootstraps/{0}/vmlinuz'.format(
+                self.data['uuid'])}
+
+        m_initrd = {
+            'compress_format': 'xz',
+            'uri': 'http://127.0.0.1:8080/bootstraps/{0}/initrd.img'.format(
+                self.data['uuid'])}
+        # m_rootfs configuration also used for creating chrooted base system
+        # with manager.install_base_os(). So its only one point for
+        # passing 'format' and 'container' variables.
+        # Read-only root-system parameters :
+        #   compress_format : compression format for read-only root system
+        #   ro_system : fs format for read-only root system
+        #   system(currently only squashfs)
+        m_rootfs = {
+            'compress_format': 'xz',
+            'ro_system': 'squashfs',
+            'uri': 'http://127.0.0.1:8080/bootstraps/{0}/root.squashfs'.format(
+                self.data['uuid']), 'format': 'ext4', 'container': 'raw'}
+
+        self.data['bootstrap_modules'] = {
+            'm_kernel': m_kernel,
+            'm_initrd': m_initrd,
+            'm_rootfs': m_rootfs
+        }
+
+        # output file-name for meta file
+        self.data['meta_file'] = 'metadata.yaml'
+
+        # format for output arhive - which contain all files
+        self.data['container'] = 'tar.gz'
+
+        # Actually, we need only / system for install base system
+        # so lets create it with existing funcs:
+        self.data['image_data'] = {"/": m_rootfs}
+        super(NailgunMkBootstrap, self).parse_schemes()
