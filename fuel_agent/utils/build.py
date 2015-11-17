@@ -22,11 +22,13 @@ import stat
 import tempfile
 import time
 
+import signal
 import six
 import yaml
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
+from fuel_agent.utils import fs as fu
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
 
@@ -554,6 +556,68 @@ def attach_file_to_free_loop_device(filename, max_loop_devices_count=255,
     return loop_device
 
 
+def folder_to_archive(d_input, d_output, name, container):
+    if container == 'tar.gz':
+        o_file = os.path.join(os.path.normpath(d_output),
+                              name + '.' + container)
+        LOG.info('Creating archive: %s', o_file)
+        try:
+            utils.execute('tar', '-czf', o_file, '--directory',
+                          os.path.normcase(d_input), '.', logged=True)
+        except Exception as exc:
+            LOG.error('Failed to create archive: %s', exc)
+            raise
+        return o_file
+    raise errors.WrongImageDataError(
+        'Error while packaging folder to archive: unsupported '
+        'output container: {container}'.format(container=container))
+
+
+def run_script_in_chroot(chroot, script):
+
+    LOG.info('Copy user-script {0} into chroot:{1}'.format(script, chroot))
+
+    utils.execute('cp', '-r', script, chroot)
+    LOG.info('Make user-script {0} executable:'.format(script))
+    utils.execute('chmod', '0755', os.path.join(chroot, os.path.basename(
+        script)))
+
+    stdout, stderr = utils.execute(
+        'chroot', chroot, '/bin/bash', '-c', os.path.join(
+            '/', os.path.basename(script)))
+    LOG.debug('Running user-script completed: \nstdout: {0}\nstderr: {1}'.
+              format(stdout, stderr))
+
+
+def recompress_initramfs(chroot, compress='xz'):
+    """Remove old and rebuild initrd
+
+    :param chroot:
+    :param compress: compression type for initrd
+    :return:
+    """
+    initrd_mask = "initrd"
+
+    LOG.info('Change initramfs compression type to:{0}'.format(compress))
+    utils.execute(
+        'sed', '-i', 's/COMPRESS\s*=\s*gzip/COMPRESS={0}/'.format(compress),
+        os.path.join(chroot, 'etc/initramfs-tools/initramfs.conf'))
+
+    # remove all initrd files
+    for file in os.listdir(os.path.join(chroot, 'boot/')):
+        if os.path.isfile(file) and file.startswith(initrd_mask):
+            LOG.debug('Removing file: {0}'.format(file))
+            os.remove(os.path.join(os.path.join(chroot, 'boot/'), file))
+
+    cmds = ['chroot', chroot, 'update-initramfs -v -c -k all']
+
+    stdout, stderr = utils.execute(*cmds,
+                                   env_variables={'TMPDIR': '/tmp',
+                                                  'TMP': '/tmp'})
+    LOG.debug('Running "update-initramfs" completed.\nstdout: '
+              '%s\nstderr: %s', stdout, stderr)
+
+
 def propagate_host_resolv_conf(chroot):
     """Copy DNS settings from host system to chroot.
 
@@ -602,3 +666,148 @@ def mkdtemp_smart(root_dir, suffix):
         dir=root_dir, suffix=suffix)
     LOG.debug('Temporary chroot dir: %s', chroot)
     return chroot
+
+
+def dump_mkbootstrap_yaml(metadata, c_dir, to_file=None):
+    """Process metadata dict to nice yaml file
+
+    :param c_dir: folder, where result yaml should be saved
+    Size of result 'modules' files aslo will be calculated from this dir.
+
+    """
+
+    drop_data = {'modules': {}}
+    for module in metadata['bootstrap_modules']:
+        fname = os.path.basename(metadata['bootstrap_modules']
+                                 [module]['uri'])
+        fs_file = os.path.join(c_dir, fname)
+        try:
+            raw_size = os.path.getsize(fs_file)
+        except IOError as exc:
+            LOG.error('There was an error while getting file size: {0}'.format(
+                exc))
+            raise
+        raw_md5 = utils.calculate_md5(fs_file, raw_size)
+        drop_data['modules'][module] = {
+            'raw_md5': raw_md5,
+            'raw_size': raw_size,
+            'file': fname,
+            'uri': metadata['bootstrap_modules'][module]['uri']
+        }
+
+    drop_data['uuid'] = metadata['uuid']
+    drop_data['os'] = metadata['os']
+    drop_data['extend_kopts'] = metadata['extend_kopts']
+    drop_data['all_packages'] = metadata['all_packages']
+    drop_data['repos'] = metadata['raw_repos']
+
+    LOG.debug('Image metadata: %s', drop_data)
+    if to_file:
+        with open(os.path.join(c_dir, metadata['meta_file']),
+                  'wt') as f:
+            yaml.safe_dump(drop_data, stream=f, encoding='utf-8')
+    return drop_data
+
+
+def run_mksquashfs(chroot, dstdir, compression_algorithm='xz'):
+    """Pack the target system as squashfs using mksquashfs
+
+    The kernel squashfs driver has to match with the user space squasfs tools.
+    Use the mksquashfs provided by the target distro to achieve this.
+    (typically the distro maintainers are smart enough to ship the correct
+    version of mksquashfs)
+    Mksquashfs used from available  in the target system
+
+    1)Mount tmpfs under chroot/mnt
+    2)run mksquashfs inside a chroot
+    3)move result files to dstdir
+    """
+    # TODO(azvyagintsev) fetch from uri driver
+    files = {'squashfs': 'root.squashfs',
+             'kernel': 'vmlinuz',
+             'initrd': 'initrd.img'
+             }
+    temp = '.squashfs_tmp'
+
+    s_dst = os.path.join(chroot, 'mnt/dst/')
+    s_src = os.path.join(chroot, 'mnt/src/')
+    try:
+        boot_dir = os.path.join(chroot, 'boot/')
+        # We don't need all files, only latest one.
+        # So search latest one by mask, and copy them to dstdir, appending
+        # temp filename
+        for module in ('initrd', 'vmlinuz'):
+            newest = utils.guess_filename(
+                path=boot_dir,
+                regexp=(r'^{0}*'.format(module)))
+            LOG.debug('Moving out file: {0}/n to: {1}'.format(newest, dstdir))
+            shutil.copy(os.path.join(boot_dir, newest),
+                        os.path.join(dstdir, newest) + temp)
+
+            # Bootstrap nodes load the kernel and initramfs via the network,
+            # therefore remove the kernel and initramfs located in root
+            # filesystem to make the image smaller (and save the network
+            # bandwidth and the boot time)
+            filelist = filter(
+                lambda x: os.path.isfile(
+                    os.path.join(boot_dir, x)) and x.startswith
+                (module), os.listdir(boot_dir))
+            remove_files(boot_dir, filelist)
+
+        fu.mount_fs(
+            'tmpfs', 'mnt_{0}'.format(temp),
+            (os.path.join(chroot, 'mnt/'.format(temp))),
+            'rw,nodev,nosuid,noatime,mode=0755,size=4M')
+
+        utils.makedirs_if_not_exists(s_src)
+        utils.makedirs_if_not_exists(s_dst)
+        # Bind mount the chroot to avoid including various temporary/virtual
+        # files (/proc, /sys, /dev, and so on) into the image
+        fu.mount_bind(s_src, chroot, ' ')
+
+        fu.mount_fs(None, None, s_src, 'remount,bind,ro')
+        fu.mount_bind(s_dst, dstdir, ' ')
+        # run mksquashfs
+        utils.execute(
+            'chroot', chroot, 'mksquashfs',
+            s_src[len(chroot):],
+            os.path.join(s_dst[len(chroot):], files['squashfs']) + temp,
+            '-comp {0}'.format(compression_algorithm),
+            '-no-progress', '-noappend',
+            logged=True)
+
+        # move to result names
+        # Find file'format(m_name)' by mask and move it to format(m_name) name
+        for m_name in six.iterkeys(files):
+            f = utils.guess_filename(
+                path=dstdir,
+                regexp=(r'^{0}*'.format(m_name)))
+            # os.path.isfile fails with None object :(
+            if f and os.path.isfile(os.path.join(dstdir, f)):
+                shutil.move(os.path.join(dstdir, f),
+                            os.path.join(dstdir) + files[m_name])
+
+    except Exception as exc:
+        LOG.error('squashfs_image build failed: %s', exc)
+        raise
+    finally:
+        LOG.info('squashfs_image clean-up')
+        stop_chrooted_processes(chroot, signal=signal.SIGTERM)
+        fu.umount_fs(os.path.join(chroot, 'mnt/dst/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/src/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/'))
+
+
+def dpkg_list(chroot):
+    """return simple dpkg list"""
+    stdout, stderr = utils.execute('chroot', chroot, 'dpkg-query',
+                                   '-W -f=\'${Package} ${Version}\\t\' ')
+    # split, output will be = package - version
+    p_list = stdout.split('\t')
+    # remove last empty ''
+    p_list.pop()
+
+    p_dict = {}
+    for item in p_list:
+        p_dict[item.split(' ')[0]] = item.split(' ')[1]
+    return p_dict
