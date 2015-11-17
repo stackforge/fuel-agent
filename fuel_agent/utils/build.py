@@ -22,11 +22,13 @@ import stat
 import tempfile
 import time
 
+import signal
 import six
 import yaml
 
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
+from fuel_agent.utils import fs as fu
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
 
@@ -554,6 +556,69 @@ def attach_file_to_free_loop_device(filename, max_loop_devices_count=255,
     return loop_device
 
 
+def make_targz(source_dir, output_name=None):
+    """Archive the given directory
+
+    :param source_dir directory to archive
+    :param output_name output file name, might be a relative
+    or an absolute path
+     """
+    LOG.info('Creating archive: %s', output_name)
+    utils.execute('tar', '-czf', output_name, '--directory',
+                  os.path.normcase(source_dir), '.', logged=True)
+    return output_name
+
+
+def run_script_in_chroot(chroot, script):
+    """Run script inside chroot
+
+    1)Copy script file inside chroot
+    2)Make it executable
+    3)Run it with bash
+    """
+    LOG.info('Copy user-script {0} into chroot:{1}'.format(script, chroot))
+
+    utils.makedirs_if_not_exists(chroot)
+    chrooted_file = os.path.join(chroot, os.path.basename(script))
+    shutil.copy(script, chrooted_file)
+
+    LOG.info('Make user-script {0} executable:'.format(chrooted_file))
+    os.chmod(chrooted_file, 0o755)
+
+    utils.execute(
+        'chroot', chroot, '/bin/bash', '-c', os.path.join(
+            '/', os.path.basename(script)), logged=True)
+    LOG.debug('User-script completed')
+
+
+def recompress_initramfs(chroot, compress='xz'):
+    """Remove old and rebuild initrd
+
+    :param chroot:
+    :param compress: compression type for initrd
+    :return:
+    """
+    initrd_mask = "initrd"
+
+    LOG.info('Change initramfs compression type to:{0}'.format(compress))
+    utils.execute(
+        'sed', '-i', 's/COMPRESS\s*=\s*gzip/COMPRESS={0}/'.format(compress),
+        os.path.join(chroot, 'etc/initramfs-tools/initramfs.conf'))
+
+    # remove all initrd files
+    for file in os.listdir(os.path.join(chroot, 'boot/')):
+        if os.path.isfile(file) and file.startswith(initrd_mask):
+            LOG.debug('Removing file: {0}'.format(file))
+            os.remove(os.path.join(os.path.join(chroot, 'boot/'), file))
+
+    cmds = ['chroot', chroot, 'update-initramfs -v -c -k all']
+
+    utils.execute(*cmds,
+                  env_variables={'TMPDIR': '/tmp',
+                                 'TMP': '/tmp'}, logged=True)
+    LOG.debug('Running "update-initramfs" completed')
+
+
 def propagate_host_resolv_conf(chroot):
     """Copy DNS settings from host system to chroot.
 
@@ -602,3 +667,104 @@ def mkdtemp_smart(root_dir, suffix):
         dir=root_dir, suffix=suffix)
     LOG.debug('Temporary chroot dir: %s', chroot)
     return chroot
+
+
+def run_mksquashfs(chroot, dstdir, compression_algorithm='xz'):
+    """Pack the target system as squashfs using mksquashfs
+
+    The kernel squashfs driver has to match with the user space squasfs tools.
+    Use the mksquashfs provided by the target distro to achieve this.
+    (typically the distro maintainers are smart enough to ship the correct
+    version of mksquashfs)
+    Mksquashfs used from the target system
+
+    1)Mount tmpfs under chroot/mnt
+    2)run mksquashfs inside a chroot
+    3)move result files to dstdir
+    """
+    # TODO(azvyagintsev) fetch from uri driver
+    # module : result filename
+    files = {'squashfs': 'root.squashfs',
+             'vmlinuz': 'vmlinuz',
+             'initrd': 'initrd.img'
+             }
+    temp = '.mksquashfs_tmp' + next(tempfile._get_candidate_names())
+
+    s_dst = os.path.join(chroot, 'mnt/dst/')
+    s_src = os.path.join(chroot, 'mnt/src/')
+    try:
+        boot_dir = os.path.join(chroot, 'boot/')
+        # We don't need all files, only latest one.
+        # So search latest one by mask(file-name started with 'initrd*'
+        # and 'vmlinuz*'), and copy them to dstdir, appending temp filename.
+        #  store all filenames in 'newest' for latest rename
+
+        # add squashfs name just for store all names in one place
+        newest = {'squashfs': files['squashfs']}
+        for module in ('initrd', 'vmlinuz'):
+            newest[module] = utils.guess_filename(
+                path=boot_dir,
+                regexp=(r'^{0}*'.format(module)))
+            LOG.debug('Moving out file: {0} to: {1}'.format(newest[module],
+                                                            dstdir))
+            shutil.copy(os.path.join(boot_dir, newest[module]),
+                        os.path.join(dstdir, newest[module]) + temp)
+
+            # Bootstrap nodes load the kernel and initramfs via the network,
+            # therefore remove the kernel and initramfs located in root
+            # filesystem to make the image smaller (and save the network
+            # bandwidth and the boot time)
+            filelist = filter(
+                lambda x: os.path.isfile(
+                    os.path.join(boot_dir, x)) and x.startswith
+                (module), os.listdir(boot_dir))
+            remove_files(boot_dir, filelist)
+
+        fu.mount_fs(
+            'tmpfs', 'mnt_{0}'.format(temp),
+            (os.path.join(chroot, 'mnt/'.format(temp))),
+            'rw,nodev,nosuid,noatime,mode=0755,size=4M')
+
+        utils.makedirs_if_not_exists(s_src)
+        utils.makedirs_if_not_exists(s_dst)
+        # Bind mount the chroot to avoid including various temporary/virtual
+        # files (/proc, /sys, /dev, and so on) into the image
+        fu.mount_bind(s_src, chroot, ' ')
+
+        fu.mount_fs(None, None, s_src, 'remount,bind,ro')
+        fu.mount_bind(s_dst, dstdir, ' ')
+        # run mksquashfs
+        utils.execute(
+            'chroot', chroot, 'mksquashfs',
+            os.path.join('/', os.path.relpath(s_src, chroot)),
+            os.path.join('/', os.path.relpath(s_dst, chroot),
+                         newest['squashfs'] + temp),
+            '-comp {0}'.format(compression_algorithm),
+            '-no-progress', '-noappend', logged=True)
+        # move to result names
+        # Find file'format(m_name)' by mask and move it to format(m_name) name
+        for module in six.iterkeys(newest):
+                shutil.move(os.path.join(dstdir, newest[module] + temp),
+                            os.path.join(dstdir, files[module]))
+
+    except Exception as exc:
+        LOG.error('squashfs_image build failed: %s', exc)
+        raise
+    finally:
+        LOG.info('squashfs_image clean-up')
+        stop_chrooted_processes(chroot, signal=signal.SIGTERM)
+        fu.umount_fs(os.path.join(chroot, 'mnt/dst/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/src/'))
+        fu.umount_fs(os.path.join(chroot, 'mnt/'))
+
+
+def get_installed_packages(chroot):
+    """The packages installed in chroot along with their versions"""
+
+    out, err = utils.execute('chroot', chroot, 'dpkg-query', '-W',
+                             "-f='${Package} ${Version};\;'")
+    # split, output will be = 'package - version'
+    p_list = re.split(';\;', out)
+    # remove last empty ''
+    p_list.pop()
+    return dict([pkgver.split() for pkgver in p_list])
