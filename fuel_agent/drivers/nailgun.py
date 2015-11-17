@@ -162,6 +162,12 @@ class Nailgun(BaseDataDriver):
         # we try to find a device by its name
         fallback = [hu_disk['device'] for hu_disk in self.hu_disks
                     if '/dev/%s' % ks_disk['name'] == hu_disk['device']]
+
+        # Workaround for CentOS. Since udevadm is not reporting correctly
+        # we choose only fallback method in case of nvme disks.
+        if any(f.find('nvme') > 0 for f in matched):
+            matched = False
+
         found = matched or fallback
         if not found or len(found) > 1:
             raise errors.DiskNotFoundError(
