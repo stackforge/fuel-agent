@@ -604,6 +604,91 @@ class Manager(object):
             LOG.debug('Finally: directory %s seems does not exist '
                       'or can not be removed', chroot)
 
+    def make_filesystem_images(self, chroot, fs_images):
+        """Make filesystem images of the installed OS
+
+        :param chroot directory where the installed OS can be found
+        :param fs_images the list of filesystems where the OS resides
+
+        Note: chroot will be umounted, any process which were running
+        in the chroot get killed, filesystems' images get irreversibly
+        modified
+
+        Example: suppose an Ubuntu system has been installed in /tmp/mychroot,
+        which is a mount point of the loopback device /dev/loop0, and
+        /dev/loop1 is mounted at /tmp/mychroot/boot. This method makes
+        a compressed filesystem images from /dev/loop0 and /dev/loop1 and
+        supplies the metadata necessary for fuel-agent to provision the OS
+        on a target node(s).
+
+        1) Kill any processes running in chroot
+        2) Umount all filesystems mounted somewhere in the chroot
+        3) Reduce the fs_images
+        4) Gzip them
+        5) Generate the meta-data
+        """
+
+        # TODO(asheplyakov): implement proper image format abstraction
+        metadata = []
+        fu.umount_fs(os.path.join(chroot, 'proc'))
+        # umount all loop devices
+        self.umount_target(chroot, pseudo=False)
+        for image in fs_images:
+            # find fs with the same loop device object
+            # as image.target_device
+            fs = self.driver.partition_scheme.fs_by_device(
+                image.target_device)
+
+            if fs.type == 'ext4':
+                LOG.debug('Trying to re-enable journaling for ext4')
+                utils.execute('tune2fs', '-O', 'has_journal',
+                              str(fs.device))
+
+            if image.target_device.name:
+                LOG.debug('Finally: detaching loop device: {0}'.format(
+                    image.target_device.name))
+                try:
+                    bu.deattach_loop(image.target_device.name)
+                except errors.ProcessExecutionError as e:
+                    LOG.warning('Error occured while trying to detach '
+                                'loop device {0}. Error message: {1}'.
+                                format(image.target_device.name, e))
+
+            LOG.debug('Shrinking temporary image file: %s',
+                      image.img_tmp_file)
+            bu.shrink_sparse_file(image.img_tmp_file)
+
+            raw_size = os.path.getsize(image.img_tmp_file)
+            raw_md5 = utils.calculate_md5(image.img_tmp_file, raw_size)
+
+            LOG.debug('Containerizing temporary image file: %s',
+                      image.img_tmp_file)
+            img_tmp_containerized = bu.containerize(
+                image.img_tmp_file, image.container,
+                chunk_size=CONF.data_chunk_size)
+            img_containerized = image.uri.split('file://', 1)[1]
+
+            # NOTE(kozhukalov): implement abstract publisher
+            LOG.debug('Moving image file to the final location: %s',
+                      img_containerized)
+            shutil.move(img_tmp_containerized, img_containerized)
+
+            container_size = os.path.getsize(img_containerized)
+            container_md5 = utils.calculate_md5(
+                img_containerized, container_size)
+
+            metadata.append({
+                'raw_md5': raw_md5,
+                'raw_size': raw_size,
+                'raw_name': None,
+                'container_name': os.path.basename(img_containerized),
+                'container_md5': container_md5,
+                'container_size': container_size,
+                'container': image.container,
+                'format': image.format})
+
+        return metadata
+
     def do_bootloader(self):
         LOG.debug('--- Installing bootloader (do_bootloader) ---')
         chroot = '/tmp/target'
@@ -802,64 +887,11 @@ class Manager(object):
                         chroot)
 
             LOG.info('*** Finalizing image space ***')
-            fu.umount_fs(os.path.join(chroot, 'proc'))
-            # umounting all loop devices
-            self.umount_target(chroot, pseudo=False)
+            images_metadata = self.make_filesystem_images(
+                chroot,
+                self.driver.image_scheme.images)
 
-            for image in self.driver.image_scheme.images:
-                # find fs with the same loop device object
-                # as image.target_device
-                fs = self.driver.partition_scheme.fs_by_device(
-                    image.target_device)
-
-                if fs.type == 'ext4':
-                    LOG.debug('Trying to re-enable journaling for ext4')
-                    utils.execute('tune2fs', '-O', 'has_journal',
-                                  str(fs.device))
-
-                if image.target_device.name:
-                    LOG.debug('Finally: detaching loop device: {0}'.format(
-                        image.target_device.name))
-                    try:
-                        bu.deattach_loop(image.target_device.name)
-                    except errors.ProcessExecutionError as e:
-                        LOG.warning('Error occured while trying to detach '
-                                    'loop device {0}. Error message: {1}'.
-                                    format(image.target_device.name, e))
-
-                LOG.debug('Shrinking temporary image file: %s',
-                          image.img_tmp_file)
-                bu.shrink_sparse_file(image.img_tmp_file)
-
-                raw_size = os.path.getsize(image.img_tmp_file)
-                raw_md5 = utils.calculate_md5(image.img_tmp_file, raw_size)
-
-                LOG.debug('Containerizing temporary image file: %s',
-                          image.img_tmp_file)
-                img_tmp_containerized = bu.containerize(
-                    image.img_tmp_file, image.container,
-                    chunk_size=CONF.data_chunk_size)
-                img_containerized = image.uri.split('file://', 1)[1]
-
-                # NOTE(kozhukalov): implement abstract publisher
-                LOG.debug('Moving image file to the final location: %s',
-                          img_containerized)
-                shutil.move(img_tmp_containerized, img_containerized)
-
-                container_size = os.path.getsize(img_containerized)
-                container_md5 = utils.calculate_md5(
-                    img_containerized, container_size)
-
-                metadata.setdefault('images', []).append({
-                    'raw_md5': raw_md5,
-                    'raw_size': raw_size,
-                    'raw_name': None,
-                    'container_name': os.path.basename(img_containerized),
-                    'container_md5': container_md5,
-                    'container_size': container_size,
-                    'container': image.container,
-                    'format': image.format})
-
+            metadata.setdefault('images', []).extend(images_metadata)
             # NOTE(kozhukalov): implement abstract publisher
             LOG.debug('Image metadata: %s', metadata)
             with open(self.driver.metadata_uri.split('file://', 1)[1],
