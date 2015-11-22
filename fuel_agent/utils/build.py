@@ -770,3 +770,16 @@ def get_installed_packages(chroot):
                              '-f="${Package} ${Version};;"')
     pkglist = filter(None, out.split(';;'))
     return dict([pkgver.split() for pkgver in pkglist])
+
+
+def rsync_dirs(chroot, dirs):
+    """Rsync directories to chroot system root
+
+    :param chroot:
+    :param files:
+    :return:
+    """
+    utils.makedirs_if_not_exists(os.path.dirname(chroot))
+    for directory in dirs:
+        LOG.debug('Rsync files from %s to: %s', directory, chroot)
+        utils.execute('rsync', '-rlptDKv', directory + '/', chroot + '/', logged=True)
