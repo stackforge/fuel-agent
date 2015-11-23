@@ -21,8 +21,13 @@ import tarfile
 import tempfile
 import yaml
 
+
+from fuel_agent import manager as fuel_agent_manager
+from oslo_config import cfg
+
 from fuel_bootstrap import consts
 from fuel_bootstrap import errors
+from fuel_bootstrap.utils import data as data_util
 
 
 LOG = logging.getLogger(__name__)
@@ -102,3 +107,17 @@ def extract_to_dir(arch_path, extract_path):
     LOG.debug("Try extract {0} to {1}".format(arch_path, extract_path))
     arch = tarfile.open(arch_path, 'r')
     arch.extractall(extract_path)
+
+
+def make_bootstrap(params):
+    bootdata_builder = data_util.BootstrapDataBuilder(params)
+    bootdata = bootdata_builder.build()
+
+    LOG.info("Try to build image with data={0}".format(bootdata))
+
+    CONF = cfg.CONF
+    CONF.data_driver = 'nailgun_build_image'
+
+    manager = fuel_agent_manager.Manager(bootdata)
+
+    manager.do_mkbootstrap()
