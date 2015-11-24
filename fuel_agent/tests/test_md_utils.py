@@ -88,6 +88,7 @@ unused devices: <none>
             """/dev/md0:
         Version : 1.2
   Creation Time : Wed Jun 18 18:44:57 2014
+      Container : /dev/md/imsm0, member 0
      Raid Level : raid1
      Array Size : 102272 (99.89 MiB 104.73 MB)
   Used Dev Size : 102272 (99.89 MiB 104.73 MB)
@@ -122,6 +123,7 @@ localhost.localdomain)
             'Spare Devices': '0',
             'Failed Devices': '0',
             'State': 'clean',
+            'Container': '/dev/md/imsm0, member 0',
             'UUID': '12dd4cfc:6b2ac9db:94564538:a6ffee82',
             'devices': ['/dev/loop4', '/dev/loop5']
         }]
@@ -277,3 +279,11 @@ localhost.localdomain)
         mock_exec.assert_called_once_with('mdadm', '--zero-superblock',
                                           '--force', '/dev/md0',
                                           check_exit_code=[0])
+
+    @mock.patch.object(mu, 'mdclean')
+    @mock.patch.object(mu, 'mdremove')
+    @mock.patch.object(mu, 'mddisplay')
+    def test_mdclean_all_with_containers(self, mock_clean, mock_remove,
+                                         mock_display):
+        # TODO(agordeev): implement a couple of unit tests
+        pass
