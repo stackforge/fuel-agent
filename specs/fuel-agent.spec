@@ -115,3 +115,5 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/trusty/usr/bin/fix-configs-on-startup
 %attr(0755,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/trusty/usr/bin/send2syslog.py
 %attr(0755,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/trusty/etc/rc.local
+%attr(0755,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/trusty/usr/share/initramfs-tools/hooks/netifnames
+
