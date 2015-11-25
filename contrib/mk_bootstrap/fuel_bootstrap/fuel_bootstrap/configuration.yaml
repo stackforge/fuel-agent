@@ -1,0 +1,3 @@
+bootstrap_images_dir: "/var/www/nailgun/bootstrap"
+metadata_file: "metadata.yaml"
+symlink: "active_bootstrap"

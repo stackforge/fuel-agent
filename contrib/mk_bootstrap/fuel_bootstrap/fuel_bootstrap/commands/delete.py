@@ -35,5 +35,5 @@ class DeleteCommand(command.Command):
     def take_action(self, parsed_args):
         # cliff handles errors by himself
         image_uuid = bs_image.delete(parsed_args.id)
-        self.app.stdout.write("Bootstrap image with uuid={0} was deleted"
-                              " successfuly.\n".format(image_uuid))
+        self.app.stdout.write("Bootstrap image {0} was deleted"
+                              " successfully.\n".format(image_uuid))

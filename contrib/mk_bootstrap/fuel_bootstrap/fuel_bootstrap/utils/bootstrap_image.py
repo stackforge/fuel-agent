@@ -21,18 +21,18 @@ import tarfile
 import tempfile
 import yaml
 
-from fuel_bootstrap import consts
 from fuel_bootstrap import errors
+from fuel_bootstrap import settings
 
-
+CONF = settings.Configuration()
 LOG = logging.getLogger(__name__)
 ACTIVE = 'active'
 
 
 def get_all():
     data = []
-    LOG.debug("Searching images in {0}".format(consts.BOOTSTRAP_IMAGES_DIR))
-    for name in os.listdir(consts.BOOTSTRAP_IMAGES_DIR):
+    LOG.debug("Searching images in {0}".format(CONF.bootstrap_images_dir))
+    for name in os.listdir(CONF.bootstrap_images_dir):
         try:
             data.append(parse(name))
         except errors.IncorrectImage as e:
@@ -48,7 +48,7 @@ def parse(image_id):
         raise errors.IncorrectImage("There are no such image [{0}]."
                                     .format(image_id))
 
-    metafile = os.path.join(dir_path, consts.METADATA_FILE)
+    metafile = os.path.join(dir_path, CONF.metadata_file)
     if not os.path.exists(metafile):
         raise errors.IncorrectImage("Image [{0}] doen's contain metadata file."
                                     .format(image_id))
@@ -81,12 +81,13 @@ def delete(image_id):
 
 
 def is_active(image_id):
-    return full_path(image_id) == os.path.realpath(consts.SYMLINK)
+    return full_path(image_id) == os.path.realpath(
+        os.path.join(CONF.bootstrap_images_dir, CONF.symlink))
 
 
 def full_path(image_id):
     if not os.path.isabs(image_id):
-        return os.path.join(consts.BOOTSTRAP_IMAGES_DIR, image_id)
+        return os.path.join(CONF.bootstrap_images_dir, image_id)
     return image_id
 
 
@@ -94,7 +95,7 @@ def import_image(arch_path):
     extract_dir = tempfile.mkdtemp()
     extract_to_dir(arch_path, extract_dir)
 
-    metafile = os.path.join(extract_dir, consts.METADATA_FILE)
+    metafile = os.path.join(extract_dir, CONF.metadata_file)
 
     with open(metafile) as f:
         data = yaml.load(f)

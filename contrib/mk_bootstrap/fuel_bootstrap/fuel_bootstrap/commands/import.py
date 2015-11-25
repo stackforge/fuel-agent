@@ -36,5 +36,5 @@ class ImportCommand(cmd.Command):
     def take_action(self, parsed_args):
         # Cliff handles errors by himself
         image_uuid = bs_image.import_image(parsed_args.filename)
-        self.app.stdout.write("Image with uuid={0} was successfuly imported"
-                              .format(image_uuid))
+        self.app.stdout.write("Bootstrap image {0} was imported"
+                              " successfully.\n".format(image_uuid))
