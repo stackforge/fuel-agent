@@ -47,7 +47,7 @@ class BuildCommand(command.Command):
         )
         parser.add_argument(
             '--repo',
-            dest='repos',
+            dest='extra_repos',
             type=str,
             metavar='REPOSITORY',
             help="Add one more repository. format 'type uri"
