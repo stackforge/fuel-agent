@@ -1,0 +1,102 @@
+---
+bootstrap:
+  container:
+    format: tar.gz
+    meta_file: metadata.yaml
+  modules:
+    -
+      compress_format: xz
+      mask: initrd
+      name: initrd
+      uri: "http://127.0.0.1:8080/bootstraps/750a4bfe-5d7b-4555-91d0-c162fe10a901/initrd.img"
+    -
+      mask: kernel
+      name: kernel
+      uri: "http://127.0.0.1:8080/bootstraps/750a4bfe-5d7b-4555-91d0-c162fe10a901/vmlinuz"
+    -
+      compress_format: xz
+      mask: rootfs
+      name: rootfs
+      ro_system: squashfs
+      uri: "http://127.0.0.1:8080/bootstraps/750a4bfe-5d7b-4555-91d0-c162fe10a901/root.squashfs"
+  post_script_file: Null
+  root_ssh_authorized_file: /root/.ssh/id_rsa.pub
+  uuid: 750a4bfe-5d7b-4555-91d0-c162fe10a901
+  extend_kopts: "biosdevname=0 debug ignore_loglevel log_buf_len=10M print_fatal_signals=1 LOGLEVEL=8"
+  extra_files:
+    - /usr/share/mk_bootstrap/files/trusty
+codename: trusty
+image_data:
+  /:
+    container: raw
+    format: ext4
+    uri: "http://127.0.0.1:8080/bootstraps/750a4bfe-5d7b-4555-91d0-c162fe10a901/root.squashfs"
+bootstrap_images_dir: "/var/www/nailgun/bootstraps"
+symlink: "/var/www/nailgun/bootstraps/active_bootstrap"
+output: /tmp/750a4bfn-5d7b-4555-91d0-c162fe10a901.tar.gz
+kernel-flavor: &kernel-flavor linux-image-generic-lts-trusty
+packages:
+  - vim
+  - mc
+  - openssh-client
+  - openssh-server
+  - ntp
+  - mcollective
+  - nailgun-agent
+  - nailgun-mcagents
+  - network-checker
+  - fuel-agent
+  - ubuntu-minimal
+  - live-boot
+  - live-boot-initramfs-tools
+  - wget
+  - *kernel-flavor
+  - linux-firmware
+  - linux-firmware-nonfree
+  - xz-utils
+  - squashfs-tools
+  - msmtp-mta
+repos:
+  -
+    name: ubuntu
+    priority: ~
+    section: "main restricted multiverse universe"
+    suite: trusty
+    type: deb
+    uri: "http://archive.ubuntu.com/ubuntu/"
+  -
+    name: ubuntu-updates
+    priority: ~
+    section: "main restricted multiverse universe"
+    suite: trusty-updates
+    type: deb
+    uri: "http://archive.ubuntu.com/ubuntu/"
+  -
+    name: ubuntu-security
+    priority: ~
+    section: "main restricted multiverse universe"
+    suite: trusty-security
+    type: deb
+    uri: "http://archive.ubuntu.com/ubuntu/"
+  -
+    name: mos8
+    priority: 1050
+    section: "main restricted"
+    suite: mos8.0
+    type: deb
+    uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0/"
+  -
+    name: mos8-updates
+    priority: 1050
+    section: "main restricted"
+    suite: mos8.0-updates
+    type: deb
+    uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0/"
+  -
+    name: mos8-security
+    priority: 1050
+    section: "main restricted"
+    suite: mos8.0-security
+    type: deb
+    uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0/"
+
