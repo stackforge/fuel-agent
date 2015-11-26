@@ -1,0 +1,102 @@
+---
+# User can pass any type of executable script
+#  post_script_file: /tmp/my_custom_script
+root_ssh_authorized_file: /root/.ssh/id_rsa.pub
+extend_kopts: "biosdevname=0 debug ignore_loglevel log_buf_len=10M print_fatal_signals=1 LOGLEVEL=8"
+extra_files:
+  - /usr/share/mk_bootstrap/files/trusty
+# Constant for import\activate commands only.
+bootstrap_images_dir: "/var/www/nailgun/bootstraps"
+# Constant for import\activate commands only
+symlink: "/var/www/nailgun/bootstraps/active_bootstrap"
+# Save generated bootstrap container to
+kernel-flavor: &kernel-flavor linux-image-generic-lts-trusty
+packages:
+  - vim
+  - mc
+  - openssh-client
+  - openssh-server
+  - ntp
+  - mcollective
+  - nailgun-agent
+  - nailgun-mcagents
+  - network-checker
+  - fuel-agent
+  - ubuntu-minimal
+  - live-boot
+  - live-boot-initramfs-tools
+  - wget
+  - *kernel-flavor
+  - linux-firmware
+  - linux-firmware-nonfree
+  - xz-utils
+  - squashfs-tools
+  - msmtp-mta
+repos:
+  MIRROR_DISTRO:
+    -
+      name: ubuntu
+      priority: None
+      section: "main universe multiverse"
+      suite: trusty
+      type: deb
+      uri: "http://archive.ubuntu.com/ubuntu"
+    -
+      name: ubuntu-updates
+      priority: None
+      section: "main universe multiverse"
+      suite: trusty-updates
+      type: deb
+      uri: "http://archive.ubuntu.com/ubuntu"
+    -
+      name: ubuntu-security
+      priority: None
+      section: "main universe multiverse"
+      suite: trusty-security
+      type: deb
+      uri: "http://archive.ubuntu.com/ubuntu"
+  MIRROR_MOS:
+    -
+      name: mos
+      priority: "1050"
+      section: "main restricted"
+      suite: mos8.0
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+    -
+      name: mos-updates
+      priority: "1050"
+      section: "main restricted"
+      suite: mos8.0-updates
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+    -
+      name: mos-security
+      priority: "1050"
+      section: "main restricted"
+      suite: mos8.0-security
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+    -
+      name: mos-holdback
+      priority: "1100"
+      section: "main restricted"
+      suite: mos8.0-holdback
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+  EXTRA_DEB_REPOS:
+    -
+      name: Extra_repo
+      priority: None
+      section: main
+      suite: trusty
+      type: deb
+      uri: "http://archive.ubuntu.com/ubuntu"
+# Ignore proxy for this repos
+#direct_repo_addr_list: 
+#    - 127.0.0.1"
+#    - 172.18.196.50
+#proxy: 
+#  http: "192.168.1.50:8080"
+#  https: "192.168.1.50:8080"
+
