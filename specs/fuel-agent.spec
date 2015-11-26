@@ -93,6 +93,8 @@ cp -a %{_builddir}/%{name}-%{version}/contrib/ironic/bootstrap-files/* %{buildro
 
 #Install fuel-bootstrap-cli files
 cd %{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/fuel_bootstrap/ && PBR_VERSION=%{version} python setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=%{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/fuel_bootstrap/INSTALLED_FILES
+install -d -m 755 %{buildroot}%{_sysconfdir}/fuel-agent
+install -p -D -m 644 %{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/fuel_bootstrap/fuel_bootstrap/settings.yaml.sample %{buildroot}%{_sysconfdir}/fuel-agent/fuel_bootstrap_cli.yaml
 install -d -m 755 %{buildroot}%{_datadir}/mk_bootstrap/files/
 cp -a %{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/files/* %{buildroot}%{_datadir}/mk_bootstrap/files/
 
@@ -111,6 +113,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n fuel-bootstrap-cli -f %{_builddir}/%{name}-%{version}/contrib/mk_bootstrap/fuel_bootstrap/INSTALLED_FILES
 %defattr(-,root,root)
+%config(noreplace) %{_sysconfdir}/fuel-agent/fuel_bootstrap_cli.yaml
 %attr(0644,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/*
 %attr(0755,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/trusty/usr/bin/fix-configs-on-startup
 %attr(0755,root,root) %config(noreplace) %{_datadir}/mk_bootstrap/files/trusty/usr/bin/send2syslog.py
