@@ -15,6 +15,7 @@
 import os
 import shutil
 import signal
+import yaml
 
 import mock
 import unittest2
@@ -558,3 +559,28 @@ class BuildUtilsTestCase(unittest2.TestCase):
         self.assertEqual(
             [mock.call(filename, '/dev/loop0')] * 3,
             mock_attach_file.call_args_list)
+
+    @mock.patch.object(utils, 'execute')
+    def test_rsync_inject(self, mock_exec):
+        src = 'host1:/folder1'
+        dst = 'host2:/folder2'
+        bu.rsync_inject(src, dst)
+        mock_exec.assert_called_once_with('rsync', '-rlptDKv', src + '/',
+                                          dst + '/', logged=True)
+
+    @mock.patch('fuel_agent.utils.build.open',
+                create=True, new_callable=mock.mock_open)
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(os, 'path', return_value=True)
+    @mock.patch.object(yaml, 'load', return_value={'test': 22})
+    @mock.patch.object(yaml, 'safe_dump')
+    def test_dump_runtime_uuid(self, mock_open, mock_exec,
+                               mock_makedirs_if_not_exists, mock_os,
+                               mock_load_yaml, mock_safe_dump_yaml):
+        uuid = "8"
+        config = "/tmp/test.conf"
+        bu.dump_runtime_uuid(uuid, config)
+        mock_open.assert_called_with({'runtime_uuid': '8', 'test': 22},
+                                     stream=mock.ANY,
+                                     encoding='utf-8')
