@@ -12,9 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import glob
 import os
 import shutil
 import signal
+import yaml
 
 import mock
 import unittest2
@@ -558,3 +560,96 @@ class BuildUtilsTestCase(unittest2.TestCase):
         self.assertEqual(
             [mock.call(filename, '/dev/loop0')] * 3,
             mock_attach_file.call_args_list)
+
+    @mock.patch.object(utils, 'execute')
+    def test_rsync_inject(self, mock_exec):
+        src = 'host1:/folder1'
+        dst = 'host2:/folder2'
+        bu.rsync_inject(src, dst)
+        mock_exec.assert_called_once_with('rsync', '-rlptDKv', src + '/',
+                                          dst + '/', logged=True)
+
+    @mock.patch('fuel_agent.utils.build.open',
+                create=True, new_callable=mock.mock_open)
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(os, 'path', return_value=True)
+    @mock.patch.object(yaml, 'load', return_value={'test': 22})
+    @mock.patch.object(yaml, 'safe_dump')
+    def test_dump_runtime_uuid(self, mock_open, mock_exec,
+                               mock_makedirs_if_not_exists, mock_os,
+                               mock_load_yaml, mock_safe_dump_yaml):
+        uuid = "8"
+        config = "/tmp/test.conf"
+        bu.dump_runtime_uuid(uuid, config)
+        mock_open.assert_called_with({'runtime_uuid': '8', 'test': 22},
+                                     stream=mock.ANY,
+                                     encoding='utf-8')
+
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(os.path, 'isfile',
+                       return_value=[True, True, True, True])
+    @mock.patch.object(shutil, 'copy')
+    def test_propagate_host_resolv_conf(self, mock_copy, mock_path,
+                                        mock_makedirs):
+        bu.propagate_host_resolv_conf('/test/path')
+        expected_args = [mock.call('/test/path/etc/resolv.conf',
+                                   '/test/path/etc/resolv.conf.bak'),
+                         mock.call('/etc/resolv.conf',
+                                   '/test/path/etc/resolv.conf'),
+                         mock.call('/test/path/etc/hosts',
+                                   '/test/path/etc/hosts.bak'),
+                         mock.call('/etc/hosts',
+                                   '/test/path/etc/hosts')]
+        self. assertItemsEqual(mock_copy.call_args_list, expected_args)
+
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(os.path, 'isfile', return_value=[True, True])
+    @mock.patch.object(shutil, 'move')
+    def test_restore_host_resolv_conf(self, mock_move, mock_path,
+                                      mock_makedirs):
+        bu.restore_resolv_conf('/test/path')
+        expected_args = [mock.call('/test/path/etc/resolv.conf.bak',
+                                   '/test/path/etc/resolv.conf'),
+                         mock.call('/test/path/etc/hosts.bak',
+                                   '/test/path/etc/hosts')]
+        self. assertItemsEqual(mock_move.call_args_list, expected_args)
+
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(utils, 'execute')
+    def test_make_targz(self, mock_exec, mock_makedirs):
+        bu.make_targz('/test/path')
+        mock_exec.assert_called_with('tar', '-czf', mock.ANY, '--directory',
+                                     '/test/path', '.', logged=True)
+
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(utils, 'execute')
+    def test_make_targz_with_name(self, mock_exec, mock_makedirs):
+        bu.make_targz('/test/path', 'testname')
+        mock_exec.assert_called_with('tar', '-czf', 'testname', '--directory',
+                                     '/test/path', '.', logged=True)
+
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(os.path, 'isdir', return_value=True)
+    @mock.patch.object(shutil, 'copy')
+    @mock.patch.object(os, 'chmod')
+    def test_run_script_in_chroot(self, mock_chmod, mock_copy, mock_isdir,
+                                  mock_exec, mock_makedirs):
+        bu.run_script_in_chroot('/test/path', 'script_name')
+        mock_exec.assert_called_with('chroot', '/test/path', '/bin/bash',
+                                     '-c', '/script_name', logged=True)
+
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(bu, 'remove_files')
+    @mock.patch.object(glob, 'glob', return_value=[])
+    @mock.patch('fuel_agent.utils.build.os', environ={})
+    def test_recompress_initramfs(self, mock_os, mock_glob, mock_rm_files,
+                                  mock_exec):
+        bu.recompress_initramfs('/test/path')
+        mock_exec.assert_called_with(
+            'chroot', '/test/path',
+            'update-initramfs -v -c -k all',
+            logged=True,
+            env_variables={'TMP': '/tmp', 'TMPDIR': '/tmp'}
+        )
