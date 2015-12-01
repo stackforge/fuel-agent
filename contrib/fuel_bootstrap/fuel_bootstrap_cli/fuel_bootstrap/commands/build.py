@@ -166,9 +166,25 @@ class BuildCommand(command.Command):
                  " /tmp/ will be used by default.",
             default="/tmp/"
         )
+        parser.add_argument(
+            '--activate',
+            help="Activate bootstrap image after build",
+            action='store_true'
+        )
+        parser.add_argument(
+            '--notify-webui',
+            help="Notify WebUI with result of command",
+            action='store_true'
+        )
         return parser
 
     def take_action(self, parsed_args):
-        image_uuid, path = bs_image.make_bootstrap(parsed_args)
+        image_uuid, path = bs_image.make_bootstrap(parsed_args,
+                                                   parsed_args.notify_webui)
         self.app.stdout.write("Bootstrap image {0} has been built: {1}\n"
                               .format(image_uuid, path))
+        if parsed_args.activate:
+            bs_image.activate(image_uuid,
+                              parsed_args.notify_webui)
+            self.app.stdout.write("Bootstrap image {0} has been activated.\n"
+                                  .format(image_uuid))
