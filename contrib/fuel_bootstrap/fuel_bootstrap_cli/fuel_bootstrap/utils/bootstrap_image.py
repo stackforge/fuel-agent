@@ -25,6 +25,7 @@ from fuel_agent.utils import utils
 
 from fuel_bootstrap import consts
 from fuel_bootstrap import errors
+from fuel_bootstrap.objects import master_node_settings
 from fuel_bootstrap import settings
 from fuel_bootstrap.utils import data as data_util
 
@@ -117,6 +118,13 @@ def import_image(arch_path):
                                         .format(image_id))
 
     shutil.move(extract_dir, dir_path)
+    for root, dirs, files in os.walk(dir_path):
+        for d in dirs:
+            os.chmod(os.path.join(root, d), 0o755)
+        for f in files:
+            os.chmod(os.path.join(root, f), 0o755)
+
+    return image_id
 
 
 def extract_to_dir(arch_path, extract_path):
@@ -124,8 +132,8 @@ def extract_to_dir(arch_path, extract_path):
     tarfile.open(arch_path, 'r').extractall(extract_path)
 
 
-def make_bootstrap(params):
-    bootdata_builder = data_util.BootstrapDataBuilder(vars(params))
+def make_bootstrap(data={}):
+    bootdata_builder = data_util.BootstrapDataBuilder(data)
     bootdata = bootdata_builder.build()
 
     LOG.info("Try to build image with data:\n%s", yaml.safe_dump(bootdata))
@@ -135,7 +143,56 @@ def make_bootstrap(params):
         f.flush()
         utils.execute('fa_mkbootstrap', '--nouse-syslog', '--data_driver',
                       'bootstrap_build_image', '--nodebug', '-v',
-                      '--image_build_dir', params.image_build_dir,
+                      '--image_build_dir', data['image_build_dir'],
                       '--input_data_file', f.name)
 
     return bootdata['bootstrap']['uuid'], bootdata['output']
+
+
+def activate(image_id=None):
+    parse(image_id)
+    dir_path = full_path(image_id)
+    symlink = CONF.active_bootstrap_symlink
+
+    try:
+        os.unlink(symlink)
+        LOG.debug("Symlink %s was deleted", symlink)
+    except OSError as e:
+        LOG.warning("Symlink %s can't be removed due to %s", symlink, e)
+
+    os.symlink(dir_path, symlink)
+    LOG.debug("Symlink %s to %s directory has been created",
+              symlink,
+              dir_path)
+
+    # FIXME: Do normal activation when it become clear how to do it
+    utils.execute('fuel-bootstrap-image-set', 'ubuntu')
+
+    return image_id
+
+
+def call_wrapped_method(name, notify_webui, **kwargs):
+    wrapped_methods = {
+        'build': make_bootstrap,
+        'activate': activate
+    }
+    failed = False
+    try:
+        return wrapped_methods[name](**kwargs)
+    except Exception:
+        failed = True
+        raise
+    finally:
+        if notify_webui:
+            notify_webui_about_results(failed, consts.ERROR_MSG)
+
+
+def notify_webui_about_results(failed, error_message):
+    mn_settings = master_node_settings.MasterNodeSettings()
+    settings = mn_settings.get()
+    settings['settings'].setdefault('bootstrap', {}).setdefault('error', {})
+    if failed:
+        settings['settings']['bootstrap']['error']['value'] = error_message
+    else:
+        settings['settings']['bootstrap']['error']['value'] = ""
+    mn_settings.update(settings)
