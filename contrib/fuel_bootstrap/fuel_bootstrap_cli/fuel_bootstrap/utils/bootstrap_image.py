@@ -25,6 +25,7 @@ from fuel_agent.utils import utils
 
 from fuel_bootstrap import consts
 from fuel_bootstrap import errors
+from fuel_bootstrap.objects import master_node_settings
 from fuel_bootstrap import settings
 from fuel_bootstrap.utils import data as data_util
 
@@ -139,3 +140,35 @@ def make_bootstrap(params):
                       '--input_data_file', f.name)
 
     return bootdata['uuid'], bootdata['output']
+
+
+def activate(image_id, notify_webui):
+    mn_settings = master_node_settings.MasterNodeSettings()
+    settings = mn_settings.get()
+    settings.setdefault('bootstrap', {}).setdefault('error', {})
+
+    try:
+        dir_path = full_path(image_id)
+        symlink = CONF.active_bootstrap_symlink
+
+        try:
+            os.unlink(symlink)
+            LOG.debug("Symlink {0} was deleted", symlink)
+        except OSError as e:
+            LOG.warning("Symlink {0} can't be removed", symlink)
+
+        os.symlink(dir_path, symlink)
+        LOG.debug("Symlink {0} to {1} directory has been created",
+                  symlink,
+                  dir_path)
+
+        utils.execute('fuel-bootstrap-image-set', 'ubuntu')
+    except Exception as e:
+        if notify_webui:
+            settings['bootstrap']['error']['value'] = consts.ACTIVATE_ERROR_MSG
+            mn_settings.update(settings)
+        raise e
+
+    if notify_webui:
+        settings['bootstrap']['error']['value'] = ""
+        mn_settings.update(settings)
