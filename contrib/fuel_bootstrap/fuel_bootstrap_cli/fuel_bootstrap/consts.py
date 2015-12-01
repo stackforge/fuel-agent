@@ -41,3 +41,9 @@ BOOTSTRAP_MODULES = [
 IMAGE_DATA = {'/': ROOTFS}
 
 UBUNTU_RELEASE = 'trusty'
+
+ACTIVATE_ERROR_MSG = "There are no bootstrap image by default."\
+                     "Activate is failed"
+
+BUILD_ERROR_MSG = "There are no bootstrap image by default."\
+                  "Build is failed"

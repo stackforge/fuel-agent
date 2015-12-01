@@ -25,6 +25,7 @@ from fuel_agent.utils import utils
 
 from fuel_bootstrap import consts
 from fuel_bootstrap import errors
+from fuel_bootstrap.objects import master_node_settings
 from fuel_bootstrap import settings
 from fuel_bootstrap.utils import data as data_util
 
@@ -124,18 +125,65 @@ def extract_to_dir(arch_path, extract_path):
     tarfile.open(arch_path, 'r').extractall(extract_path)
 
 
-def make_bootstrap(params):
-    bootdata_builder = data_util.BootstrapDataBuilder(vars(params))
-    bootdata = bootdata_builder.build()
+def make_bootstrap(params, notify_webui):
+    failed = False
+    try:
+        bootdata_builder = data_util.BootstrapDataBuilder(vars(params))
+        bootdata = bootdata_builder.build()
 
-    LOG.info("Try to build image with data:\n%s", yaml.safe_dump(bootdata))
+        LOG.info("Try to build image with data:\n%s", yaml.safe_dump(bootdata))
 
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(yaml.safe_dump(bootdata))
-        f.flush()
-        utils.execute('fa_mkbootstrap', '--nouse-syslog', '--data_driver',
-                      'bootstrap_build_image', '--nodebug', '-v',
-                      '--image_build_dir', params.image_build_dir,
-                      '--input_data_file', f.name)
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(yaml.safe_dump(bootdata))
+            f.flush()
+            utils.execute('fa_mkbootstrap', '--nouse-syslog', '--data_driver',
+                          'bootstrap_build_image', '--nodebug', '-v',
+                          '--image_build_dir', params.image_build_dir,
+                          '--input_data_file', f.name)
 
-    return bootdata['uuid'], bootdata['output']
+        return bootdata['uuid'], bootdata['output']
+    except Exception as e:
+        failed = True
+        raise e
+    finally:
+        if notify_webui:
+            notify_webui_about_results(failed, consts.BUILD_ERROR_MSG)
+
+
+def activate(image_id, notify_webui):
+    failed = False
+    try:
+        dir_path = full_path(image_id)
+        symlink = CONF.active_bootstrap_symlink
+
+        try:
+            os.unlink(symlink)
+            LOG.debug("Symlink {0} was deleted", symlink)
+        except OSError as e:
+            LOG.warning("Symlink {0} can't be removed", symlink)
+
+        os.symlink(dir_path, symlink)
+        LOG.debug("Symlink {0} to {1} directory has been created",
+                  symlink,
+                  dir_path)
+
+        utils.execute('fuel-bootstrap-image-set', 'ubuntu')
+
+        return image_id
+    except Exception as e:
+        failed = True
+        raise e
+    finally:
+        if notify_webui:
+            notify_webui_about_results(failed, consts.ACTIVATE_ERROR_MSG)
+
+
+def notify_webui_about_results(failed, error_message):
+    mn_settings = master_node_settings.MasterNodeSettings()
+    settings = mn_settings.get()
+    settings.setdefault('bootstrap', {}).setdefault('error', {})
+    if failed:
+        settings['bootstrap']['error']['value'] = error_message
+    else:
+        settings['bootstrap']['error']['value'] = ""
+    mn_settings.update(settings)
