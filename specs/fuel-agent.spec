@@ -52,6 +52,7 @@ Requires:    ethtool
 Requires:    debootstrap
 Requires:    xz
 Requires:    coreutils
+Requires:    psmisc
 
 %description
 Fuel-agent package
@@ -113,9 +114,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755,root,root) %config(noreplace) %{_datadir}/ironic-fa-bootstrap-configs/usr/bin/configure-remote-logging.sh
 
 %files -n fuel-bootstrap-cli -f %{_builddir}/%{name}-%{version}/contrib/fuel_bootstrap/fuel_bootstrap_cli/INSTALLED_FILES
-%defattr(-,root,root)
+%defattr(0644,root,root,0755)
 %config(noreplace) %{_sysconfdir}/fuel-bootstrap-cli/fuel_bootstrap_cli.yaml
-%attr(0644,root,root) %config(noreplace) %{_datadir}/fuel_bootstrap_cli/files/*
-%attr(0755,root,root) %config(noreplace) %{_datadir}/fuel_bootstrap_cli/files/trusty/usr/bin/fix-configs-on-startup
-%attr(0755,root,root) %config(noreplace) %{_datadir}/fuel_bootstrap_cli/files/trusty/usr/bin/send2syslog.py
-%attr(0755,root,root) %config(noreplace) %{_datadir}/fuel_bootstrap_cli/files/trusty/etc/rc.local
+%{_datadir}/fuel_bootstrap_cli/files/*
+%attr(0755,root,root)  %{_datadir}/fuel_bootstrap_cli/files/trusty/usr/bin/fix-configs-on-startup
+%attr(0755,root,root)  %{_datadir}/fuel_bootstrap_cli/files/trusty/usr/bin/send2syslog.py
+%attr(0755,root,root)  %{_datadir}/fuel_bootstrap_cli/files/trusty/etc/rc.local
