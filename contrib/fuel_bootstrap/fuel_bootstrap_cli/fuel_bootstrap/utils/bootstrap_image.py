@@ -56,8 +56,8 @@ def parse(image_uuid):
 
     metafile = os.path.join(dir_path, consts.METADATA_FILE)
     if not os.path.exists(metafile):
-        raise errors.IncorrectImage("Image [{0}] doen's contain metadata file."
-                                    .format(image_uuid))
+        raise errors.IncorrectImage("Image [{0}] doesn't contain metadata"
+                                    " file.".format(image_uuid))
 
     with open(metafile) as f:
         try:
