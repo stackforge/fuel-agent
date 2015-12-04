@@ -1,0 +1,2 @@
+# FIXME: change to python-fuelclient after 8.0.0 version will be available
+-e git+https://github.com/openstack/python-fuelclient.git@f96659066e522e28b389de3cc685f6f2aacca3da#egg=python_fuelclient

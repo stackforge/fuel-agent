@@ -14,24 +14,31 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import logging
 import os
 import yaml
 
 from fuel_bootstrap import consts
 from fuel_bootstrap import errors
 
+LOG = logging.getLogger(__name__)
+
 
 class Configuration(object):
     def __init__(self, config_file=None):
         if not config_file:
+            default = True
             config_file = consts.CONFIG_FILE
         if os.path.exists(config_file):
             with open(config_file) as f:
                 data = yaml.load(f)
-        else:
+        elif not default:
             raise errors.ConfigFileNotExists(
-                "Default config couldn't be found in {0}"
+                "Config couldn't be found in {0}"
                 .format(config_file))
+        else:
+            LOG.warning("Default config couldn't be found %s", config_file)
+            data = {}
         self._data = data
 
     def __getattr__(self, name):
