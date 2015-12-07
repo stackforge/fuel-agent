@@ -123,3 +123,4 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755,root,root)  %{_datadir}/fuel_bootstrap_cli/files/trusty/usr/bin/fix-configs-on-startup
 %attr(0755,root,root)  %{_datadir}/fuel_bootstrap_cli/files/trusty/usr/bin/send2syslog.py
 %attr(0755,root,root)  %{_datadir}/fuel_bootstrap_cli/files/trusty/etc/rc.local
+%attr(0755,root,root)  %{_datadir}/fuel_bootstrap_cli/files/trusty/usr/bin/let-rename
