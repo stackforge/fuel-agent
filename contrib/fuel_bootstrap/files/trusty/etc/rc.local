@@ -1,3 +1,6 @@
 #!/bin/sh -e
 
 fix-configs-on-startup || true
+
+$(/usr/bin/let-rename)
+
