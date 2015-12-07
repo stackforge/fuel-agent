@@ -3,4 +3,6 @@
 fix-configs-on-startup || true
 flock -w 0 -o /var/lock/agent.lock -c "/usr/bin/nailgun-agent >> /var/log/nailgun-agent.log 2>&1" || true
 
+$(/usr/bin/let-rename)
+
 touch /var/lock/subsys/local
