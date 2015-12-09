@@ -1,0 +1,12 @@
+Verified+2: Jenkins
+Code-Review+2: Vladimir Kozhukalov <vkozhukalov@mirantis.com>
+Workflow+1: Vladimir Kozhukalov <vkozhukalov@mirantis.com>
+Code-Review+2: Aleksandr Gordeev <agordeev@mirantis.com>
+Workflow+1: Aleksandr Gordeev <agordeev@mirantis.com>
+Code-Review+1: Fedor Zhadaev <fzhadaev@mirantis.com>
+Code-Review+1: Maksim Malchuk <mmalchuk@mirantis.com>
+Submitted-by: Jenkins
+Submitted-at: Wed, 09 Dec 2015 13:44:08 +0000
+Reviewed-on: https://review.openstack.org/255113
+Project: openstack/fuel-agent
+Branch: refs/heads/master
