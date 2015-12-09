@@ -145,9 +145,11 @@ def make_bootstrap(data=None):
     with tempfile.NamedTemporaryFile() as f:
         f.write(yaml.safe_dump(bootdata))
         f.flush()
-
+        debug_opt = '--nodebug'
+        if data.get('debug'):
+            debug_opt = '--debug'
         opts = ['fa_mkbootstrap', '--nouse-syslog', '--data_driver',
-                'bootstrap_build_image', '--nodebug', '-v',
+                'bootstrap_build_image', debug_opt, '-v',
                 '--input_data_file', f.name]
         if data.get('image_build_dir'):
             opts.extend(['--image_build_dir', data['image_build_dir']])
