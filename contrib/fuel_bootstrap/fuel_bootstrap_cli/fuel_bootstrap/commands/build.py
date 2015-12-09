@@ -179,17 +179,19 @@ class BuildCommand(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        data = vars(parsed_args)
+        data['debug'] = self.app.options.debug
         image_uuid, path = bs_image.call_wrapped_method(
             'build',
-            parsed_args.notify_webui,
-            data=vars(parsed_args))
+            data['notify_webui'],
+            data=data)
         self.app.stdout.write("Bootstrap image {0} has been built: {1}\n"
                               .format(image_uuid, path))
         if parsed_args.activate:
             bs_image.import_image(path)
             bs_image.call_wrapped_method(
                 'activate',
-                parsed_args.notify_webui,
+                data['notify_webui'],
                 image_uuid=image_uuid)
             self.app.stdout.write("Bootstrap image {0} has been activated.\n"
                                   .format(image_uuid))
