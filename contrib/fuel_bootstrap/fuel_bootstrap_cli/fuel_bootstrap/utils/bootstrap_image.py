@@ -152,6 +152,69 @@ def make_bootstrap(data=None):
     return bootdata['bootstrap']['uuid'], bootdata['output']
 
 
+def _update_astute_yaml(flavor=None):
+    config = consts.ASTUTE_CONFIG_FILE
+    LOG.debug("Switching in %s BOOTSTRAP/flavor to :%s",
+              config, flavor)
+
+    # conf = fm_conf().read(consts.ASTUTE_CONFIG_FILE).get('BOOTSTRAP', {})
+    # conf['flavor'] = flavor
+    # fm_conf().write({'BOOTSTRAP': conf}, outfn=consts.ASTUTE_CONFIG_FILE,
+    #                 defaultsfile=None)
+    data = []
+    if os.path.isfile(config):
+        with open(config, 'r') as f:
+            data = yaml.load(f)
+
+    data.update({'BOOTSTRAP': {'flavor': flavor}})
+    with open(config, 'wt') as f:
+        yaml.safe_dump(data, stream=f, encoding='utf-8',
+                       default_flow_style=False,
+                       default_style='"')
+
+
+def _run_puppet(container=None, manifest=None):
+    """Run puppet apply inside docker
+
+    :param container:
+    :param manifest:
+    :return:
+    """
+    LOG.debug('Trying apply manifest:%s \ninside conrainer:%s',
+              manifest, container)
+    utils.execute('dockerctl', 'shell', container, 'puppet', 'apply',
+                  '--detailed-exitcodes', '-dv', manifest, logged=True,
+                  check_exit_code=[0, 2], attempts=2)
+
+
+def _activate_dockerized(flavor=None):
+    """Switch between cobbler distro profiles, in case dockerized system
+
+    Unfurtunatly, we don't support switching between profiles "on fly",
+    so to perform this we need:
+    1) Update asute.yaml - which used by puppet to determinate options
+    2) Re-run puppet for cobbler
+    3) Re-run puppet for astute
+
+    :param distro: Swith betwen ubuntu\centos cobbler profile
+    :return:
+    """
+
+    if flavor.lower() not in consts.COBBLER_DISTROS:
+        raise errors.WrongCobblerProfile(
+            'Wrong cobbler profile passed:%s \n possible profiles:',
+            flavor.lower(), consts.COBBLER_DISTROS)
+    _update_astute_yaml(flavor)
+    cobbler_manifest = '/etc/puppet/modules/nailgun/examples/cobbler-only.pp'
+    astute_manifest = '/etc/puppet/modules/nailgun/examples/astute-only.pp'
+    _run_puppet('cobbler', cobbler_manifest)
+    _run_puppet('astute', astute_manifest)
+    # restart astuted to be sure that he catch new profile
+    LOG.debug('Reloading astuted')
+    utils.execute('dockerctl', 'shell', 'astute', 'service', 'astute',
+                  'restart')
+
+
 def activate(image_uuid=""):
     is_centos = image_uuid.lower() == 'centos'
     symlink = CONF.active_bootstrap_symlink
@@ -169,9 +232,9 @@ def activate(image_uuid=""):
     else:
         LOG.warning("WARNING: switching to depracated centos-bootstrap")
 
-    # FIXME: Do normal activation when it become clear how to do it
+    # FIXME: Add pre-activate verify
     flavor = 'centos' if is_centos else 'ubuntu'
-    utils.execute('fuel-bootstrap-image-set', flavor)
+    _activate_dockerized(flavor)
 
     return image_uuid
 
