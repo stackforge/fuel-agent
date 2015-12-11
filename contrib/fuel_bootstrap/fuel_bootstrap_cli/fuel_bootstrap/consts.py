@@ -44,3 +44,14 @@ UBUNTU_RELEASE = 'trusty'
 
 ERROR_MSG = "Ubuntu bootstrap image is not available. Please use"\
             " fuel-bootstrap manager for fix it."
+
+# Nailgun\astute should support API call to change their bootstrap profile
+# While its not implemented, we need astute.yaml file to perform
+# bootstrap_image._activate_dockerized process
+ASTUTE_CONFIG_FILE = "/etc/fuel/astute.yaml"
+
+COBBLER_DISTROS = ['ubuntu', 'centos']
+COBBLER_MANIFEST = '/etc/puppet/modules/nailgun/examples/cobbler-only.pp'
+COBBLER_DOCKER = 'cobbler'
+ASTUTE_MANIFEST = '/etc/puppet/modules/nailgun/examples/astute-only.pp'
+ASTUTE_DOCKER = 'astute'
