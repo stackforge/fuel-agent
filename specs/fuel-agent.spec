@@ -70,6 +70,8 @@ Group: Development/Libraries
 Requires:    fuel-agent
 Requires:    python-tablib
 Requires:    python-unicodecsv
+# fuel-bootstrap activate command requires fuelmenu
+Requires:    fuelmenu
 
 %description -n fuel-bootstrap-cli
 User-friendly wrapper for user set of scripts from fuel-agent
