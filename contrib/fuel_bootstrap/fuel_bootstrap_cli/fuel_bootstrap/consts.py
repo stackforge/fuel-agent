@@ -44,3 +44,9 @@ UBUNTU_RELEASE = 'trusty'
 
 ERROR_MSG = "Ubuntu bootstrap image is not available. Please use"\
             " fuel-bootstrap manager for fix it."
+
+# FIXME: bug https://bugs.launchpad.net/fuel/+bug/1522066
+# Nailgun\astute should support API call to change theyr bootstrap profile
+# While its not implemented, we need astute.yaml file to perform
+# bootstrap_image._activate_dockerized process
+ASTUTE_CONFIG_FILE="/etc/fuel/astute.yaml"
