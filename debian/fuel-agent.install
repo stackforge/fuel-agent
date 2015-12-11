@@ -1,1 +1,2 @@
 cloud-init-templates/*.jinja2 /usr/share/fuel-agent/cloud-init-templates
+etc/fuel-agent/fuel-agent.conf.sample etc/fuel-agent/fuel-agent.conf
