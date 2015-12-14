@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+
+CONFIG_FILE=/etc/fuel/fuel-agent.conf
+
+copy_config_file {
+    if [ -e "${CONFIG_FILE}" ]; then
+        return 0
+    fi
+    if [ -e "${CONFIG_FILE}.sample" ]; then
+        cp "${CONFIG_FILE}.conf" "${CONFIG_FILE}"
+        return 0
+    fi
+    return 1
+}
+
+copy_config_file
+
