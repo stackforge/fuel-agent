@@ -40,8 +40,6 @@ BOOTSTRAP_MODULES = [
 
 IMAGE_DATA = {'/': ROOTFS}
 
-UBUNTU_RELEASE = 'trusty'
-
 # FIXME(azvyagintsev) bug: https://bugs.launchpad.net/fuel/+bug/1525882
 # Nailgun\astute should support API call to change their bootstrap profile
 # While its not implemented, we need astute.yaml file to perform
