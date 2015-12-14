@@ -25,29 +25,8 @@ class BuildCommand(command.Command):
     def get_parser(self, prog_name):
         parser = super(BuildCommand, self).get_parser(prog_name)
         parser.add_argument(
-            '--ubuntu-release',
-            type=str,
-            help="Choose the Ubuntu release (currently supports"
-                 " only trusty).",
-        )
-        parser.add_argument(
-            '--ubuntu-repo',
-            type=str,
-            metavar='REPOSITORY',
-            help="Use the specified Ubuntu repository. Format"
-                 " 'uri codename'.",
-        )
-        parser.add_argument(
-            '--mos-repo',
-            type=str,
-            metavar='REPOSITORY',
-            help="Add link to repository with fuel* packages. That"
-                 " should either http://mirror.fuel-infra.org/mos-repos"
-                 " or its mirror. Format 'uri codename'.",
-        )
-        parser.add_argument(
             '--repo',
-            dest='extra_repos',
+            dest='repos',
             type=str,
             metavar='REPOSITORY',
             help="Add one more repository. format 'type uri"
