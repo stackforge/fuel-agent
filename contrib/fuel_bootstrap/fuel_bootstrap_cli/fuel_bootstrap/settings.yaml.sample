@@ -43,8 +43,9 @@ packages:
 # Pass proxy parameters, for access to repos
 #http_proxy: "192.168.1.50:8080"
 #https_proxy: "192.168.1.50:8080"
-# Define upstream ubuntu-mirror
-ubuntu_repos:
+# Define repos: upstream ubuntu-mirror, MirantisOpenstack mirror, extra repos.
+# First repo should be distro repo.
+repos:
   -
     name: ubuntu
     priority: null
@@ -66,8 +67,6 @@ ubuntu_repos:
     suite: trusty-security
     type: deb
     uri: "http://archive.ubuntu.com/ubuntu"
-# Define MirantisOpenstack mirror
-mos_repos:
   -
     name: mos
     priority: "1050"
@@ -96,15 +95,6 @@ mos_repos:
     suite: mos8.0-holdback
     type: deb
     uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
-# Define other deb repositories
-extra_repos:
-  -
-    name: Extra_repo
-    priority: null
-    section: main
-    suite: trusty
-    type: deb
-    uri: "http://archive.ubuntu.com/ubuntu"
 # For import\activate commands only.
 bootstrap_images_dir: "/var/www/nailgun/bootstraps"
 # For import\activate commands only

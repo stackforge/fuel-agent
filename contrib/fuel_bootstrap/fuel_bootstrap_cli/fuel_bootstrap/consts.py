@@ -40,7 +40,5 @@ BOOTSTRAP_MODULES = [
 
 IMAGE_DATA = {'/': ROOTFS}
 
-UBUNTU_RELEASE = 'trusty'
-
 ERROR_MSG = "Ubuntu bootstrap image is not available. Please use"\
             " fuel-bootstrap manager for fix it."
