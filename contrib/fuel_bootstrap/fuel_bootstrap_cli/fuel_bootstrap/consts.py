@@ -20,6 +20,7 @@
 # TODO(asvechnikov): add possibility to specify custom config file
 CONFIG_FILE = "/etc/fuel-bootstrap-cli/fuel_bootstrap_cli.yaml"
 METADATA_FILE = "metadata.yaml"
+BOOTSTRAP_STUB_NAME = "bootstrap_stub"
 CONTAINER_FORMAT = "tar.gz"
 ROOTFS = {'name': 'rootfs',
           'mask': 'rootfs',
@@ -41,9 +42,6 @@ BOOTSTRAP_MODULES = [
 IMAGE_DATA = {'/': ROOTFS}
 
 UBUNTU_RELEASE = 'trusty'
-
-ERROR_MSG = "Ubuntu bootstrap image is not available. Please use"\
-            " fuel-bootstrap manager for fix it."
 
 # FIXME(azvyagintsev) bug: https://bugs.launchpad.net/fuel/+bug/1525882
 # Nailgun\astute should support API call to change their bootstrap profile
