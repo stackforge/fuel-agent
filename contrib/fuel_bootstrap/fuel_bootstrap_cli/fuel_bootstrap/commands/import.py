@@ -50,9 +50,6 @@ class ImportCommand(command.Command):
         self.app.stdout.write("Bootstrap image {0} has been imported.\n"
                               .format(image_uuid))
         if parsed_args.activate:
-            image_uuid = bs_image.call_wrapped_method(
-                'activate',
-                parsed_args.notify_webui,
-                image_uuid=image_uuid)
+            image_uuid = bs_image.activate(image_uuid)
             self.app.stdout.write("Bootstrap image {0} has been activated\n"
                                   .format(image_uuid))
