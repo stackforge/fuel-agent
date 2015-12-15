@@ -27,9 +27,9 @@ from oslo_config import cfg
 
 from fuel_bootstrap import consts
 from fuel_bootstrap import errors
-from fuel_bootstrap.objects import master_node_settings
 from fuel_bootstrap import settings
 from fuel_bootstrap.utils import data as data_util
+from fuel_bootstrap.utils import notifier
 
 CONF = settings.Configuration()
 LOG = logging.getLogger(__name__)
@@ -94,12 +94,20 @@ def is_active(image_uuid):
         CONF.active_bootstrap_symlink)
 
 
+def is_stub_active():
+    symlink = CONF.active_bootstrap_symlink
+    stubname = consts.BOOTSTRAP_STUB_NAME
+    return (os.path.lexists(symlink) and
+            os.path.basename(os.path.realpath(symlink)) == stubname)
+
+
 def full_path(image_uuid):
     if not os.path.isabs(image_uuid):
         return os.path.join(CONF.bootstrap_images_dir, image_uuid)
     return image_uuid
 
 
+@notifier.notify_webui_on_first_run
 def import_image(arch_path):
     extract_dir = tempfile.mkdtemp()
     extract_to_dir(arch_path, extract_dir)
@@ -136,9 +144,8 @@ def extract_to_dir(arch_path, extract_path):
     tarfile.open(arch_path, 'r').extractall(extract_path)
 
 
-def make_bootstrap(data=None):
-    if not data:
-        data = {}
+@notifier.notify_webui_on_first_run
+def make_bootstrap(data):
     bootdata_builder = data_util.BootstrapDataBuilder(data)
     bootdata = bootdata_builder.build()
 
@@ -217,7 +224,8 @@ def _activate_dockerized(flavor=None):
                   'restart')
 
 
-def activate(image_uuid=""):
+@notifier.notify_webui_on_fail
+def activate(image_uuid):
     is_centos = image_uuid.lower() == 'centos'
     symlink = CONF.active_bootstrap_symlink
 
@@ -238,30 +246,6 @@ def activate(image_uuid=""):
     flavor = 'centos' if is_centos else 'ubuntu'
     _activate_dockerized(flavor)
 
+    notify_webui(False, "")
+
     return image_uuid
-
-
-def call_wrapped_method(name, notify_webui, **kwargs):
-    wrapped_methods = {
-        'build': make_bootstrap,
-        'activate': activate
-    }
-    failed = False
-    try:
-        return wrapped_methods[name](**kwargs)
-    except Exception:
-        failed = True
-        raise
-    finally:
-        if notify_webui:
-            notify_webui_about_results(failed, consts.ERROR_MSG)
-
-
-def notify_webui_about_results(failed, error_message):
-    mn_settings = master_node_settings.MasterNodeSettings()
-    settings = mn_settings.get()
-    settings['settings'].setdefault('bootstrap', {}).setdefault('error', {})
-    if not failed:
-        error_message = ""
-    settings['settings']['bootstrap']['error']['value'] = error_message
-    mn_settings.update(settings)
