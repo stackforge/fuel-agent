@@ -4,14 +4,42 @@ growpart:
   mode: false
 disable_ec2_metadata: true
 disable_root: false
-user: root
-password: r00tme
+users:
+  - name: {{ user_accounts.service_user.name }}
+    password: {{ user_accounts.service_user.password }}
+    ssh_authorized_keys:
+    {% for key in common.ssh_auth_keys %}
+    - {{ key }}
+    {% endfor %}
+    {% if user_accounts.service_user.sudo|length > 0 %}
+    sudo:
+    {% for entry in user_accounts.service_user.sudo %}
+    - "{{ entry }}"
+    {% endfor %}
+    {% endif %}
+    homedir: {{ user_accounts.service_user.homedir }}
+    shell: /bin/bash
+  - name: {{ user_accounts.operator_user.name }}
+    password: {{ user_accounts.operator_user.password }}
+    ssh_authorized_keys:
+    {% for key in common.ssh_auth_keys %}
+    - {{ key }}
+    {% endfor %}
+    {% for key in user_accounts.operator_user.authkeys %}
+    - {{ key }}
+    {% endfor %}
+    {% if user_accounts.operator_user.sudo|length > 0 %}
+    sudo:
+    {% for entry in user_accounts.operator_user.sudo %}
+    - "{{ entry }}"
+    {% endfor %}
+    {% endif %}
+    homedir: {{ user_accounts.operator_user.homedir }}
+    shell: /bin/bash
+  - name: root
+    password: {{ user_accounts.root.password }}
 chpasswd: { expire: false }
 ssh_pwauth: false
-ssh_authorized_keys:
-{% for key in common.ssh_auth_keys %}
-  - {{ key }}
-{% endfor %}
 
 # set the locale to a given locale
 # default: en_US.UTF-8
