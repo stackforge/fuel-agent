@@ -508,7 +508,11 @@ class Nailgun(BaseDataDriver):
             admin_iface_name=admin_interface['name'],
             timezone=data['ks_meta'].get('timezone', 'America/Los_Angeles'),
             gw=data['ks_meta']['gw'],
-            ks_repos=data['ks_meta']['repo_setup']['repos']
+            ks_repos=data['ks_meta']['repo_setup']['repos'],
+            os_user_name=data['ks_meta']['os_user']['name'],
+            os_user_password=data['ks_meta']['os_user']['password'],
+            os_user_homedir=data['ks_meta']['os_user']['homedir'],
+            os_user_sudo=data['ks_meta']['os_user']['sudo']
         )
 
         LOG.debug('Adding puppet parameters')
