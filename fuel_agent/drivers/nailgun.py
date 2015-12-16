@@ -540,6 +540,30 @@ class Nailgun(BaseDataDriver):
         if data['ks_meta']['auth_key']:
             ssh_auth_keys.append(data['ks_meta']['auth_key'])
 
+        # FIXME: until fuel-agent-versioning BP
+        # will have been implemented, we need to deal with the case when
+        # 9.0 fuel-agent will be managing 6.1 to 8.0 environments, whose
+        # provisioning serializers on Nailgun side will not have
+        # os_user, svc_user and root_password in the ks_meta dict
+        try:
+            operator_user = data['ks_meta']['operator_user']
+            service_user = data['ks_meta']['service_user']
+            root_password = data['ks_meta']['root_password']
+        except KeyError:
+            LOG.warn(('This environment does not support non-root accounts '
+                      'on the target nodes. Non-root user accounts will not '
+                      'be created'))
+            operator_user = {"name": "fueladmin",
+                             "password": "fueladmin",
+                             "homedir": "/home/fueladmin",
+                             "sudo": [],
+                             "ssh_keys": []}
+            service_user = {"name": "fuel",
+                            "password": "fuel",
+                            "homedir": "/var/lib/fuel",
+                            "sudo": ["ALL=(ALL) NOPASSWD: ALL"]}
+            root_password = "r00tme"
+
         configdrive_scheme.set_common(
             ssh_auth_keys=ssh_auth_keys,
             hostname=data['hostname'],
@@ -574,6 +598,31 @@ class Nailgun(BaseDataDriver):
             connector=data['ks_meta']['mco_connector'],
             enable=data['ks_meta']['mco_enable'],
             identity=data['ks_meta']['mco_identity']
+        )
+
+        LOG.debug('Adding user accounts parameters')
+        configdrive_scheme.add_user_account(
+            name="operator_user",
+            username=operator_user['name'],
+            password=operator_user['password'],
+            homedir=operator_user['homedir'],
+            sudo=operator_user['sudo'],
+            authkeys=operator_user['ssh_keys'],
+        )
+
+        configdrive_scheme.add_user_account(
+            name="service_user",
+            username=service_user['name'],
+            password=service_user['password'],
+            homedir=service_user['homedir'],
+            sudo=service_user['sudo'],
+        )
+
+        configdrive_scheme.add_user_account(
+            name="root",
+            username="root",
+            password=root_password,
+            homedir="/root",
         )
 
         LOG.debug('Setting configdrive profile %s' % data['profile'])

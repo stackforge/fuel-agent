@@ -56,14 +56,25 @@ class ConfigDriveMcollective(object):
         self.identity = identity
 
 
+class ConfigDriveUserAccount(object):
+    def __init__(self, username, password, homedir, sudo=None, authkeys=None):
+        self.username = username
+        self.password = password
+        self.homedir = homedir
+        self.sudo = sudo
+        self.authkeys = authkeys
+
+
 class ConfigDriveScheme(object):
     def __init__(self, common=None, puppet=None,
-                 mcollective=None, profile=None, templates=None):
+                 mcollective=None, profile=None, templates=None,
+                 user_accounts=None):
         self.common = common
         self.puppet = puppet
         self.mcollective = mcollective
         self._profile = profile or 'ubuntu'
         self.templates = templates or {}
+        self.user_accounts = user_accounts or {}
 
     # TODO(kozhukalov) make it possible to validate scheme according to
     # chosen profile which means chosen set of cloud-init templates.
@@ -78,6 +89,9 @@ class ConfigDriveScheme(object):
     def set_mcollective(self, **kwargs):
         self.mcollective = ConfigDriveMcollective(**kwargs)
 
+    def add_user_account(self, name, **kwargs):
+        self.user_accounts[name] = ConfigDriveUserAccount(**kwargs)
+
     def template_data(self):
         if self.common is None:
             raise errors.WrongConfigDriveDataError(
@@ -87,6 +101,8 @@ class ConfigDriveScheme(object):
             template_data.update(puppet=self.puppet)
         if self.mcollective is not None:
             template_data.update(mcollective=self.mcollective)
+        if self.user_accounts is not None:
+            template_data.update(user_accounts=self.user_accounts)
         return template_data
 
     def set_profile(self, profile):
