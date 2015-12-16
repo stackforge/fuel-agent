@@ -540,6 +540,19 @@ class Nailgun(BaseDataDriver):
         if data['ks_meta']['auth_key']:
             ssh_auth_keys.append(data['ks_meta']['auth_key'])
 
+        # FIXME(dnikishov): until fuel-agent-versioning BP
+        # will have been implemented, we need to deal with the case when
+        # 9.0 fuel-agent will be managing 6.1 to 8.0 environments, whose
+        # provisioning serializers on Nailgun side will not have
+        # user_accounts in the ks_meta dict
+        try:
+            user_accounts = data['ks_meta']['user_accounts']
+        except KeyError:
+            LOG.warn(('This environment does not support non-root accounts '
+                      'on the target nodes. Non-root user accounts will not '
+                      'be created'))
+            user_accounts = []
+
         configdrive_scheme.set_common(
             ssh_auth_keys=ssh_auth_keys,
             hostname=data['hostname'],
@@ -575,6 +588,10 @@ class Nailgun(BaseDataDriver):
             enable=data['ks_meta']['mco_enable'],
             identity=data['ks_meta']['mco_identity']
         )
+
+        LOG.debug('Adding user accounts parameters')
+        for account in user_accounts:
+            configdrive_scheme.add_user_account(**account)
 
         LOG.debug('Setting configdrive profile %s' % data['profile'])
         configdrive_scheme.set_profile(profile=data['profile'])
