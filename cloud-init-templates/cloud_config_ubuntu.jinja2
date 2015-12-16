@@ -3,15 +3,39 @@ resize_rootfs: false
 growpart:
   mode: false
 disable_ec2_metadata: true
-disable_root: false
-user: root
-password: r00tme
+disable_root: true
+users:
+  - name: {{ common.svc_user_name }}
+    password: {{ common.svc_user_password }}
+    ssh_authorized_keys:
+    {% for key in common.ssh_auth_keys %}
+    - {{ key }}
+    {% endfor %}
+    {% if common.os_user_sudo.count() != 0 %}
+    sudo:
+    {% for entry in common.svc_user_sudo %}
+    - {{ entry }}
+    {% endfor %}
+    {% endif %}
+    home: {{ common.svc_user_homedir }}
+  - name: {{ common.os_user_name }}
+    password: {{ common.os_user_password }}
+    ssh_authorized_keys:
+    {% for key in common.ssh_auth_keys %}
+    - {{ key }}
+    {% endfor %}
+    {% for key in common.os_user_authkeys %}
+    - {{ key }}
+    {% endfor %}
+    {% if common.os_user_sudo.count() != 0 %}
+    sudo:
+    {% for entry in common.os_user_sudo %}
+    - {{ entry }}
+    {% endfor %}
+    {% endif %}
+    home: {{ common.os_user_homedir }}
 chpasswd: { expire: false }
 ssh_pwauth: false
-ssh_authorized_keys:
-{% for key in common.ssh_auth_keys %}
-  - {{ key }}
-{% endfor %}
 
 # set the locale to a given locale
 # default: en_US.UTF-8
