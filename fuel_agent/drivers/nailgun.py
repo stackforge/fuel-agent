@@ -540,6 +540,44 @@ class Nailgun(BaseDataDriver):
         if data['ks_meta']['auth_key']:
             ssh_auth_keys.append(data['ks_meta']['auth_key'])
 
+        user_accounts = []
+        # FIXME: until fuel-agent-versioning BP
+        # will have been implemented, we need to deal with the case when
+        # 9.0 fuel-agent will be managing 6.1 to 8.0 environments, whose
+        # provisioning serializers on Nailgun side will not have
+        # os_user, svc_user and root_password in the ks_meta dict
+        try:
+            operator_user = data['ks_meta']['operator_user']
+            service_user = data['ks_meta']['service_user']
+            root_password = data['ks_meta']['root_password']
+        except KeyError:
+            LOG.warn(('This environment does not support non-root accounts '
+                      'on the target nodes. Non-root user accounts will not '
+                      'be created'))
+            operator_user = {"name": "fueladmin",
+                             "password": "fueladmin",
+                             "homedir": "/home/fueladmin",
+                             "sudo": [],
+                             "ssh_keys": []}
+            service_user = {"name": "fuel",
+                            "password": "fuel",
+                            "homedir": "/var/lib/fuel",
+                            "sudo": ["ALL=(ALL) NOPASSWD: ALL"]}
+            root_password = "r00tme"
+        root_user = {"name": "root",
+                     "password": root_password,
+                     "homedir": "/root"}
+
+        # Add common SSH keys to user-specified keys
+        operator_user['ssh_keys'] += ssh_auth_keys
+        service_user['ssh_keys'] = ssh_auth_keys
+        # FIXME: once Fuel doesn't rely on root SSH, remove this
+        root_user['ssh_keys'] = ssh_auth_keys
+
+        user_accounts.append(operator_user)
+        user_accounts.append(service_user)
+        user_accounts.append(root_user)
+
         configdrive_scheme.set_common(
             ssh_auth_keys=ssh_auth_keys,
             hostname=data['hostname'],
@@ -575,6 +613,10 @@ class Nailgun(BaseDataDriver):
             enable=data['ks_meta']['mco_enable'],
             identity=data['ks_meta']['mco_identity']
         )
+
+        LOG.debug('Adding user accounts parameters')
+        for account in user_accounts:
+            configdrive_scheme.add_user_account(**account)
 
         LOG.debug('Setting configdrive profile %s' % data['profile'])
         configdrive_scheme.set_profile(profile=data['profile'])
