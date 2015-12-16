@@ -87,6 +87,7 @@ cloud-init-per instance removeUseDNS sed -i --follow-symlinks -e '/UseDNS/d' /et
 add_str_to_file_if_not_exists /etc/ssh/sshd_config 'UseDNS' 'UseDNS no'
 
 cloud-init-per instance gssapi_disable sed -i -e "/^\s*GSSAPICleanupCredentials yes/d" -e "/^\s*GSSAPIAuthentication yes/d" /etc/ssh/sshd_config
+cloud-init-per instance root_ssh_disable sed -i -e "/^\s*PermitRootLogin/d" -e "\$ a PermitRootLogin no " /etc/ssh/sshd_config
 
 cloud-init-per instance nailgun_agent_0 /bin/sh -c 'echo "rm -f /etc/nailgun-agent/nodiscover" | tee /etc/rc.local'
 cloud-init-per instance nailgun_agent_1 /bin/sh -c 'echo "flock -w 0 -o /var/lock/agent.lock -c \"/usr/bin/nailgun-agent >> /var/log/nailgun-agent.log 2>&1\"" | tee -a /etc/rc.local'

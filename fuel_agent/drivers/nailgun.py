@@ -540,6 +540,30 @@ class Nailgun(BaseDataDriver):
         if data['ks_meta']['auth_key']:
             ssh_auth_keys.append(data['ks_meta']['auth_key'])
 
+        # FIXME: until fuel-agent-versioning BP
+        # will have been implemented, we need to deal with the case when
+        # 9.0 fuel-agent will be managing 6.1 to 8.0 environments, whose
+        # provisioning serializers on Nailgun side will not have
+        # os_user, svc_user and root_password in the ks_meta dict
+        try:
+            operator_user = data['ks_meta']['operator_user']
+            service_user = data['ks_meta']['service_user']
+            root_password = data['ks_meta']['root_password']
+        except KeyError:
+            LOG.warn(('This environment does not support non-root accounts '
+                      'on the target nodes. Non-root user accounts will not '
+                      'be created'))
+            operator_user = {"name": "fueladmin",
+                       "password": "fueladmin",
+                       "homedir": "/home/fueladmin",
+                       "sudo": [],
+                       "ssh_keys": []}
+            service_user = {"name": "fuel",
+                        "password": "fuel",
+                        "homedir": "/var/lib/fuel",
+                        "sudo": ["ALL=(ALL) NOPASSWD: ALL"]}
+            root_password = "r00tme"
+
         configdrive_scheme.set_common(
             ssh_auth_keys=ssh_auth_keys,
             hostname=data['hostname'],
@@ -555,7 +579,17 @@ class Nailgun(BaseDataDriver):
             admin_iface_name=admin_interface['name'],
             timezone=data['ks_meta'].get('timezone', 'America/Los_Angeles'),
             gw=data['ks_meta']['gw'],
-            ks_repos=data['ks_meta']['repo_setup']['repos']
+            ks_repos=data['ks_meta']['repo_setup']['repos'],
+            operator_user_name=operator_user['name'],
+            operator_user_password=operator_user['password'],
+            operator_user_homedir=operator_user['homedir'],
+            operator_user_sudo=operator_user['sudo'],
+            operator_user_authkeys=operator_user['ssh_keys'],
+            service_user_name=service_user['name'],
+            service_user_password=service_user['password'],
+            service_user_homedir=service_user['homedir'],
+            service_user_sudo=service_user['sudo'],
+            root_password=root_password
         )
 
         LOG.debug('Adding puppet parameters')
