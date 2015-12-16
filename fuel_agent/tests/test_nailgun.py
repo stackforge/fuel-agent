@@ -326,7 +326,21 @@ PROVISION_SAMPLE_DATA = {
             ]
         },
         "mco_connector": "rabbitmq",
-        "mco_host": "10.20.0.2"
+        "mco_host": "10.20.0.2",
+        "os_user": {
+            "name": "fueladmin",
+            "password": "fueladmin",
+            "homedir": "/home/fueladmin",
+            "sudo": [],
+            "ssh_keys": [],
+        },
+        "svc_user": {
+            "name": "fuel",
+            "password": "fuel",
+            "homedir": "/var/lib/fuel",
+            "sudo": ["ALL=(ALL) NOPASSWD: ALL"],
+        },
+        "root_password": "r00tme"
     },
     "name": "node-1",
     "hostname": "node-1.domain.tld",
