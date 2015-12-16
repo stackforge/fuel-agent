@@ -520,7 +520,9 @@ class Nailgun(BaseDataDriver):
     def parse_configdrive_scheme(self):
         LOG.debug('--- Preparing configdrive scheme ---')
         data = self.data
-        configdrive_scheme = objects.ConfigDriveScheme()
+        configdrive_scheme = objects.ConfigDriveScheme(
+            user_accounts=self._operating_system.user_accounts
+        )
 
         LOG.debug('Adding common parameters')
 
@@ -773,6 +775,23 @@ class NailgunBuildImage(BaseDataDriver):
 
         os = objects.Ubuntu(repos=repos, packages=packages, major=14, minor=4,
                             proxies=proxies)
+
+        # FIXME(dnikishov): until fuel-agent-versioning BP
+        # will have been implemented, we need to deal with the case when
+        # 9.0 fuel-agent will be managing 6.1 to 8.0 environments, whose
+        # provisioning serializers on Nailgun side will not have
+        # user_accounts in the ks_meta dict
+        try:
+            user_accounts = self.data['ks_meta']['user_accounts']
+        except KeyError:
+            LOG.warn(('This environment does not support non-root accounts '
+                      'on the target nodes. Non-root user accounts will not '
+                      'be created'))
+            user_accounts = []
+
+        for account in user_accounts:
+            os.add_user_account(**account)
+
         return os
 
     def parse_schemes(self):
