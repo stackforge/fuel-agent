@@ -88,21 +88,7 @@
                 }
             ]
         },
-        "timezone": "America/Los_Angeles",
-        "operator_user": {
-            "name": "fueladmin",
-            "password": "fueladmin",
-            "homedir": "/home/fueladmin",
-            "sudo": [],
-            "ssh_keys": []
-        },
-        "service_user": {
-            "name": "fuel",
-            "password": "fuel",
-            "homedir": "/var/lib/fuel",
-            "sudo": ["ALL=(ALL) NOPASSWD: ALL"]
-        },
-        "root_password": "r00tme"
+        "timezone": "America/Los_Angeles"
     },
     "name": "node-1",
     "name_servers": "\"10.20.0.2\"",
