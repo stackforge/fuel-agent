@@ -19,7 +19,9 @@ class ConfigDriveCommon(object):
     def __init__(self, ssh_auth_keys, hostname, fqdn, name_servers,
                  search_domain, master_ip, master_url, udevrules, admin_mac,
                  admin_ip, admin_mask, admin_iface_name, timezone, ks_repos,
-                 gw):
+                 gw, os_user_name, os_user_password, os_user_homedir,
+                 os_user_sudo, os_user_authkeys, svc_user_name, svc_user_sudo,
+                 svc_user_homedir, svc_user_password):
         self.ssh_auth_keys = ssh_auth_keys
         self.hostname = hostname
         self.fqdn = fqdn
@@ -35,6 +37,15 @@ class ConfigDriveCommon(object):
         self.timezone = timezone
         self.ks_repos = ks_repos
         self.gw = gw
+        self.os_user_name = os_user_name
+        self.os_user_password = os_user_password
+        self.os_user_homedir = os_user_homedir
+        self.os_user_sudo = os_user_sudo
+        self.os_user_authkeys = os_user_authkeys
+        self.svc_user_name = svc_user_name
+        self.svc_user_homedir = svc_user_homedir
+        self.svc_user_sudo = svc_user_sudo
+        self.svc_user_password = svc_user_password
 
 
 class ConfigDrivePuppet(object):
