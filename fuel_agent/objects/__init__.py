@@ -16,6 +16,7 @@ from fuel_agent.objects.configdrive import ConfigDriveCommon
 from fuel_agent.objects.configdrive import ConfigDriveMcollective
 from fuel_agent.objects.configdrive import ConfigDrivePuppet
 from fuel_agent.objects.configdrive import ConfigDriveScheme
+from fuel_agent.objects.configdrive import ConfigDriveUserAccounts
 from fuel_agent.objects.device import Loop
 from fuel_agent.objects.image import Image
 from fuel_agent.objects.image import ImageScheme
@@ -60,6 +61,7 @@ __all__ = [
     'ConfigDrivePuppet',
     'ConfigDriveMcollective',
     'ConfigDriveScheme',
+    'ConfigDriveUserAccounts',
     'Image',
     'ImageScheme',
     'Grub',

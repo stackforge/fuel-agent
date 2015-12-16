@@ -212,6 +212,21 @@ class TestObjectDeserialization(unittest2.TestCase):
 class TestFullDataRead(unittest2.TestCase):
 
     PROVISION_DATA = base.load_fixture('simple_nailgun_driver.json')
+    PROVISION_DATA_61_70_80 = base.load_fixture(
+        'simple_nailgun_driver_61_70_80.json'
+    )
+
+    def test_read_61_70_80_with_no_error(self, mock_requests):
+        mock_requests.get('http://fake.host.org:123/imgs/fake_image.img.gz',
+                          text='{}')
+        driver = simple.NailgunSimpleDriver(self.PROVISION_DATA_61_70_80)
+        scheme = driver.partition_scheme
+        assert len(scheme.fss) == 5
+        assert len(scheme.lvs) == 3
+        assert len(scheme.mds) == 0
+        assert len(scheme.parteds) == 2
+        assert len(scheme.pvs) == 4
+        assert len(scheme.vgs) == 2
 
     def test_read_with_no_error(self, mock_requests):
         mock_requests.get('http://fake.host.org:123/imgs/fake_image.img.gz',

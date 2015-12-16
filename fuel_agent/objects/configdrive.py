@@ -56,14 +56,34 @@ class ConfigDriveMcollective(object):
         self.identity = identity
 
 
+class ConfigDriveUserAccounts(object):
+    def __init__(self, operator_user_name, operator_user_password,
+                 operator_user_homedir, operator_user_sudo,
+                 operator_user_authkeys, service_user_name,
+                 service_user_password, service_user_homedir,
+                 service_user_sudo, root_password):
+        self.operator_user_name = operator_user_name
+        self.operator_user_password = operator_user_password
+        self.operator_user_homedir = operator_user_homedir
+        self.operator_user_sudo = operator_user_sudo
+        self.operator_user_authkeys = operator_user_authkeys
+        self.service_user_name = service_user_name
+        self.service_user_password = service_user_password
+        self.service_user_homedir = service_user_homedir
+        self.service_user_sudo = service_user_sudo
+        self.root_password = root_password
+
+
 class ConfigDriveScheme(object):
     def __init__(self, common=None, puppet=None,
-                 mcollective=None, profile=None, templates=None):
+                 mcollective=None, profile=None, templates=None,
+                 user_accounts=None):
         self.common = common
         self.puppet = puppet
         self.mcollective = mcollective
         self._profile = profile or 'ubuntu'
         self.templates = templates or {}
+        self.user_accounts = user_accounts
 
     # TODO(kozhukalov) make it possible to validate scheme according to
     # chosen profile which means chosen set of cloud-init templates.
@@ -78,6 +98,9 @@ class ConfigDriveScheme(object):
     def set_mcollective(self, **kwargs):
         self.mcollective = ConfigDriveMcollective(**kwargs)
 
+    def set_user_accounts(self, **kwargs):
+        self.user_accounts = ConfigDriveUserAccounts(**kwargs)
+
     def template_data(self):
         if self.common is None:
             raise errors.WrongConfigDriveDataError(
@@ -87,6 +110,8 @@ class ConfigDriveScheme(object):
             template_data.update(puppet=self.puppet)
         if self.mcollective is not None:
             template_data.update(mcollective=self.mcollective)
+        if self.user_accounts is not None:
+            template_data.update(user_accounts=self.user_accounts)
         return template_data
 
     def set_profile(self, profile):
