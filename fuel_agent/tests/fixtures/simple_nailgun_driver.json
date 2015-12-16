@@ -87,7 +87,13 @@
                 }
             ]
         },
-        "timezone": "America/Los_Angeles"
+        "timezone": "America/Los_Angeles",
+        "os_user": {
+            "name": "fueladmin",
+            "password": "fueladmin",
+            "homedir": "/home/fueladmin",
+            "sudo": []
+        }
     },
     "name": "node-1",
     "name_servers": "\"10.20.0.2\"",
