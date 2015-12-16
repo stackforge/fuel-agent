@@ -19,7 +19,8 @@ class ConfigDriveCommon(object):
     def __init__(self, ssh_auth_keys, hostname, fqdn, name_servers,
                  search_domain, master_ip, master_url, udevrules, admin_mac,
                  admin_ip, admin_mask, admin_iface_name, timezone, ks_repos,
-                 gw):
+                 gw, os_user_name, os_user_password, os_user_homedir,
+                 os_user_sudo):
         self.ssh_auth_keys = ssh_auth_keys
         self.hostname = hostname
         self.fqdn = fqdn
