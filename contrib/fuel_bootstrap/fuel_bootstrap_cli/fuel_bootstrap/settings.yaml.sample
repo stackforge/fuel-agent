@@ -53,21 +53,7 @@ ubuntu_repos:
     section: "main universe multiverse"
     suite: trusty
     type: deb
-    uri: "http://archive.ubuntu.com/ubuntu"
-  -
-    name: ubuntu-updates
-    priority: null
-    section: "main universe multiverse"
-    suite: trusty-updates
-    type: deb
-    uri: "http://archive.ubuntu.com/ubuntu"
-  -
-    name: ubuntu-security
-    priority: null
-    section: "main universe multiverse"
-    suite: trusty-security
-    type: deb
-    uri: "http://archive.ubuntu.com/ubuntu"
+    uri: "sample:http://archive.ubuntu.com/ubuntu"
 # Define MirantisOpenstack mirror
 mos_repos:
   -
@@ -76,28 +62,7 @@ mos_repos:
     section: "main restricted"
     suite: mos8.0
     type: deb
-    uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
-  -
-    name: mos-updates
-    priority: "1050"
-    section: "main restricted"
-    suite: mos8.0-updates
-    type: deb
-    uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
-  -
-    name: mos-security
-    priority: "1050"
-    section: "main restricted"
-    suite: mos8.0-security
-    type: deb
-    uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
-  -
-    name: mos-holdback
-    priority: "1100"
-    section: "main restricted"
-    suite: mos8.0-holdback
-    type: deb
-    uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+    uri: "sample:http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
 # Define other deb repositories
 extra_repos:
   -
@@ -106,7 +71,7 @@ extra_repos:
     section: main
     suite: trusty
     type: deb
-    uri: "http://archive.ubuntu.com/ubuntu"
+    uri: "sameple:http://archive.ubuntu.com/ubuntu"
 # For import\activate commands only.
 bootstrap_images_dir: "/var/www/nailgun/bootstraps"
 # For import\activate commands only
