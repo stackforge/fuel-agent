@@ -137,8 +137,7 @@ class BuildCommand(command.Command):
             type=str,
             metavar='DIR',
             help="Which directory should contain built image. /tmp/"
-                 " is used by default.",
-            default="/tmp/"
+                 " is used by default."
         )
         parser.add_argument(
             '--image-build-dir',
@@ -165,6 +164,12 @@ class BuildCommand(command.Command):
         parser.add_argument(
             '--no-default-extra-dirs',
             help="Do not append default extra directories",
+            action='store_true'
+        )
+        parser.add_argument(
+            '--no-compress',
+            help="Do not compress bootstrap image to tar.gz. NOTE: Not"
+                 " compressed images are not supported by fuel-booutstrap.",
             action='store_true'
         )
         return parser
