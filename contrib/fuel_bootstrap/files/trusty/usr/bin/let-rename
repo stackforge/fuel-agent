@@ -114,4 +114,8 @@ for intf in $(get_eth_interfaces) ; do
        ifup $newname
    fi
 done
+
+# Restart and renaming eth0 interface follow to the bug, when sshd stucks
+# Restart networking should fix this issue.
+service networking restart
 exit 0
