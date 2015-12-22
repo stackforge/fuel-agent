@@ -874,10 +874,27 @@ class Manager(object):
                 chroot, os.path.join(c_dir, os.path.basename(rootfs.uri)),
                 rootfs.compress_format)
             self.dump_mkbootstrap_meta(metadata, c_dir, bs_scheme)
-            arch_file = bu.make_targz(c_dir, self.driver.data['output'])
-            LOG.debug('Output archive file : {0}'.format(arch_file))
+            if bs_scheme.container.format is 'directory':
+                output = self.driver.output
+                utils.makedirs_if_not_exists(output)
+                bs_files = os.listdir(c_dir)
+                LOG.debug("Output folder: %s\ntry to copy bootstrap files: %s",
+                          output, bs_files)
+                for bs_file in bs_files:
+                    abs_bs_file = os.path.join(c_dir, bs_file)
+                    if (os.path.isfile(abs_bs_file)):
+                            shutil.copy(abs_bs_file, output)
+                    os.chmod(os.path.join(output, bs_file), 0o755)
+            elif bs_scheme.container.format is 'tar.gz':
+                LOG.debug("Try to make output archive file: %s",
+                          self.driver.output)
+                output = bu.make_targz(c_dir, output_name=self.driver.output)
+            else:
+                raise errors.WrongOutputContainer(
+                    "Unsopported container format {0}."
+                    .format(bs_scheme.container.format))
             LOG.info('--- Building bootstrap image END (do_mkbootstrap) ---')
-            return arch_file
+            return output
         except Exception as exc:
             LOG.error('Failed to bootstrap image: %s', exc)
             raise

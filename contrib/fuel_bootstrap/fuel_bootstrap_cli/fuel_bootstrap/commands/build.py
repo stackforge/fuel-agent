@@ -167,6 +167,12 @@ class BuildCommand(command.Command):
             help="Do not append default extra directories",
             action='store_true'
         )
+        parser.add_argument(
+            '--no-compress',
+            help="Do not compress bootstrap image to tar.gz. NOTE: Not"
+                 " compressed images are not supported by fuel-booutstrap.",
+            action='store_true'
+        )
         return parser
 
     def take_action(self, parsed_args):
