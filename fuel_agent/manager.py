@@ -874,8 +874,21 @@ class Manager(object):
                 chroot, os.path.join(c_dir, os.path.basename(rootfs.uri)),
                 rootfs.compress_format)
             self.dump_mkbootstrap_meta(metadata, c_dir, bs_scheme)
-            arch_file = bu.make_targz(c_dir, self.driver.data['output'])
-            LOG.debug('Output archive file : {0}'.format(arch_file))
+            if bs_scheme.container.format not in 'directory':
+                arch_file = bu.make_targz(c_dir, self.driver.data['output'])
+                LOG.debug('Output archive file : {0}'.format(arch_file))
+            else:
+                output_dir = os.path.dirname(self.driver.data['output'])
+                utils.makedirs_if_not_exists(output_dir)
+                bs_files = os.listdir(c_dir)
+                for bs_f in bs_files:
+                    f_bs_f = os.path.join(c_dir, bs_f)
+                    if (os.path.isfile(f_bs_f)):
+                            shutil.copy(f_bs_f, output_dir)
+                    os.chmod(os.path.join(output_dir, bs_f), 0o755)
+                LOG.debug('Output folder:{0}\nwith bootstrap files:{0}'
+                          .format(output_dir, bs_files))
+                arch_file = output_dir
             LOG.info('--- Building bootstrap image END (do_mkbootstrap) ---')
             return arch_file
         except Exception as exc:
