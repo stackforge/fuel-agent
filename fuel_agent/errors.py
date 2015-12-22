@@ -170,3 +170,7 @@ class IncorrectChroot(BaseError):
 
 class TooManyKernels(BaseError):
     pass
+
+
+class WrongOutputContainer(BaseError):
+    pass
