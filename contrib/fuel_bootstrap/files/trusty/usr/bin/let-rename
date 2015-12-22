@@ -114,4 +114,8 @@ for intf in $(get_eth_interfaces) ; do
        ifup $newname
    fi
 done
+
+# Restart and renaming eth0 interface follow to a (rear) case when sshd stops
+# Restart the service 
+if ! pkill -0 sshd; then start ssh; fi
 exit 0
