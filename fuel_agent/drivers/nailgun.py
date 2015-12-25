@@ -147,6 +147,12 @@ class Nailgun(BaseDataDriver):
             disk for disk in disks
             if ('nvme' not in disk['name'] and self._is_boot_disk(disk))
         ]
+        # NOTE(agordeev) sometimes, there's no separate /boot fs image.
+        # Therefore bootloader should be installed into
+        # the disk where rootfs image lands. Ironic's case.
+        if not suitable_disks:
+            return [d for d in disks
+                    if self._is_root_disk(d) and 'nvme' not in d['name']]
         # FIXME(agordeev): if we have rootfs on fake raid, then /boot should
         # land on it too. We can't proceed with grub-install otherwise.
         md_boot_disks = [
@@ -159,6 +165,11 @@ class Nailgun(BaseDataDriver):
     def _is_boot_disk(self, disk):
         return any(v["type"] in ('partition', 'raid') and
                    v.get("mount") == "/boot"
+                   for v in disk["volumes"])
+
+    def _is_root_disk(self, disk):
+        return any(v["type"] in ('partition', 'raid') and
+                   v.get("mount") == "/"
                    for v in disk["volumes"])
 
     def _is_os_volume(self, vol):
