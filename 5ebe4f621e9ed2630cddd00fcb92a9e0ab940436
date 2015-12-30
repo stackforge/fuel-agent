@@ -1,0 +1,10 @@
+Code-Review+1: Aleksey Kasatkin <akasatkin@mirantis.com>
+Code-Review+2: Aleksandr Gordeev <agordeev@mirantis.com>
+Code-Review+1: Bulat Gaifullin <bgaifullin@mirantis.com>
+Workflow+1: Aleksandr Gordeev <agordeev@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 30 Dec 2015 10:06:19 +0000
+Reviewed-on: https://review.openstack.org/261963
+Project: openstack/fuel-agent
+Branch: refs/heads/stable/8.0
