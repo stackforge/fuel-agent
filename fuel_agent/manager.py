@@ -409,15 +409,15 @@ class Manager(object):
                 'meta': repo.meta})
 
     @staticmethod
-    def _set_apt_repos(chroot, repos):
+    def _set_apt_repos(chroot, os):
         """Configure APT to use the specified repositories
 
         Set apt-sources for chroot and update metadata in Manager.
 
         :param chroot: path to OS to operate on
-        :param repos: APT repositories along with their priorities
+        :param os: OperationSystem object
         """
-        for repo in repos:
+        for repo in os.repos:
             LOG.debug(
                 'Adding repository source: name={name}, uri={uri}, '
                 'suite={suite}, section={section}'.format(
@@ -425,24 +425,17 @@ class Manager(object):
                     uri=repo.uri,
                     suite=repo.suite,
                     section=repo.section))
-            bu.add_apt_source(
-                name=repo.name,
-                uri=repo.uri,
-                suite=repo.suite,
-                section=repo.section,
-                chroot=chroot)
+            bu.add_apt_source(repo=repo, chroot=chroot)
             LOG.debug(
                 'Adding repository preference: name={name}, '
                 'priority={priority}'.format(name=repo.name,
                                              priority=repo.priority))
             if repo.priority is not None:
                 bu.add_apt_preference(
-                    name=repo.name,
-                    priority=repo.priority,
-                    suite=repo.suite,
-                    section=repo.section,
+                    repo=repo,
                     chroot=chroot,
-                    uri=repo.uri)
+                    proxies=os.proxies.proxies,
+                    direct_repo_addr=os.proxies.direct_repo_addr_list)
 
     def mount_target(self, chroot, treat_mtab=True, pseudo=True):
         """Mount a set of file systems into a chroot
@@ -814,7 +807,7 @@ class Manager(object):
             metadata['os'] = self.driver.operating_system.to_dict()
             packages = self.driver.operating_system.packages
             metadata['packages'] = packages
-            self._set_apt_repos(chroot, self.driver.operating_system.repos)
+            self._set_apt_repos(chroot, self.driver.operating_system)
             self._update_metadata_with_repos(
                 metadata, self.driver.operating_system.repos)
             LOG.debug('Installing packages using apt-get: %s',
@@ -935,7 +928,7 @@ class Manager(object):
             packages = self.driver.operating_system.packages
             metadata['packages'] = packages
 
-            self._set_apt_repos(chroot, self.driver.operating_system.repos)
+            self._set_apt_repos(chroot, self.driver.operating_system)
             self._update_metadata_with_repos(
                 metadata, self.driver.operating_system.repos)
 

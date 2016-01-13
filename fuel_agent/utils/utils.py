@@ -202,7 +202,7 @@ def calculate_md5(filename, size):
     return hash.hexdigest()
 
 
-def init_http_request(url, byte_range=0):
+def init_http_request(url, proxies=None, direct_addrs=None, byte_range=0):
     LOG.debug('Trying to initialize http request object %s, byte range: %s'
               % (url, byte_range))
     retry = 0
@@ -212,7 +212,8 @@ def init_http_request(url, byte_range=0):
                 response_obj = requests.get(
                     url, stream=True,
                     timeout=CONF.http_request_timeout,
-                    headers={'Range': 'bytes=%s-' % byte_range})
+                    headers={'Range': 'bytes=%s-' % byte_range},
+                    proxies=proxies)
             except (socket.timeout,
                     urllib3.exceptions.DecodeError,
                     urllib3.exceptions.ProxyError,
