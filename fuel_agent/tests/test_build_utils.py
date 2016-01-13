@@ -359,15 +359,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
 
-            fake_section = 'section1'
-            bu.add_apt_preference(
-                'name1',
-                123,
-                'test-archive',
-                fake_section,
-                'chroot',
-                'http://test-uri'
-            )
+            bu.add_apt_preference('name1', 123, 'test-archive', 'section1',
+                                  'chroot', 'http://test-uri')
 
             calls_args = [
                 c[0][0] for c in file_handle_mock.write.call_args_list
@@ -395,10 +388,12 @@ class BuildUtilsTestCase(unittest2.TestCase):
     def test_add_apt_preference_multuple_sections(self, mock_get, mock_path):
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
+
             fake_sections = ['section2', 'section3']
-            bu.add_apt_preference('name3', 234, 'test-archive',
-                                  ' '.join(fake_sections),
-                                  'chroot', 'http://test-uri')
+
+            bu.add_apt_preference(
+                'name3', 234, 'test-archive', ' '.join(fake_sections),
+                'chroot', 'http://test-uri')
 
             calls_args = [
                 c[0][0] for c in file_handle_mock.write.call_args_list
@@ -439,14 +434,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
 
-            bu.add_apt_preference(
-                'name1',
-                123,
-                'test-archive',
-                '',
-                'chroot',
-                'http://test-uri'
-            )
+            bu.add_apt_preference('name1', 123, 'test-archive', '', 'chroot',
+                                  'http://test-uri')
 
             calls_args = [
                 c[0][0] for c in file_handle_mock.write.call_args_list
