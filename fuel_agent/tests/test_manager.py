@@ -909,7 +909,7 @@ class TestImageBuild(unittest2.TestCase):
             direct_repo_addr='fake_addr')
         mock_set_apt_repos.assert_called_with(
             '/tmp/imgdir',
-            self.mgr.driver.operating_system.repos
+            self.mgr.driver.operating_system
         )
 
         mock_utils.makedirs_if_not_exists.assert_called_once_with(
