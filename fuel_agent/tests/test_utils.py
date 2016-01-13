@@ -169,7 +169,7 @@ class ExecuteTestCase(unittest2.TestCase):
         utils.init_http_request('fake_url')
         mock_req.assert_called_once_with(
             'fake_url', stream=True, timeout=CONF.http_request_timeout,
-            headers={'Range': 'bytes=0-'})
+            headers={'Range': 'bytes=0-'}, proxies=None)
 
     @mock.patch('time.sleep')
     @mock.patch.object(requests, 'get')
