@@ -26,6 +26,7 @@ import time
 import jinja2
 from oslo_config import cfg
 import requests
+from requests import utils as requests_utils
 import six
 import stevedore.driver
 import urllib3
@@ -202,17 +203,29 @@ def calculate_md5(filename, size):
     return hash.hexdigest()
 
 
-def init_http_request(url, byte_range=0):
+def should_bypass_proxy(url, noproxy_addrs):
+    host = requests_utils.urlparse(url).netloc
+    ip = host.split(':')[0]
+
+    if noproxy_addrs:
+        return ip in noproxy_addrs
+    return False
+
+
+def init_http_request(url, proxies=None, noproxy_addrs=None, byte_range=0):
     LOG.debug('Trying to initialize http request object %s, byte range: %s'
               % (url, byte_range))
     retry = 0
+    if should_bypass_proxy(url, noproxy_addrs):
+        proxies = None
     while True:
         if (CONF.http_max_retries == 0) or retry <= CONF.http_max_retries:
             try:
                 response_obj = requests.get(
                     url, stream=True,
                     timeout=CONF.http_request_timeout,
-                    headers={'Range': 'bytes=%s-' % byte_range})
+                    headers={'Range': 'bytes=%s-' % byte_range},
+                    proxies=proxies)
             except (socket.timeout,
                     urllib3.exceptions.DecodeError,
                     urllib3.exceptions.ProxyError,

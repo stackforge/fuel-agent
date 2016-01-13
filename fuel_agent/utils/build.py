@@ -355,7 +355,7 @@ def strip_filename(name):
     return re.sub(r"[^a-zA-Z0-9-_.]*", "", name)
 
 
-def get_release_file(uri, suite, section):
+def get_release_file(repo, proxies=None, direct_repo_addr=None):
     """Download and parse repo's Release file
 
     It and returns an apt preferences line for specified repo.
@@ -363,18 +363,20 @@ def get_release_file(uri, suite, section):
     :param repo: a repo as dict
     :returns: a string with apt preferences rules
     """
-    if section:
+    if repo.section:
         # We can't use urljoin here because it works pretty bad in
         # cases when 'uri' doesn't have a trailing slash.
-        download_uri = os.path.join(uri, 'dists', suite, 'Release')
+        download_uri = os.path.join(repo.uri, 'dists', repo.suite, 'Release')
     else:
         # Well, we have a flat repo case, so we should download Release
         # file from a different place. Please note, we have to strip
         # a leading slash from suite because otherwise the download
         # link will be wrong.
-        download_uri = os.path.join(uri, suite.lstrip('/'), 'Release')
+        download_uri = os.path.join(repo.uri, repo.suite.lstrip('/'),
+                                    'Release')
 
-    return utils.init_http_request(download_uri).text
+    return utils.init_http_request(download_uri, proxies=proxies,
+                                   noproxy_addrs=direct_repo_addr).text
 
 
 def parse_release_file(content):
@@ -409,22 +411,37 @@ def parse_release_file(content):
     return data
 
 
-def add_apt_source(name, uri, suite, section, chroot):
+def add_apt_source(repo, chroot):
+    """Add apt source file for the repo
+
+    :param repo: DEBRepo object
+    :param chroot: Process root directory
+    """
     # NOTE(agordeev): The files have either no or "list" as filename extension
-    filename = 'fuel-image-{name}.list'.format(name=strip_filename(name))
-    if section:
-        entry = 'deb {uri} {suite} {section}\n'.format(uri=uri, suite=suite,
-                                                       section=section)
+    filename = 'fuel-image-{name}.list'.format(name=strip_filename(repo.name))
+    if repo.section:
+        entry = 'deb {uri} {suite} {section}\n'.format(uri=repo.uri,
+                                                       suite=repo.suite,
+                                                       section=repo.section)
     else:
-        entry = 'deb {uri} {suite}\n'.format(uri=uri, suite=suite)
+        entry = 'deb {uri} {suite}\n'.format(uri=repo.uri, suite=repo.suite)
     with open(os.path.join(chroot, DEFAULT_APT_PATH['sources_dir'], filename),
               'w') as f:
         f.write(entry)
 
 
-def add_apt_preference(name, priority, suite, section, chroot, uri):
+def add_apt_preference(repo, chroot, proxies=None, direct_repo_addr=None):
+    """Add apt reference file for the repo
+
+    :param repo: DEBRepo object
+    :param chroot: path to chroot directory
+    :param proxies: dict with protocol:uri format
+    :param direct_repo_addr: list of addressess, which should use a direct
+                             connection to repo bypass proxy
+    """
+
     # NOTE(agordeev): The files have either no or "pref" as filename extension
-    filename = 'fuel-image-{name}.pref'.format(name=strip_filename(name))
+    filename = 'fuel-image-{name}.pref'.format(name=strip_filename(repo.name))
     # NOTE(agordeev): priotity=None means that there's no specific pinning for
     # particular repo and nothing to process.
     # Default system-wide preferences (priority=500) will be used instead.
@@ -439,15 +456,14 @@ def add_apt_preference(name, priority, suite, section, chroot, uri):
     }
 
     try:
-        deb_release = parse_release_file(
-            get_release_file(uri, suite, section)
-        )
+        deb_release = parse_release_file(get_release_file(
+            repo, proxies=proxies, direct_repo_addr=direct_repo_addr))
     except ValueError as exc:
         LOG.error(
             "[Attention] Failed to fetch Release file "
             "for repo '{0}': {1} - skipping. "
             "This may lead both to trouble with packages "
-            "and broken OS".format(name, six.text_type(exc))
+            "and broken OS".format(repo.name, six.text_type(exc))
         )
         return
 
@@ -463,7 +479,7 @@ def add_apt_preference(name, priority, suite, section, chroot, uri):
         f.write('Package: *\n')
         f.write('Pin: release ')
         f.write(', '.join(conditions) + "\n")
-        f.write('Pin-Priority: {priority}\n'.format(priority=priority))
+        f.write('Pin-Priority: {priority}\n'.format(priority=repo.priority))
 
 
 def set_apt_proxy(chroot, proxies, direct_repo_addr=None):
