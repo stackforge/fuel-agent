@@ -20,6 +20,7 @@ import mock
 import unittest2
 
 from fuel_agent import errors
+from fuel_agent.objects import repo as repo_objects
 from fuel_agent.utils import build as bu
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
@@ -324,10 +325,15 @@ class BuildUtilsTestCase(unittest2.TestCase):
 
     @mock.patch.object(os, 'path')
     def test_add_apt_source(self, mock_path):
+        repo = repo_objects.DEBRepo(
+            **{'name': 'name1',
+               'uri': 'uri1',
+               'suite': 'suite1',
+               'section': 'section1'})
         mock_path.return_value = 'fake_path'
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
-            bu.add_apt_source('name1', 'uri1', 'suite1', 'section1', 'chroot')
+            bu.add_apt_source(repo=repo, chroot='chroot')
             expected_calls = [mock.call('deb uri1 suite1 section1\n')]
             self.assertEqual(expected_calls,
                              file_handle_mock.write.call_args_list)
@@ -339,10 +345,15 @@ class BuildUtilsTestCase(unittest2.TestCase):
 
     @mock.patch.object(os, 'path')
     def test_add_apt_source_no_section(self, mock_path):
+        repo = repo_objects.DEBRepo(
+            **{'name': 'name2',
+               'uri': 'uri2',
+               'suite': 'suite2',
+               'section': None})
         mock_path.return_value = 'fake_path'
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
-            bu.add_apt_source('name2', 'uri2', 'suite2', None, 'chroot')
+            bu.add_apt_source(repo=repo, chroot='chroot')
             expected_calls = [mock.call('deb uri2 suite2\n')]
             self.assertEqual(expected_calls,
                              file_handle_mock.write.call_args_list)
@@ -360,14 +371,14 @@ class BuildUtilsTestCase(unittest2.TestCase):
             file_handle_mock = mock_open.return_value.__enter__.return_value
 
             fake_section = 'section1'
-            bu.add_apt_preference(
-                'name1',
-                123,
-                'test-archive',
-                fake_section,
-                'chroot',
-                'http://test-uri'
-            )
+            repo = repo_objects.DEBRepo(
+                **{'name': 'name1',
+                   'uri': 'http://test-uri',
+                   'suite': 'test-archive',
+                   'section': fake_section,
+                   'priority': 123})
+
+            bu.add_apt_preference(repo=repo, chroot='chroot')
 
             calls_args = [
                 c[0][0] for c in file_handle_mock.write.call_args_list
@@ -395,10 +406,16 @@ class BuildUtilsTestCase(unittest2.TestCase):
     def test_add_apt_preference_multuple_sections(self, mock_get, mock_path):
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
+
             fake_sections = ['section2', 'section3']
-            bu.add_apt_preference('name3', 234, 'test-archive',
-                                  ' '.join(fake_sections),
-                                  'chroot', 'http://test-uri')
+            repo = repo_objects.DEBRepo(
+                **{'name': 'name3',
+                   'uri': 'http://test-uri',
+                   'suite': 'test-archive',
+                   'section': ' '.join(fake_sections),
+                   'priority': 234})
+
+            bu.add_apt_preference(repo=repo, chroot='chroot')
 
             calls_args = [
                 c[0][0] for c in file_handle_mock.write.call_args_list
@@ -439,14 +456,14 @@ class BuildUtilsTestCase(unittest2.TestCase):
         with mock.patch('six.moves.builtins.open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
 
-            bu.add_apt_preference(
-                'name1',
-                123,
-                'test-archive',
-                '',
-                'chroot',
-                'http://test-uri'
-            )
+            repo = repo_objects.DEBRepo(
+                **{'name': 'name1',
+                   'uri': 'http://test-uri',
+                   'suite': 'test-archive',
+                   'section': '',
+                   'priority': 123})
+
+            bu.add_apt_preference(repo=repo, chroot='chroot')
 
             calls_args = [
                 c[0][0] for c in file_handle_mock.write.call_args_list
