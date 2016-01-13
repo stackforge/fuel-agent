@@ -355,12 +355,15 @@ def strip_filename(name):
     return re.sub(r"[^a-zA-Z0-9-_.]*", "", name)
 
 
-def get_release_file(uri, suite, section):
+def get_release_file(uri, suite, section, proxies=None,
+                     direct_repo_addrs=None):
     """Download and parse repo's Release file
 
-    It and returns an apt preferences line for specified repo.
+    Returns an apt preferences for specified repo.
 
-    :param repo: a repo as dict
+    :param proxies: Dict protocol:uri format
+    :param direct_repo_addrs: List of addresses which should be bypassed
+                              by proxy
     :returns: a string with apt preferences rules
     """
     if section:
@@ -372,9 +375,11 @@ def get_release_file(uri, suite, section):
         # file from a different place. Please note, we have to strip
         # a leading slash from suite because otherwise the download
         # link will be wrong.
-        download_uri = os.path.join(uri, suite.lstrip('/'), 'Release')
+        download_uri = os.path.join(uri, suite.lstrip('/'),
+                                    'Release')
 
-    return utils.init_http_request(download_uri).text
+    return utils.init_http_request(download_uri, proxies=proxies,
+                                   noproxy_addrs=direct_repo_addrs).text
 
 
 def parse_release_file(content):
@@ -413,7 +418,8 @@ def add_apt_source(name, uri, suite, section, chroot):
     # NOTE(agordeev): The files have either no or "list" as filename extension
     filename = 'fuel-image-{name}.list'.format(name=strip_filename(name))
     if section:
-        entry = 'deb {uri} {suite} {section}\n'.format(uri=uri, suite=suite,
+        entry = 'deb {uri} {suite} {section}\n'.format(uri=uri,
+                                                       suite=suite,
                                                        section=section)
     else:
         entry = 'deb {uri} {suite}\n'.format(uri=uri, suite=suite)
@@ -422,7 +428,15 @@ def add_apt_source(name, uri, suite, section, chroot):
         f.write(entry)
 
 
-def add_apt_preference(name, priority, suite, section, chroot, uri):
+def add_apt_preference(name, priority, suite, section, chroot, uri,
+                       proxies=None, direct_repo_addrs=None):
+    """Add apt reference file for the repo
+
+    :param proxies: dict with protocol:uri format
+    :param direct_repo_addrs: list of addressess which should be bypassed
+                              by proxy
+    """
+
     # NOTE(agordeev): The files have either no or "pref" as filename extension
     filename = 'fuel-image-{name}.pref'.format(name=strip_filename(name))
     # NOTE(agordeev): priotity=None means that there's no specific pinning for
@@ -439,9 +453,9 @@ def add_apt_preference(name, priority, suite, section, chroot, uri):
     }
 
     try:
-        deb_release = parse_release_file(
-            get_release_file(uri, suite, section)
-        )
+        deb_release = parse_release_file(get_release_file(
+            uri, suite, section, proxies=proxies,
+            direct_repo_addrs=direct_repo_addrs))
     except ValueError as exc:
         LOG.error(
             "[Attention] Failed to fetch Release file "

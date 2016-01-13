@@ -409,14 +409,19 @@ class Manager(object):
                 'meta': repo.meta})
 
     @staticmethod
-    def _set_apt_repos(chroot, repos):
+    def _set_apt_repos(chroot, repos, proxies=None, direct_repo_addrs=None):
         """Configure APT to use the specified repositories
 
         Set apt-sources for chroot and update metadata in Manager.
 
         :param chroot: path to OS to operate on
-        :param repos: APT repositories along with their priorities
+        :param repos: list of DEBRepo objects
+        :param proxies: dict protocol:uri format
+        :param direct_repo_addrs: list of addreses which should be bypassed by
+                                  proxy
         """
+        LOG.debug("For set apt repositories will be used proxies: %s and"
+                  " no_proxy: %s", proxies, direct_repo_addrs)
         for repo in repos:
             LOG.debug(
                 'Adding repository source: name={name}, uri={uri}, '
@@ -425,24 +430,17 @@ class Manager(object):
                     uri=repo.uri,
                     suite=repo.suite,
                     section=repo.section))
-            bu.add_apt_source(
-                name=repo.name,
-                uri=repo.uri,
-                suite=repo.suite,
-                section=repo.section,
-                chroot=chroot)
+            bu.add_apt_source(name=repo.name, uri=repo.uri, suite=repo.suite,
+                              section=repo.section, chroot=chroot)
             LOG.debug(
                 'Adding repository preference: name={name}, '
                 'priority={priority}'.format(name=repo.name,
                                              priority=repo.priority))
             if repo.priority is not None:
                 bu.add_apt_preference(
-                    name=repo.name,
-                    priority=repo.priority,
-                    suite=repo.suite,
-                    section=repo.section,
-                    chroot=chroot,
-                    uri=repo.uri)
+                    name=repo.name, priority=repo.priority, suite=repo.suite,
+                    section=repo.section, chroot=chroot, uri=repo.uri,
+                    proxies=proxies, direct_repo_addrs=direct_repo_addr_list)
 
     def mount_target(self, chroot, treat_mtab=True, pseudo=True):
         """Mount a set of file systems into a chroot
@@ -814,7 +812,11 @@ class Manager(object):
             metadata['os'] = self.driver.operating_system.to_dict()
             packages = self.driver.operating_system.packages
             metadata['packages'] = packages
-            self._set_apt_repos(chroot, self.driver.operating_system.repos)
+            driver_os = self.driver.operating_system
+            self._set_apt_repos(
+                chroot, driver_os.repos,
+                proxies=driver_os.proxies.proxies,
+                direct_repo_addrs=driver_os.proxies.direct_repo_addr_list)
             self._update_metadata_with_repos(
                 metadata, self.driver.operating_system.repos)
             LOG.debug('Installing packages using apt-get: %s',
@@ -935,7 +937,11 @@ class Manager(object):
             packages = self.driver.operating_system.packages
             metadata['packages'] = packages
 
-            self._set_apt_repos(chroot, self.driver.operating_system.repos)
+            driver_os = self.driver.operating_system
+            self._set_apt_repos(
+                chroot, driver_os.repos,
+                proxies=driver_os.proxies.proxies,
+                direct_repo_addrs=driver_os.proxies.direct_repo_addr_list)
             self._update_metadata_with_repos(
                 metadata, self.driver.operating_system.repos)
 
