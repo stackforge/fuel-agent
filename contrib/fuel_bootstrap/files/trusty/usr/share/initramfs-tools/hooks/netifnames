@@ -15,7 +15,20 @@ esac
 
 RULES=80-net-name-slot.rules
 if   [ -e /etc/udev/rules.d/$RULES ]; then
-  cp -p /etc/udev/rules.d/$RUlES $DESTDIR/lib/udev/rules.d/
+  cp -p /etc/udev/rules.d/$RULES $DESTDIR/lib/udev/rules.d/
 elif [ -e /lib/udev/rules.d/$RULES ]; then
   cp -p /lib/udev/rules.d/$RULES $DESTDIR/lib/udev/rules.d/
 fi
+
+RULES-RENAME=90-net-config-fix-on-rename.rules
+if   [ -e /etc/udev/rules.d/$RULES-RENAME ]; then
+  cp -p /etc/udev/rules.d/$RULES-RENAME $DESTDIR/lib/udev/rules.d/
+elif [ -e /lib/udev/rules.d/$RULES-RENAME ]; then
+  cp -p /lib/udev/rules.d/$RULES-RENAME $DESTDIR/lib/udev/rules.d/
+fi
+
+if [ ! -e "${DESTDIR}/lib/udev/fix-renamed-net-config" ] \
+&& [ -e "/lib/udev/fix-renamed-net-config" ]; then
+    copy_exec /lib/udev/firmware.agent
+fi
+
