@@ -1,0 +1,27 @@
+#!/bin/sh -e
+set -x
+
+PREREQS="live"
+
+prereqs() { echo "$PREREQS"; }
+
+case "$1" in
+    prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+PATCHED_FILE=9990-main.sh
+APPEND_FILE=9990-down-pxe-interface.sh
+
+if   [ -e $DESTDIR/lib/live/boot/$PATCHED_FILE ]; then
+  cp -p $NEW_FILE $DESTDIR/lib/live/boot/
+  if [ -e $DESTDIR/lib/live/boot/$APPEND_FILE ];
+  then
+      sed -ie "/Netbase a Down_pxe_interface"  $DESTDIR/lib/live/boot/$PATCHED_FILE
+  fi
+fi
+
