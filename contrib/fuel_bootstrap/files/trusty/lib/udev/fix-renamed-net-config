@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Script attempts rename interface names in the file
+# /run/etc/network/interfaces  or
+# /etc/network/interfaces  (depends on boot stage)
+# when a network interface is renamed by a udev rule
+
+# Two parameters are expected to be passed to the script
+# the old path to device and new path to the device
+# for example when eth0 renamed to enp1s2
+# the passing  path(s) (from the udev rule) are
+# /devices/pci0000:00/0000:00:11.0/0000:02:02.0/net/eth0
+# /devices/pci0000:00/0000:00:11.0/0000:02:02.0/net/enp1s2
+# Be attentive, the OLD DEVPATH is passed the first!
+
+# The network config file could be placed at
+# /etc/network/interfaces  or at
+# /run/etc/network/iterfaces (at the very beginning)
+
+
+# Check if we got both DEVPATH
+if [ "$#" -eq 2 ]; then
+    oldpath="$1"
+    newpath="$2"
+    oldname=${oldpath##*/}
+    newname=${newpath##*/}
+
+    # Lets assume we are on bootstrap,
+    # set required path to the config file
+    NET_CONF_FILE="/etc/network/interfaces"
+    if [ ! -e "$NET_CONF_FILE" ]; then
+       NET_CONF_FILE="/run${NET_CONF_FILE}"
+       if [ ! -e "$NET_CONF_FILE" ]; then
+           exit 0; # Nothing to do, file doesn't exist
+       fi
+    fi
+    # Update the interface name
+    sed -i -e "s/$oldname/$newname/g" $NET_CONF_FILE
+fi
