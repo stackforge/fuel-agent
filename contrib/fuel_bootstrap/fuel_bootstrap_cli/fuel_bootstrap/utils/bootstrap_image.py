@@ -63,8 +63,8 @@ def _cobbler_profile():
     :return: string
     """
 
-    stdout, _ = utils.execute('dockerctl', 'shell', 'cobbler', 'cobbler',
-                              'system', 'report', '--name', 'default')
+    stdout, _ = utils.execute('cobbler', 'system', 'report',
+                              '--name', 'default')
     regex = r"(?P<label>Profile)\s*:\s*(?P<profile>[^\s]+)"
     return re.search(regex, stdout).group('profile')
 
@@ -208,21 +208,19 @@ def _update_astute_yaml(flavor=None):
         raise
 
 
-def _run_puppet(container=None, manifest=None):
-    """Run puppet apply inside docker container
+def _run_puppet(manifest=None):
+    """Run puppet apply
 
-    :param container:
     :param manifest:
     :return:
     """
-    LOG.debug('Trying apply manifest:%s \ninside container:%s',
-              manifest, container)
-    utils.execute('dockerctl', 'shell', container, 'puppet', 'apply',
-                  '--detailed-exitcodes', '-dv', manifest, logged=True,
+    LOG.debug('Trying apply manifest: %s', manifest)
+    utils.execute('puppet', 'apply', '--detailed-exitcodes',
+                  '-dv', manifest, logged=True,
                   check_exit_code=[0, 2], attempts=2)
 
 
-def _activate_dockerized(flavor=None):
+def _activate_flavor(flavor=None):
     """Switch between cobbler distro profiles, in case dockerized system
 
     Unfortunately, we don't support switching between profiles "on fly",
@@ -242,12 +240,11 @@ def _activate_dockerized(flavor=None):
             'Wrong cobbler profile passed:%s \n possible profiles:',
             flavor, consts.DISTROS.keys())
     _update_astute_yaml(consts.DISTROS[flavor]['astute_flavor'])
-    _run_puppet(consts.COBBLER_DOCKER, consts.COBBLER_MANIFEST)
-    _run_puppet(consts.ASTUTE_DOCKER, consts.ASTUTE_MANIFEST)
+    _run_puppet(consts.COBBLER_MANIFEST)
+    _run_puppet(consts.ASTUTE_MANIFEST)
     # restart astuted to be sure that it catches new profile
     LOG.debug('Reloading astuted')
-    utils.execute('dockerctl', 'shell', 'astute', 'service', 'astute',
-                  'restart')
+    utils.execute('service', 'astute', 'restart')
 
 
 @notifier.notify_webui_on_fail
@@ -269,7 +266,7 @@ def _activate(image_uuid):
 
     # FIXME: Add pre-activate verify
     flavor = 'centos' if is_centos else 'ubuntu'
-    _activate_dockerized(flavor)
+    _activate_flavor(flavor)
 
     notifier.notify_webui("")
 
