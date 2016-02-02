@@ -61,8 +61,22 @@ ROOT_PASSWORD = '$6$IInX3Cqo$5xytL1VZbZTusOewFnG6couuF0Ia61yS3rbC6P5YbZP2TYcl'\
                 'wHqMq9e3Tg8rvQxhxSlBXP1DZhdUamxdOBXK0.'
 
 
+def get_proxy_env_vars(proxies=None, direct_repo_addr=None):
+    env_vars = {}
+    for proto in six.iterkeys(PROXY_PROTOCOLS):
+        if proto in (proxies or {}):
+            LOG.debug('Using {0} proxy {1} for debootstrap'.format(
+                proto, proxies[proto]))
+            env_vars['{0}_proxy'.format(proto)] = proxies[proto]
+    if direct_repo_addr:
+        env_vars['no_proxy'] = ','.join(direct_repo_addr)
+        LOG.debug('Setting no_proxy for: {0}'.format(env_vars['no_proxy']))
+    return env_vars
+
+
 def run_debootstrap(uri, suite, chroot, arch='amd64', eatmydata=False,
-                    attempts=10, proxies=None, direct_repo_addr=None):
+                    attempts=10, proxies=None, direct_repo_addr=None,
+                    public_keyring=None):
     """Builds initial base system.
 
     debootstrap builds initial base system which is capable to run apt-get.
@@ -70,20 +84,17 @@ def run_debootstrap(uri, suite, chroot, arch='amd64', eatmydata=False,
     so the rest of packages will be installed later by run_apt_get.
     """
     env_vars = copy.deepcopy(os.environ)
-    for proto in six.iterkeys(PROXY_PROTOCOLS):
-        if proto in (proxies or {}):
-            LOG.debug('Using {0} proxy {1} for debootstrap'.format(
-                proto, proxies[proto]))
-            env_vars['{0}_proxy'.format(proto)] = proxies[proto]
-
-    if direct_repo_addr:
-        env_vars['no_proxy'] = ','.join(direct_repo_addr)
-        LOG.debug('Setting no_proxy for: {0}'.format(env_vars['no_proxy']))
-
+    proxy_env_vars = get_proxy_env_vars(proxies=proxies,
+                                        direct_repo_addr=direct_repo_addr)
+    env_vars.update(proxy_env_vars)
     cmds = ['debootstrap',
             '--include={0}'.format(",".join(ADDITIONAL_DEBOOTSTRAP_PACKAGES)),
-            '--verbose', '--no-check-gpg',
+            '--verbose',
             '--arch={0}'.format(arch)]
+    if public_keyring:
+        cmds.append('--keyring={0}'.format(public_keyring))
+    else:
+        cmds.append('--no-check-gpg')
     if eatmydata:
         cmds.extend(['--include=eatmydata'])
     cmds.extend([suite, chroot, uri])
@@ -91,6 +102,37 @@ def run_debootstrap(uri, suite, chroot, arch='amd64', eatmydata=False,
                                    env_variables=env_vars)
     LOG.debug('Running deboostrap completed.\nstdout: %s\nstderr: %s', stdout,
               stderr)
+
+
+def create_public_keyring(chroot, gpg_public_keys,
+                          attempts=4, proxies=None, direct_repo_addr=None):
+    """Create a keyring by importing GPG public keys."""
+    env_vars = copy.deepcopy(os.environ)
+    proxy_env_vars = get_proxy_env_vars(proxies=proxies,
+                                        direct_repo_addr=direct_repo_addr)
+    env_vars.update(proxy_env_vars)
+    chroot_tmp = os.path.join(chroot, 'tmp')
+    utils.makedirs_if_not_exists(chroot_tmp)
+    keyring_fd, keyring = tempfile.mkstemp(dir=chroot_tmp,
+                                           suffix='-pubring.gpg')
+    os.close(keyring_fd)
+    cmds = ['gpg', '--keyring', keyring, '--no-default-keyring',
+            '--fetch-keys']
+    cmds.extend(gpg_public_keys)
+    utils.execute(*cmds, attempts=attempts, env_variables=env_vars,
+                  logged=True)
+    return keyring
+
+
+def apt_key_add_keys(chroot, public_keyring):
+    """Import GPG public keys by apt-key inside chroot.
+
+    apt-key is used to import a keyring file prepared by gpg. After the
+    import the keyring file is removed.
+    """
+    pubring = public_keyring[len(chroot):]
+    utils.execute('chroot', chroot, 'apt-key', 'add', pubring, logged=True)
+    os.remove(public_keyring)
 
 
 def set_apt_get_env():
@@ -506,15 +548,16 @@ def set_apt_proxy(chroot, proxies, direct_repo_addr=None):
 
 
 def pre_apt_get(chroot, allow_unsigned_file='allow_unsigned_packages',
-                force_ipv4_file='force_ipv4',
+                force_ipv4_file='force_ipv4', is_unsigned_allowed=True,
                 proxies=None, direct_repo_addr=None):
     """It must be called prior run_apt_get."""
     clean_apt_settings(chroot, allow_unsigned_file=allow_unsigned_file,
                        force_ipv4_file=force_ipv4_file)
-    # NOTE(agordeev): allow to install packages without gpg digest
-    with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
-                           allow_unsigned_file), 'w') as f:
-        f.write('APT::Get::AllowUnauthenticated 1;\n')
+    if is_unsigned_allowed:
+        # NOTE(agordeev): allow to install packages without gpg digest
+        with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
+                               allow_unsigned_file), 'w') as f:
+            f.write('APT::Get::AllowUnauthenticated 1;\n')
     with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
                            force_ipv4_file), 'w') as f:
         f.write('Acquire::ForceIPv4 "true";\n')

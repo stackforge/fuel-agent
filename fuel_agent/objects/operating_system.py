@@ -15,12 +15,13 @@
 
 class OperatingSystem(object):
     def __init__(self, repos, packages, major='unknown', minor='unknown',
-                 proxies=None):
+                 proxies=None, gpg_public_keys=None):
         self.repos = repos
         self.packages = packages
         self.major = major
         self.minor = minor
         self.proxies = proxies
+        self.gpg_public_keys = gpg_public_keys
 
     def to_dict(self):
         return {'major': self.major,

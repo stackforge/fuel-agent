@@ -771,8 +771,10 @@ class NailgunBuildImage(BaseDataDriver):
         proxies.add_direct_repo_addrs(proxy_dict.get(
             'direct_repo_addr_list', []))
 
+        gpg_public_keys = self.data.get('gpg_public_keys', [])
+
         os = objects.Ubuntu(repos=repos, packages=packages, major=14, minor=4,
-                            proxies=proxies)
+                            proxies=proxies, gpg_public_keys=gpg_public_keys)
         return os
 
     def parse_schemes(self):
