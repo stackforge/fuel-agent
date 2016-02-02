@@ -901,12 +901,13 @@ class TestImageBuild(unittest2.TestCase):
         mock_bu.run_debootstrap.assert_called_once_with(
             uri='http://fakeubuntu', suite='trusty', chroot='/tmp/imgdir',
             attempts=CONF.fetch_packages_attempts,
-            proxies={'fake': 'fake'}, direct_repo_addr='fake_addr')
+            proxies={'fake': 'fake'}, direct_repo_addr='fake_addr',
+            public_keyring=None)
         mock_bu.set_apt_get_env.assert_called_once_with()
         mock_bu.pre_apt_get.assert_called_once_with(
             '/tmp/imgdir', allow_unsigned_file=CONF.allow_unsigned_file,
-            force_ipv4_file=CONF.force_ipv4_file, proxies={'fake': 'fake'},
-            direct_repo_addr='fake_addr')
+            force_ipv4_file=CONF.force_ipv4_file, is_unsigned_allowed=True,
+            proxies={'fake': 'fake'}, direct_repo_addr='fake_addr')
         driver_os = self.mgr.driver.operating_system
         mock_set_apt_repos.assert_called_with(
             '/tmp/imgdir',

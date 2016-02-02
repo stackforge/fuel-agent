@@ -44,7 +44,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
         mock_exec.assert_called_once_with(
             'debootstrap', '--include={0}'
             .format(','.join(bu.ADDITIONAL_DEBOOTSTRAP_PACKAGES)),
-            '--verbose', '--no-check-gpg', '--arch=arch',
+            '--verbose', '--arch=arch', '--no-check-gpg',
             'suite', 'chroot', 'uri', attempts=2, env_variables={})
 
     @mock.patch('fuel_agent.utils.build.os', environ={})
@@ -55,9 +55,50 @@ class BuildUtilsTestCase(unittest2.TestCase):
         mock_exec.assert_called_once_with(
             'debootstrap', '--include={0}'
             .format(','.join(bu.ADDITIONAL_DEBOOTSTRAP_PACKAGES)),
-            '--verbose', '--no-check-gpg', '--arch=arch',
+            '--verbose', '--arch=arch', '--no-check-gpg',
             '--include=eatmydata', 'suite',
             'chroot', 'uri', attempts=2, env_variables={})
+
+    @mock.patch('fuel_agent.utils.build.os', environ={})
+    @mock.patch.object(utils, 'execute', return_value=(None, None))
+    def test_run_debootstrap_keyring(self, mock_exec, mock_environ):
+        pubring = '/tmp/.gnupg/pubring.gpg'
+        bu.run_debootstrap('uri', 'suite', 'chroot', 'arch',
+                           attempts=2, public_keyring=pubring)
+        mock_exec.assert_called_once_with(
+            'debootstrap', '--include={0}'
+            .format(','.join(bu.ADDITIONAL_DEBOOTSTRAP_PACKAGES)),
+            '--verbose', '--arch=arch',
+            '--keyring=/tmp/.gnupg/pubring.gpg', 'suite',
+            'chroot', 'uri', attempts=2, env_variables={})
+
+    @mock.patch('fuel_agent.utils.build.os', environ={})
+    @mock.patch('os.close')
+    @mock.patch('tempfile.mkstemp')
+    @mock.patch.object(utils, 'makedirs_if_not_exists')
+    @mock.patch.object(utils, 'execute', return_value=(None, None))
+    def test_create_public_keyring(self, mock_exec, mock_makedirs, mock_temp,
+                                   mock_clonse, mock_environ):
+        gpg_public_keys = ['http://127.0.0.1:8123/k0.key',
+                           'http://127.0.0.1:8082/k2.key']
+        mock_temp.return_value = (0, '/chroot/tmp/tmp-pubring.gpg')
+        bu.create_public_keyring('/chroot', gpg_public_keys, attempts=2)
+        mock_exec.assert_called_once_with(
+            'gpg', '--keyring', '/chroot/tmp/tmp-pubring.gpg',
+            '--no-default-keyring', '--fetch-keys',
+            'http://127.0.0.1:8123/k0.key', 'http://127.0.0.1:8082/k2.key',
+            env_variables={}, logged=True, attempts=2)
+
+    @mock.patch('os.remove')
+    @mock.patch.object(utils, 'execute', return_value=(None, None))
+    def test_apt_key_add_keys(self, mock_exec, mock_remove):
+        chroot = '/chroot'
+        keyring = '/chroot/tmp/tmp-pubring.gpg'
+        bu.apt_key_add_keys(chroot, keyring)
+        mock_exec.assert_called_once_with('chroot', '/chroot', 'apt-key',
+                                          'add', '/tmp/tmp-pubring.gpg',
+                                          logged=True)
+        mock_remove.assert_called_once_with(keyring)
 
     @mock.patch.object(utils, 'execute', return_value=(None, None))
     def test_run_apt_get(self, mock_exec):
@@ -489,6 +530,26 @@ class BuildUtilsTestCase(unittest2.TestCase):
         expected_join_calls = [
             mock.call('chroot', 'etc/apt/apt.conf.d',
                       'fake_unsigned'),
+            mock.call('chroot', 'etc/apt/apt.conf.d',
+                      'fake_force_ipv4')]
+        self.assertEqual(expected_join_calls, mock_path.join.call_args_list)
+
+    @mock.patch.object(bu, 'clean_apt_settings')
+    @mock.patch.object(os, 'path')
+    def test_pre_apt_get_prohibit_unsigned(self, mock_path, mock_clean):
+        with mock.patch('six.moves.builtins.open', create=True) as mock_open:
+            file_handle_mock = mock_open.return_value.__enter__.return_value
+            bu.pre_apt_get('chroot', allow_unsigned_file='fake_unsigned',
+                           force_ipv4_file='fake_force_ipv4',
+                           is_unsigned_allowed=False)
+            expected_calls = [
+                mock.call('Acquire::ForceIPv4 "true";\n')]
+            self.assertEqual(expected_calls,
+                             file_handle_mock.write.call_args_list)
+        mock_clean.assert_called_once_with('chroot',
+                                           allow_unsigned_file='fake_unsigned',
+                                           force_ipv4_file='fake_force_ipv4')
+        expected_join_calls = [
             mock.call('chroot', 'etc/apt/apt.conf.d',
                       'fake_force_ipv4')]
         self.assertEqual(expected_join_calls, mock_path.join.call_args_list)
