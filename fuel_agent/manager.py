@@ -547,6 +547,16 @@ class Manager(object):
         uri = self.driver.operating_system.repos[0].uri
         suite = self.driver.operating_system.repos[0].suite
         proxies = self.driver.operating_system.proxies
+        direct_repo_addr = proxies.direct_repo_addr_list
+        gpg_public_keys = self.driver.operating_system.gpg_public_keys
+
+        if gpg_public_keys:
+            LOG.debug('Importing GPG public keys for package repositories')
+            public_keyring = bu.create_public_keyring(
+                chroot, gpg_public_keys,
+                proxies=proxies.proxies, direct_repo_addr=direct_repo_addr)
+        else:
+            public_keyring = None
 
         LOG.debug('Preventing services from being get started')
         bu.suppress_services_start(chroot)
@@ -554,7 +564,13 @@ class Manager(object):
         bu.run_debootstrap(uri=uri, suite=suite, chroot=chroot,
                            attempts=CONF.fetch_packages_attempts,
                            proxies=proxies.proxies,
-                           direct_repo_addr=proxies.direct_repo_addr_list)
+                           direct_repo_addr=direct_repo_addr,
+                           public_keyring=public_keyring)
+
+        # APT-KEY
+        if public_keyring:
+            LOG.debug('Import GPG public keys from the keyring file')
+            bu.apt_key_add_keys(chroot, public_keyring)
 
         # APT-GET
         LOG.debug('Configuring apt inside chroot')
