@@ -40,6 +40,7 @@ class BootstrapDataBuilder(object):
             data.get('ubuntu_release') or consts.UBUNTU_RELEASE
 
         self.repos = data.get('repos') or []
+        self.gpg_public_keys = data.get('gpg_public_keys') or []
 
         self.http_proxy = data.get('http_proxy') or CONF.http_proxy
         self.https_proxy = data.get('https_proxy') or CONF.https_proxy
@@ -88,6 +89,7 @@ class BootstrapDataBuilder(object):
                 'certs': self.certs
             },
             'repos': repos,
+            'gpg_public_keys': self.gpg_public_keys,
             'proxies': self._get_proxy_settings(),
             'codename': self.ubuntu_release,
             'output': self.output,

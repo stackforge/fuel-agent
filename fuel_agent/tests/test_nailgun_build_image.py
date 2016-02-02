@@ -130,7 +130,8 @@ class TestNailgunBuildImage(unittest2.TestCase):
         driver = NailgunBuildImage(data)
         mock_ub.assert_called_once_with(repos=[], packages=data['packages'],
                                         major=14, minor=4,
-                                        proxies=mock_proxies.return_value)
+                                        proxies=mock_proxies.return_value,
+                                        gpg_public_keys=[])
         self.assertEqual(driver.operating_system.packages, data['packages'])
 
     @mock.patch('fuel_agent.objects.RepoProxies')
@@ -147,7 +148,8 @@ class TestNailgunBuildImage(unittest2.TestCase):
         driver = NailgunBuildImage(data)
         mock_ub.assert_called_once_with(
             repos=[], packages=NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES,
-            major=14, minor=4, proxies=mock_proxies.return_value)
+            major=14, minor=4, proxies=mock_proxies.return_value,
+            gpg_public_keys=[])
         self.assertEqual(driver.operating_system.packages,
                          NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES)
 
@@ -179,7 +181,8 @@ class TestNailgunBuildImage(unittest2.TestCase):
         mock_ub_instance.repos = repos
         mock_ub.assert_called_once_with(
             repos=repos, packages=NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES,
-            major=14, minor=4, proxies=mock_proxies.return_value)
+            major=14, minor=4, proxies=mock_proxies.return_value,
+            gpg_public_keys=[])
         self.assertEqual(mock_deb_expected_calls,
                          mock_deb.call_args_list[:len(REPOS_SAMPLE)])
         self.assertEqual(driver.operating_system.repos, repos)

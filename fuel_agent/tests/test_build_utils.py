@@ -44,7 +44,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
         mock_exec.assert_called_once_with(
             'debootstrap', '--include={0}'
             .format(','.join(bu.ADDITIONAL_DEBOOTSTRAP_PACKAGES)),
-            '--verbose', '--no-check-gpg', '--arch=arch',
+            '--verbose', '--arch=arch', '--no-check-gpg',
             'suite', 'chroot', 'uri', attempts=2, env_variables={})
 
     @mock.patch('fuel_agent.utils.build.os', environ={})
@@ -55,7 +55,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
         mock_exec.assert_called_once_with(
             'debootstrap', '--include={0}'
             .format(','.join(bu.ADDITIONAL_DEBOOTSTRAP_PACKAGES)),
-            '--verbose', '--no-check-gpg', '--arch=arch',
+            '--verbose', '--arch=arch', '--no-check-gpg',
             '--include=eatmydata', 'suite',
             'chroot', 'uri', attempts=2, env_variables={})
 
