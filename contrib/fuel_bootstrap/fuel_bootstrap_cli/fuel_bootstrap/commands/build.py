@@ -41,6 +41,14 @@ class BuildCommand(command.Command):
             action='append'
         )
         parser.add_argument(
+            '--gpg-public-key',
+            dest='gpg_public_keys',
+            type=str,
+            action='append',
+            help="Add one more URL to GPG public key for package "
+                 "repositories.",
+        )
+        parser.add_argument(
             '--http-proxy',
             type=str,
             metavar='URL',
