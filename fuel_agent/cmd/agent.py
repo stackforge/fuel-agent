@@ -12,12 +12,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+import signal
 import sys
 
 from oslo_config import cfg
 import six
 import yaml
 
+from fuel_agent import errors
 from fuel_agent import manager as manager
 from fuel_agent.openstack.common import log as logging
 from fuel_agent import version
@@ -37,6 +40,10 @@ cli_opts = [
 
 CONF = cfg.CONF
 CONF.register_cli_opts(cli_opts)
+# NOTE(agordeev): Since group pid of spawned subprocess is unknown,
+# fuel-agent needs to ignore SIGTERM sent by itself. Therefore,
+# a global is used as a flag for this purpose.
+SIGTERM_RECEIVED = False
 
 
 def provision():
@@ -72,6 +79,17 @@ def print_err(line):
     sys.stderr.write('\n')
 
 
+def handle_sigterm(signum, frame):
+    global SIGTERM_RECEIVED
+    if not SIGTERM_RECEIVED:
+        SIGTERM_RECEIVED = True
+        print_err('SIGTERM RECEIVED. Propagating it to subprocesses')
+        os.killpg(0, signal.SIGTERM)
+    else:
+        raise errors.UnexpectedProcessError(
+            'Application was shut down gracefully')
+
+
 def handle_exception(exc):
     LOG = logging.getLogger(__name__)
     LOG.exception(exc)
@@ -81,6 +99,7 @@ def handle_exception(exc):
 
 
 def main(actions=None):
+    signal.signal(signal.SIGTERM, handle_sigterm)
     CONF(sys.argv[1:], project='fuel-agent',
          version=version.version_info.release_string())
 
