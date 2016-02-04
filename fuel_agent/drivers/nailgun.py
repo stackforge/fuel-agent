@@ -230,6 +230,15 @@ class Nailgun(BaseDataDriver):
         if not found or len(found) > 1:
             raise errors.DiskNotFoundError(
                 'Disk not found: %s' % ks_disk['name'])
+
+        stdout = utils.execute('lsblk', '-Ppdo', 'NAME,TYPE', found[0],
+                               check_exit_code=[0])[0]
+        lsblk_dev = dict(i.split('=', 1) for i in stdout.translate(None, '"')
+                                                        .split(' '))
+
+        if lsblk_dev['TYPE'] == 'mpath':
+            return lsblk_dev['NAME']
+
         return found[0]
 
     def _get_partition_count(self, name):
@@ -694,6 +703,8 @@ class NailgunBuildImage(BaseDataDriver):
         "lvm2",
         "mcollective",
         "mdadm",
+        "multipath-tools",
+        "multipath-tools-boot",
         "nailgun-agent",
         "nailgun-mcagents",
         "network-checker",

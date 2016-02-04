@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from io import open
+from itertools import chain
 import os
 import shutil
 import signal
@@ -165,6 +166,16 @@ LOG = logging.getLogger(__name__)
 class Manager(object):
     def __init__(self, data):
         self.driver = utils.get_driver(CONF.data_driver)(data)
+        self._multipath = False
+
+    def _check_multipath(self):
+        for prt in chain(parted.partitions
+                         for parted in self.partition_scheme.parteds):
+            if prt.device.startswith('/dev/mapper'):
+                LOG.debug("Skipping blackist blacklist, "
+                          "/dev/mapper found: %s", prt.device)
+                self._multipath = True
+                break
 
     def do_clean_filesystems(self):
         # NOTE(agordeev): it turns out that only mkfs.xfs needs '-f' flag in
@@ -196,11 +207,13 @@ class Manager(object):
         lu.vgremove_all()
         lu.pvremove_all()
 
-        LOG.debug("Enabling udev's rules blacklisting")
-        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
-                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
-                                   udev_rename_substr=CONF.udev_rename_substr,
-                                   udev_empty_rule=CONF.udev_empty_rule)
+        if self._multipath:
+            LOG.debug("Enabling udev's rules blacklisting")
+            utils.blacklist_udev_rules(
+                udev_rules_dir=CONF.udev_rules_dir,
+                udev_rules_lib_dir=CONF.udev_rules_lib_dir,
+                udev_rename_substr=CONF.udev_rename_substr,
+                udev_empty_rule=CONF.udev_empty_rule)
 
         for parted in self.driver.partition_scheme.parteds:
             for prt in parted.partitions:
@@ -234,10 +247,11 @@ class Manager(object):
                     raise errors.PartitionNotFoundError(
                         'Partition %s not found after creation' % prt.name)
 
-        LOG.debug("Disabling udev's rules blacklisting")
-        utils.unblacklist_udev_rules(
-            udev_rules_dir=CONF.udev_rules_dir,
-            udev_rename_substr=CONF.udev_rename_substr)
+        if not self._multipath:
+            LOG.debug("Disabling udev's rules blacklisting")
+            utils.unblacklist_udev_rules(
+                udev_rules_dir=CONF.udev_rules_dir,
+                udev_rename_substr=CONF.udev_rename_substr)
 
         # If one creates partitions with the same boundaries as last time,
         # there might be md and lvm metadata on those partitions. To prevent
@@ -765,6 +779,35 @@ class Manager(object):
                     f.write(u'UUID=%s %s %s defaults 0 0\n' %
                             (mount2uuid[fs.mount], fs.mount, fs.type))
 
+        if self._multipath:
+            LOG.debug('--- Rebuild initramfs with multipath ---')
+            cmd = ['cp', '/etc/multipath.conf', chroot + '/etc']
+            utils.execute(*cmd, run_as_root=True, check_exit_code=False)
+            cmd = ['cp', '-r', '/etc/multipath', chroot + '/etc']
+            utils.execute(*cmd, run_as_root=True, check_exit_code=False)
+
+            for dracut in ('/sbin/dracut', '/usr/sbin/dracut'):
+                if os.path.isfile(chroot + dracut):
+                    cmd = ['chroot', chroot, dracut, '--force',
+                           '--add', 'multipath',
+                           '--include', '/etc/multipath', '/etc/multipath',
+                           '/boot/' + initrd, kernel.replace('vmlinuz-', '', 1)]
+                    stdout, stderr = utils.execute(*cmd, run_as_root=True,
+                                                   check_exit_code=False)
+                    if stdout or stderr:
+                        LOG.debug('#dracut: {0}\n#stderr: {1}'.
+                                  format(stdout, stderr))
+                    break
+            else:
+                LOG.debug('#dracut not found, try update-initramfs')
+                cmd = ['chroot', chroot, '/usr/sbin/update-initramfs',
+                       '-u', '-k', 'all', '-b', '/boot']
+                stdout, stderr = utils.execute(*cmd, run_as_root=True,
+                                               check_exit_code=False)
+                if stdout or stderr:
+                    LOG.debug('#update-initramfs: {0}\n#stderr: {1}'.
+                              format(stdout, stderr))
+
         self.umount_target(chroot)
 
     def do_reboot(self):
@@ -773,6 +816,7 @@ class Manager(object):
 
     def do_provisioning(self):
         LOG.debug('--- Provisioning (do_provisioning) ---')
+        self._check_multipath()
         self.do_partitioning()
         self.do_configdrive()
         self.do_copyimage()
