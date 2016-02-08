@@ -15,6 +15,7 @@
 #    under the License.
 
 import copy
+import crypt
 import os
 import re
 import six
@@ -70,6 +71,15 @@ class BootstrapDataBuilder(object):
 
         self.certs = data.get('certs')
 
+        self.root_password = data.get('root_password')
+        self.hashed_root_password = None
+
+        if self.root_password is None:
+            self.hashed_root_password = CONF.hashed_root_password
+
+        if self.root_password is None and self.hashed_root_password is None:
+            self.root_password = consts.DEFAULT_ROOT_PASSWORD
+
     def build(self):
         repos = self._get_repos()
         return {
@@ -92,7 +102,9 @@ class BootstrapDataBuilder(object):
             'codename': self.ubuntu_release,
             'output': self.output,
             'packages': self._get_packages(),
-            'image_data': self._prepare_image_data()
+            'image_data': self._prepare_image_data(),
+            'hashed_root_password': self.hashed_root_password,
+            'root_password': self.root_password,
         }
 
     def _get_extra_dirs(self):

@@ -55,3 +55,4 @@ DISTROS = {'ubuntu': {'cobbler_profile': 'ubuntu_bootstrap',
                       'astute_flavor': 'centos'}}
 COBBLER_MANIFEST = '/etc/puppet/modules/fuel/examples/cobbler.pp'
 ASTUTE_MANIFEST = '/etc/puppet/modules/fuel/examples/astute.pp'
+DEFAULT_ROOT_PASSWORD = 'r00tme'

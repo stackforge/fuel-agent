@@ -804,6 +804,14 @@ class NailgunBuildImage(BaseDataDriver):
 
         os = objects.Ubuntu(repos=repos, packages=packages, major=14, minor=4,
                             proxies=proxies)
+
+        # add root account
+        os.add_user_account(
+            name='root',
+            password=self.data.get('root_password'),
+            homedir='/root',
+            hashed_password=self.data.get('hashed_root_password'),
+        )
         return os
 
     def parse_schemes(self):
