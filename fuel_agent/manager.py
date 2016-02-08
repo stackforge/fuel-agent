@@ -887,9 +887,12 @@ class Manager(object):
                                               'etc/nailgun-agent/config.yaml'))
             bu.append_lvm_devices_filter(chroot, CONF.multipath_lvm_filter,
                                          CONF.lvm_conf_path)
+
+            root = driver_os.get_user_by_name('root')
             bu.do_post_inst(chroot,
                             allow_unsigned_file=CONF.allow_unsigned_file,
-                            force_ipv4_file=CONF.force_ipv4_file)
+                            force_ipv4_file=CONF.force_ipv4_file,
+                            hashed_root_password=root.hashed_password)
             # restore disabled hosts/resolv files
             bu.restore_resolv_conf(chroot)
             metadata['all_packages'] = bu.get_installed_packages(chroot)
@@ -989,9 +992,11 @@ class Manager(object):
                            attempts=CONF.fetch_packages_attempts)
 
             LOG.debug('Post-install OS configuration')
+            root = driver_os.get_user_by_name('root')
             bu.do_post_inst(chroot,
                             allow_unsigned_file=CONF.allow_unsigned_file,
-                            force_ipv4_file=CONF.force_ipv4_file)
+                            force_ipv4_file=CONF.force_ipv4_file,
+                            hashed_root_password=root.hashed_password)
 
             LOG.debug('Making sure there are no running processes '
                       'inside chroot before trying to umount chroot')

@@ -181,10 +181,11 @@ def clean_apt_settings(chroot, allow_unsigned_file='allow_unsigned_packages',
 
 
 def do_post_inst(chroot, allow_unsigned_file='allow_unsigned_packages',
-                 force_ipv4_file='force_ipv4'):
+                 force_ipv4_file='force_ipv4',
+                 hashed_root_password=ROOT_PASSWORD):
     # NOTE(agordeev): set up password for root
     utils.execute('sed', '-i',
-                  's%root:[\*,\!]%root:' + ROOT_PASSWORD + '%',
+                  's%root:[\*,\!]%root:' + hashed_root_password + '%',
                   os.path.join(chroot, 'etc/shadow'))
     # NOTE(agordeev): backport from bash-script:
     # in order to prevent the later puppet workflow outage, puppet service
