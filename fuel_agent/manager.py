@@ -851,7 +851,10 @@ class Manager(object):
             bu.dump_runtime_uuid(bs_scheme.uuid,
                                  os.path.join(chroot,
                                               'etc/nailgun-agent/config.yaml'))
+
+            root = driver_os.get_user_by_name('root')
             bu.do_post_inst(chroot,
+                            hashed_root_password=root.hashed_password,
                             allow_unsigned_file=CONF.allow_unsigned_file,
                             force_ipv4_file=CONF.force_ipv4_file)
             # restore disabled hosts/resolv files
@@ -953,7 +956,9 @@ class Manager(object):
                            attempts=CONF.fetch_packages_attempts)
 
             LOG.debug('Post-install OS configuration')
+            root = driver_os.get_user_by_name('root')
             bu.do_post_inst(chroot,
+                            hashed_root_password=root.hashed_password,
                             allow_unsigned_file=CONF.allow_unsigned_file,
                             force_ipv4_file=CONF.force_ipv4_file)
 
