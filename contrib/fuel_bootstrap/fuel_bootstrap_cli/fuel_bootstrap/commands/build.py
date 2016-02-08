@@ -166,6 +166,11 @@ class BuildCommand(command.Command):
                  " files",
             action='append'
         )
+        parser.add_argument(
+            '--root-password',
+            type=str,
+            help="Root password for bootstrap image",
+        )
         return parser
 
     def take_action(self, parsed_args):

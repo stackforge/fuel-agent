@@ -15,9 +15,12 @@
 #    under the License.
 
 import copy
+import crypt
 import os
+import random as _random
 import re
 import six
+import string
 import uuid
 
 from fuel_bootstrap import consts
@@ -25,6 +28,15 @@ from fuel_bootstrap import errors
 from fuel_bootstrap import settings
 
 CONF = settings.Configuration()
+random = _random.SystemRandom()
+
+
+def gensalt():
+    """Generate SHA-512 salt for crypt.crypt function."""
+    letters = string.ascii_letters + string.digits + './'
+    sha512prefix = "$6$"
+    random_letters = ''.join(random.choice(letters) for _ in range(16))
+    return sha512prefix + random_letters
 
 
 class BootstrapDataBuilder(object):
@@ -70,6 +82,12 @@ class BootstrapDataBuilder(object):
 
         self.certs = data.get('certs')
 
+        if data.get('root_password') is not None:
+            self.hashed_root_password = crypt.crypt(data['root_password'],
+                                                    gensalt())
+        else:
+            self.hashed_root_password = CONF.hashed_root_password
+
     def build(self):
         repos = self._get_repos()
         return {
@@ -92,7 +110,8 @@ class BootstrapDataBuilder(object):
             'codename': self.ubuntu_release,
             'output': self.output,
             'packages': self._get_packages(),
-            'image_data': self._prepare_image_data()
+            'image_data': self._prepare_image_data(),
+            'hashed_root_password': self.hashed_root_password,
         }
 
     def _get_extra_dirs(self):
