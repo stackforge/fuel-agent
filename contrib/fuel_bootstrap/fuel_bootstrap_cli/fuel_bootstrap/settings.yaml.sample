@@ -39,6 +39,8 @@ packages:
   - xz-utils
   - squashfs-tools
   - msmtp-mta
+  - multipath-tools
+  - multipath-tools-boot
 # Ignore proxy for this repos
 #direct_repo_addresses:
 #    - 127.0.0.1
