@@ -42,9 +42,11 @@ VALID_MAJORS = (3, 8, 9, 65, 66, 67, 68, 69, 70, 71, 104, 105, 106, 107, 108,
 # ID_SERIAL_SHORT e.g. UH00_296679
 # ID_WWN e.g. 0x50000392e9804d4b (optional)
 # ID_CDROM e.g. 1 for cdrom device (optional)
+# DM_UUID e.g. mpath-3600144f0534f392c000056e972830002 for devices, mapped by
+# device mapper (optional)
 UDEV_PROPERTIES = set(['MAJOR', 'MINOR', 'DEVNAME', 'DEVTYPE', 'DEVPATH',
                        'ID_BUS', 'ID_MODEL', 'ID_SERIAL_SHORT', 'ID_WWN',
-                       'ID_CDROM', 'ID_VENDOR'])
+                       'ID_CDROM', 'ID_VENDOR', 'DM_UUID'])
 
 # more details about types you can find in dmidecode's manual
 SMBIOS_TYPES = {'bios': '0',
@@ -252,6 +254,15 @@ def is_block_device(filepath):
     return stat.S_ISBLK(mode)
 
 
+def is_multipath_device(device, uspec=None):
+    """Check whether block device with given uspec is multipath device"""
+    if uspec is None:
+        uspec = udevreport(device)
+    # NOTE(sslypushenko)DM_UUID is converted to uppercase to be sure, that
+    # multipath devices will be found correctly
+    return uspec.get('DM_UUID', '').upper().startswith('MPATH')
+
+
 def get_block_devices_from_udev_db():
     devs = []
     output = utils.execute('udevadm', 'info', '--export-db')[0]
@@ -310,6 +321,12 @@ def list_block_devices(disks=True):
         # if device is not disk, skip it
         if disks and not is_disk(device, bspec=bspec, uspec=uspec):
             continue
+
+        # NOTE(kszukielojc) if block device is multipath device,
+        # devlink /dev/mapper/* should be used instead /dev/dm-*
+        if is_multipath_device(device, uspec=uspec):
+            device = [devlink for devlink in uspec['DEVLINKS']
+                      if devlink.startswith('/dev/mapper/')][0]
 
         bdev = {
             'device': device,

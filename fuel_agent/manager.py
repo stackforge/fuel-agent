@@ -140,6 +140,33 @@ opts = [
         help='Allow to skip MD containers (fake raid leftovers) while '
              'cleaning the rest of MDs',
     ),
+    cfg.ListOpt(
+        'lvm_filter_for_mpath',
+        default=['r|^/dev/disk/.*|',
+                 'a|^/dev/mapper/.*|',
+                 'r/.*/'],
+        help='Extra filters for lvm.conf to force LVM works with partitions '
+             'on multipath devices properly.'
+    ),
+    cfg.ListOpt(
+        'mpath_lvm_preferred_names',
+        default=['^/dev/mapper/'],
+        help='List of devlinks patterns which are preffered for LVM. If '
+             'multipath device has a few devlinks, LVM will use the one '
+             'matching to the given pattern.'
+    ),
+    cfg.ListOpt(
+        'mpath_lvm_scan_dirs',
+        default=['/dev/disk/', '/dev/mapper/'],
+        help='List of directories to scan recursively for LVM physical '
+             'volumes. Devices in directories outside this hierarchy will be '
+             'ignored.'
+    ),
+    cfg.StrOpt(
+        'lvm_conf_path',
+        default='/etc/lvm/lvm.conf',
+        help='Path to LVM configuration file'
+    )
 ]
 
 cli_opts = [
@@ -179,6 +206,23 @@ class Manager(object):
             if not fs.keep_data and not found_images:
                 fu.make_fs(fs.type, fs.options, fs.label, fs.device)
 
+    @staticmethod
+    def _make_partitions(parteds):
+        for parted in parteds:
+            pu.make_label(parted.name, parted.label)
+            for prt in parted.partitions:
+                pu.make_partition(prt.device, prt.begin, prt.end, prt.type)
+                utils.udevadm_trigger_blocks()
+                for flag in prt.flags:
+                    pu.set_partition_flag(prt.device, prt.count, flag)
+                if prt.guid:
+                    pu.set_gpt_type(prt.device, prt.count, prt.guid)
+                # If any partition to be created doesn't exist it's an error.
+                # Probably it's again 'device or resource busy' issue.
+                if not os.path.exists(prt.name):
+                    raise errors.PartitionNotFoundError(
+                        'Partition %s not found after creation' % prt.name)
+
     def do_partitioning(self):
         LOG.debug('--- Partitioning disks (do_partitioning) ---')
 
@@ -195,12 +239,6 @@ class Manager(object):
         lu.lvremove_all()
         lu.vgremove_all()
         lu.pvremove_all()
-
-        LOG.debug("Enabling udev's rules blacklisting")
-        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
-                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
-                                   udev_rename_substr=CONF.udev_rename_substr,
-                                   udev_empty_rule=CONF.udev_empty_rule)
 
         for parted in self.driver.partition_scheme.parteds:
             for prt in parted.partitions:
@@ -220,24 +258,26 @@ class Manager(object):
                               'seek=%s' % max(prt.end - 3, 0), 'count=5',
                               'of=%s' % prt.device, check_exit_code=[0, 1])
 
+        parteds = []
+        parteds_with_rules = []
         for parted in self.driver.partition_scheme.parteds:
-            pu.make_label(parted.name, parted.label)
-            for prt in parted.partitions:
-                pu.make_partition(prt.device, prt.begin, prt.end, prt.type)
-                for flag in prt.flags:
-                    pu.set_partition_flag(prt.device, prt.count, flag)
-                if prt.guid:
-                    pu.set_gpt_type(prt.device, prt.count, prt.guid)
-                # If any partition to be created doesn't exist it's an error.
-                # Probably it's again 'device or resource busy' issue.
-                if not os.path.exists(prt.name):
-                    raise errors.PartitionNotFoundError(
-                        'Partition %s not found after creation' % prt.name)
+            if hw.is_multipath_device(parted.name):
+                parteds_with_rules.append(parted)
+            else:
+                parteds.append(parted)
 
-        LOG.debug("Disabling udev's rules blacklisting")
+        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
+                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
+                                   udev_rename_substr=CONF.udev_rename_substr,
+                                   udev_empty_rule=CONF.udev_empty_rule)
+
+        self._make_partitions(parteds)
+
         utils.unblacklist_udev_rules(
             udev_rules_dir=CONF.udev_rules_dir,
             udev_rename_substr=CONF.udev_rename_substr)
+
+        self._make_partitions(parteds_with_rules)
 
         # If one creates partitions with the same boundaries as last time,
         # there might be md and lvm metadata on those partitions. To prevent
@@ -247,6 +287,9 @@ class Manager(object):
         lu.lvremove_all()
         lu.vgremove_all()
         lu.pvremove_all()
+
+        if parteds_with_rules:
+            utils.refresh_multipath()
 
         # creating meta disks
         for md in self.driver.partition_scheme.mds:
@@ -658,12 +701,54 @@ class Manager(object):
         mount2uuid = {}
         for fs in self.driver.partition_scheme.fss:
             mount2uuid[fs.mount] = utils.execute(
-                'blkid', '-o', 'value', '-s', 'UUID', fs.device,
+                'blkid', '-c', '/dev/null', '-o', 'value',
+                '-s', 'UUID', fs.device,
                 check_exit_code=[0])[0].strip()
 
         if '/' not in mount2uuid:
             raise errors.WrongPartitionSchemeError(
                 'Error: device with / mountpoint has not been found')
+
+        # NOTE(sslypushenko) Due to possible races between LVM and multipath,
+        # we need to adjust LVM devices filter.
+        # This code is required only for Ubuntu 14.04, because in trusty,
+        # LVM filters, does not recognize partions on multipath devices
+        # out of the box. It is fixed in latest LVM versions
+        multipath_devs = [parted.name
+                          for parted in self.driver.partition_scheme.parteds
+                          if hw.is_multipath_device(parted.name)]
+        # If there are no multipath devices on the node, we should not do
+        # anything to prevent regression.
+        if multipath_devs:
+            # We need to explicitly whitelist each non-mutlipath device
+            lvm_filter = []
+            for parted in self.driver.partition_scheme.parteds:
+                device = parted.name
+                if device in multipath_devs:
+                    continue
+                # We use devlinks from /dev/disk/by-id instead of /dev/sd*,
+                # because the first one are persistent.
+                devlinks_by_id = [
+                    link for link in hw.udevreport(device).get('DEVLINKS', [])
+                    if link.startswith('/dev/disk/by-id/')]
+                for link in devlinks_by_id:
+                    lvm_filter.append(
+                        'a|^{}(p)?(-part)?[0-9]*|'.format(link))
+
+            # Multipath devices should be whitelisted. All other devlinks
+            # should be blacklisted, to prevent LVM from grubbing underlying
+            # multipath devices.
+            lvm_filter.extend(CONF.lvm_filter_for_mpath)
+            # Setting devices/preferred_names also helps LVM to find devices by
+            # the proper devlinks
+            bu.override_lvm_config(
+                chroot,
+                {'devices': {
+                    'scan': CONF.mpath_lvm_scan_dirs,
+                    'global_filter': lvm_filter,
+                    'preferred_names': CONF.mpath_lvm_preferred_names}},
+                lvm_conf_path=CONF.lvm_conf_path,
+                update_initramfs=True)
 
         grub = self.driver.grub
 
@@ -851,9 +936,17 @@ class Manager(object):
             bu.dump_runtime_uuid(bs_scheme.uuid,
                                  os.path.join(chroot,
                                               'etc/nailgun-agent/config.yaml'))
+            # NOTE(sslypushenko) Preferred names in LVM config should updated
+            # due to point LVM to work only with /dev/mapper folder
+            bu.override_lvm_config(
+                chroot,
+                {'devices': {
+                    'preferred_names': CONF.mpath_lvm_preferred_names}},
+                lvm_conf_path=CONF.lvm_conf_path)
             bu.do_post_inst(chroot,
                             allow_unsigned_file=CONF.allow_unsigned_file,
-                            force_ipv4_file=CONF.force_ipv4_file)
+                            force_ipv4_file=CONF.force_ipv4_file,
+                            add_multipath_conf=False)
             # restore disabled hosts/resolv files
             bu.restore_resolv_conf(chroot)
             metadata['all_packages'] = bu.get_installed_packages(chroot)
