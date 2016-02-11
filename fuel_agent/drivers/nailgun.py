@@ -125,6 +125,17 @@ class Nailgun(BaseDataDriver):
             lambda x: x['type'] == 'disk' and x['size'] > 0,
             self.partition_data())
 
+    def _is_root_disk(self, disk):
+        return any(v["type"] in ('partition', 'raid') and
+                   v.get("mount") == "/"
+                   for v in disk["volumes"])
+
+    def _is_os_volume(self, vol):
+        return vol['size'] > 0 and vol['type'] == 'pv' and vol['vg'] == 'os'
+
+    def _is_os_disk(self, disk):
+        return any(self._is_os_volume(vol) for vol in disk['volumes'])
+
     @property
     def small_ks_disks(self):
         """Get those disks which are smaller than 2T"""
@@ -430,7 +441,8 @@ class Nailgun(BaseDataDriver):
                         self._boot_done = True
 
             # this partition will be used to put there configdrive image
-            if partition_scheme.configdrive_device() is None:
+            if partition_scheme.configdrive_device() is None and \
+                    (self._is_root_disk(disk) or self._is_os_disk(disk)):
                 LOG.debug('Adding configdrive partition on disk %s: size=20' %
                           disk['name'])
                 parted.add_partition(size=20, configdrive=True)
@@ -439,6 +451,11 @@ class Nailgun(BaseDataDriver):
         if not self._boot_partition_done or not self._boot_done:
             raise errors.WrongPartitionSchemeError(
                 '/boot partition has not been created for some reasons')
+
+        # checking if configdrive partition is created
+        if not partition_scheme.configdrive_device():
+            raise errors.WrongPartitionSchemeError(
+                'configdrive partition has not been created for some reasons')
 
         LOG.debug('Looping over all volume groups in provision data')
         for vg in self.ks_vgs:
