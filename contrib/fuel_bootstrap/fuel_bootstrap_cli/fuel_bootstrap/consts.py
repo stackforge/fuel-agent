@@ -50,8 +50,6 @@ UBUNTU_RELEASE = 'trusty'
 ASTUTE_CONFIG_FILE = "/etc/fuel/astute.yaml"
 # FIXME(azvyagintsev) bug: https://bugs.launchpad.net/fuel/+bug/1525857
 DISTROS = {'ubuntu': {'cobbler_profile': 'ubuntu_bootstrap',
-                      'astute_flavor': 'ubuntu'},
-           'centos': {'cobbler_profile': 'bootstrap',
-                      'astute_flavor': 'centos'}}
+                      'astute_flavor': 'ubuntu'}}
 COBBLER_MANIFEST = '/etc/puppet/modules/fuel/examples/cobbler.pp'
 ASTUTE_MANIFEST = '/etc/puppet/modules/fuel/examples/astute.pp'
