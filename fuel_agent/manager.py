@@ -140,6 +140,18 @@ opts = [
         help='Allow to skip MD containers (fake raid leftovers) while '
              'cleaning the rest of MDs',
     ),
+    cfg.ListOpt(
+        'whitelist_udev_rules',
+        default=['50-udev-default.rules',
+                 '55-dm.rules',
+                 '95-kpartx.rules'],
+        help='For some environments(usually, with slow CPU), "parted" '
+             'generates too many udev events in short period of time so we '
+             'can increase processing speed for those events, otherwise '
+             'partitioning is doomed. In other hands, some devices, like '
+             'multipath block disks, still requere few udev rules for correct '
+             'naming and initialization processes'
+    ),
 ]
 
 cli_opts = [
@@ -197,10 +209,12 @@ class Manager(object):
         lu.pvremove_all()
 
         LOG.debug("Enabling udev's rules blacklisting")
-        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
-                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
-                                   udev_rename_substr=CONF.udev_rename_substr,
-                                   udev_empty_rule=CONF.udev_empty_rule)
+        utils.blacklist_udev_rules(
+            udev_rules_dir=CONF.udev_rules_dir,
+            udev_rules_lib_dir=CONF.udev_rules_lib_dir,
+            udev_rename_substr=CONF.udev_rename_substr,
+            udev_empty_rule=CONF.udev_empty_rule,
+            whitelist_udev_rules=CONF.whitelist_udev_rules)
 
         for parted in self.driver.partition_scheme.parteds:
             for prt in parted.partitions:

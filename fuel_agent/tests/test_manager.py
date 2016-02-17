@@ -373,7 +373,11 @@ class TestManager(unittest2.TestCase):
         mock_bl.assert_called_once_with(udev_rules_dir='/etc/udev/rules.d',
                                         udev_rules_lib_dir='/lib/udev/rules.d',
                                         udev_empty_rule='empty_rule',
-                                        udev_rename_substr='.renamedrule')
+                                        udev_rename_substr='.renamedrule',
+                                        whitelist_udev_rules=[
+                                            '50-udev-default.rules',
+                                            '55-dm.rules',
+                                            '95-kpartx.rules'])
         mock_pu_ml_expected_calls = [mock.call('/dev/sda', 'gpt'),
                                      mock.call('/dev/sdb', 'gpt'),
                                      mock.call('/dev/sdc', 'gpt')]
