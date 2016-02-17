@@ -299,7 +299,8 @@ def guess_filename(path, regexp, sort=True, reverse=True):
 
 
 def blacklist_udev_rules(udev_rules_dir, udev_rules_lib_dir,
-                         udev_rename_substr, udev_empty_rule):
+                         udev_rename_substr, udev_empty_rule,
+                         whitelist_udev_rules):
     """Blacklist udev rules
 
     Here is udev's rules blacklisting to be done:
@@ -315,7 +316,7 @@ def blacklist_udev_rules(udev_rules_dir, udev_rules_lib_dir,
         f.write('#\n')
     for rule in os.listdir(udev_rules_lib_dir):
         dst = os.path.join(udev_rules_dir, rule)
-        if os.path.isdir(dst):
+        if os.path.isdir(dst) or dst in whitelist_udev_rules:
             continue
         if dst.endswith('.rules'):
             # for successful blacklisting already existent file with name
