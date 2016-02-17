@@ -305,8 +305,6 @@ class TestManager(unittest2.TestCase):
         self.assertEqual(mock_fu_mf_expected_calls, mock_fu_mf.call_args_list)
 
     @mock.patch.object(manager.os.path, 'exists')
-    @mock.patch.object(manager.utils, 'blacklist_udev_rules')
-    @mock.patch.object(manager.utils, 'unblacklist_udev_rules')
     @mock.patch.object(manager.utils, 'execute')
     @mock.patch.object(mu, 'mdclean_all')
     @mock.patch.object(lu, 'lvremove_all')
@@ -326,7 +324,7 @@ class TestManager(unittest2.TestCase):
                                 mock_pu_spf, mock_pu_sgt, mock_mu_m, mock_lu_p,
                                 mock_lu_v, mock_lu_l, mock_fu_mf, mock_pvr,
                                 mock_vgr, mock_lvr, mock_mdr, mock_exec,
-                                mock_unbl, mock_bl, mock_os_path):
+                                mock_os_path):
         mock_hu_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         mock_os_path.return_value = True
         self.mgr.driver.partition_scheme.mds = [
@@ -343,8 +341,6 @@ class TestManager(unittest2.TestCase):
                          mock_mu_m.call_args_list)
 
     @mock.patch.object(manager.os.path, 'exists')
-    @mock.patch.object(manager.utils, 'blacklist_udev_rules')
-    @mock.patch.object(manager.utils, 'unblacklist_udev_rules')
     @mock.patch.object(manager.utils, 'execute')
     @mock.patch.object(mu, 'mdclean_all')
     @mock.patch.object(lu, 'lvremove_all')
@@ -364,16 +360,10 @@ class TestManager(unittest2.TestCase):
                              mock_pu_spf, mock_pu_sgt, mock_mu_m, mock_lu_p,
                              mock_lu_v, mock_lu_l, mock_fu_mf, mock_pvr,
                              mock_vgr, mock_lvr, mock_mdr, mock_exec,
-                             mock_unbl, mock_bl, mock_os_path):
+                             mock_os_path):
         mock_os_path.return_value = True
         mock_hu_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         self.mgr.do_partitioning()
-        mock_unbl.assert_called_once_with(udev_rules_dir='/etc/udev/rules.d',
-                                          udev_rename_substr='.renamedrule')
-        mock_bl.assert_called_once_with(udev_rules_dir='/etc/udev/rules.d',
-                                        udev_rules_lib_dir='/lib/udev/rules.d',
-                                        udev_empty_rule='empty_rule',
-                                        udev_rename_substr='.renamedrule')
         mock_pu_ml_expected_calls = [mock.call('/dev/sda', 'gpt'),
                                      mock.call('/dev/sdb', 'gpt'),
                                      mock.call('/dev/sdc', 'gpt')]
