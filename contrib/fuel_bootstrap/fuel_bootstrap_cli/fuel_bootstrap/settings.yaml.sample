@@ -19,11 +19,8 @@ kernel_flavor: linux-image-generic-lts-trusty
 packages:
   - fuel-agent
   - hwloc
-  - hpsa-dkms
-  - i40e-dkms
   - linux-firmware
   - linux-firmware-nonfree
-  - linux-headers-generic
   - live-boot
   - live-boot-initramfs-tools
   - mc
