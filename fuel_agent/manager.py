@@ -140,6 +140,15 @@ opts = [
         help='Allow to skip MD containers (fake raid leftovers) while '
              'cleaning the rest of MDs',
     ),
+    cfg.BoolOpt(
+        'blacklist_udev_rules',
+        default=False,
+        help='In some enviorments(usually, with slow CPU), "parted" generates'
+             'too many udev events in short period of time so we can increase'
+             'processing speed for those events, otherwise partitioning is'
+             'doomed. Don\'t use this parameter with multipath devices! It will'
+             'brake provisioning!',
+    ),
 ]
 
 cli_opts = [
@@ -196,11 +205,12 @@ class Manager(object):
         lu.vgremove_all()
         lu.pvremove_all()
 
-        LOG.debug("Enabling udev's rules blacklisting")
-        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
-                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
-                                   udev_rename_substr=CONF.udev_rename_substr,
-                                   udev_empty_rule=CONF.udev_empty_rule)
+        if CONF.blacklist_udev_rules:
+            LOG.debug("Enabling udev's rules blacklisting")
+            utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
+                                       udev_rules_lib_dir=CONF.udev_rules_lib_dir,
+                                       udev_rename_substr=CONF.udev_rename_substr,
+                                       udev_empty_rule=CONF.udev_empty_rule)
 
         for parted in self.driver.partition_scheme.parteds:
             for prt in parted.partitions:
@@ -234,10 +244,11 @@ class Manager(object):
                     raise errors.PartitionNotFoundError(
                         'Partition %s not found after creation' % prt.name)
 
-        LOG.debug("Disabling udev's rules blacklisting")
-        utils.unblacklist_udev_rules(
-            udev_rules_dir=CONF.udev_rules_dir,
-            udev_rename_substr=CONF.udev_rename_substr)
+        if CONF.blacklist_udev_rules:
+            LOG.debug("Disabling udev's rules blacklisting")
+            utils.unblacklist_udev_rules(
+                udev_rules_dir=CONF.udev_rules_dir,
+                udev_rename_substr=CONF.udev_rename_substr)
 
         # If one creates partitions with the same boundaries as last time,
         # there might be md and lvm metadata on those partitions. To prevent
