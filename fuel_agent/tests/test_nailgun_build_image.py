@@ -108,13 +108,6 @@ class TestNailgunBuildImage(unittest2.TestCase):
         self.assertEqual(NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES,
                          DEFAULT_TRUSTY_PACKAGES)
 
-    @mock.patch.object(NailgunBuildImage, 'parse_schemes')
-    def test_parse_operating_system_error_bad_codename(self,
-                                                       mock_parse_schemes):
-        with self.assertRaises(errors.WrongInputDataError):
-            data = {'codename': 'not-trusty'}
-            NailgunBuildImage(data)
-
     @mock.patch('fuel_agent.objects.RepoProxies')
     @mock.patch('fuel_agent.objects.Ubuntu')
     @mock.patch.object(NailgunBuildImage, 'parse_schemes')
