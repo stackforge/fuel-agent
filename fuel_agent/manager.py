@@ -16,6 +16,7 @@ from io import open
 import os
 import shutil
 import signal
+import time
 
 from oslo_config import cfg
 import six
@@ -196,11 +197,13 @@ class Manager(object):
         lu.vgremove_all()
         lu.pvremove_all()
 
-        LOG.debug("Enabling udev's rules blacklisting")
-        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
-                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
-                                   udev_rename_substr=CONF.udev_rename_substr,
-                                   udev_empty_rule=CONF.udev_empty_rule)
+        blacklist = utils.udev_can_be_blacklisted()
+        if blacklist:
+            LOG.debug("Enabling udev's rules blacklisting")
+            utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
+                                    udev_rules_lib_dir=CONF.udev_rules_lib_dir,
+                                    udev_rename_substr=CONF.udev_rename_substr,
+                                    udev_empty_rule=CONF.udev_empty_rule)
 
         for parted in self.driver.partition_scheme.parteds:
             for prt in parted.partitions:
@@ -234,10 +237,19 @@ class Manager(object):
                     raise errors.PartitionNotFoundError(
                         'Partition %s not found after creation' % prt.name)
 
-        LOG.debug("Disabling udev's rules blacklisting")
-        utils.unblacklist_udev_rules(
-            udev_rules_dir=CONF.udev_rules_dir,
-            udev_rename_substr=CONF.udev_rename_substr)
+                try:
+                    for n in range(7):
+                        fu.utils.udevadm_settle()
+                        time.sleep(0.5)
+                except errors.ProcessExecutionError as ex:
+                    raise errors.PartitionNotFoundError(
+                        "Partition %s don't released by udev" % parted.name)
+
+        if blacklist:
+            LOG.debug("Disabling udev's rules blacklisting")
+            utils.unblacklist_udev_rules(
+                udev_rules_dir=CONF.udev_rules_dir,
+                udev_rename_substr=CONF.udev_rename_substr)
 
         # If one creates partitions with the same boundaries as last time,
         # there might be md and lvm metadata on those partitions. To prevent
