@@ -311,6 +311,14 @@ def list_block_devices(disks=True):
         if disks and not is_disk(device, bspec=bspec, uspec=uspec):
             continue
 
+        # NOTE(kszukielojc) if device starts with dm-
+        # We should use /dev/mapper devlink
+        if device.startswith('/dev/dm-'):
+            for dev in uspec['DEVLINKS']:
+                if dev.startswith('/dev/mapper/'):
+                    device = dev
+                    break
+
         bdev = {
             'device': device,
             # NOTE(agordeev): blockdev gets 'startsec' from sysfs,
