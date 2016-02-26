@@ -76,7 +76,10 @@ CONF.register_opts(u_opts)
 def execute(*cmd, **kwargs):
     command = ' '.join(cmd)
     LOG.debug('Trying to execute command: %s', command)
-    commands = [c.strip() for c in re.split(r'\|', command)]
+    if kwargs.get('split', True):
+        commands = [c.strip() for c in re.split(r'\|', command)]
+    else:
+        commands = [command]
     if kwargs.get('env_variables'):
         LOG.debug('Env variables: {0}'.
                   format(kwargs.get('env_variables')))
@@ -297,6 +300,8 @@ def guess_filename(path, regexp, sort=True, reverse=True):
             return filename
     return None
 
+def udev_can_be_blacklisted():
+    return True if utils.execute('multipath -l') else False
 
 def blacklist_udev_rules(udev_rules_dir, udev_rules_lib_dir,
                          udev_rename_substr, udev_empty_rule):
