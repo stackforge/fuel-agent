@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import utils
@@ -249,6 +251,81 @@ def vgremove_all():
 def pvremove_all():
     for pv in pvdisplay():
         pvremove(pv['name'])
+
+
+def get_config_value(section, name):
+    raw_value = utils.execute('lvm dumpconfig',
+                              '/'.join((section, name)),
+                              check_exit_code=[0, 5])[0]
+    if '=' not in raw_value:
+        return
+
+    raw_value = raw_value.split('=')[1].strip()
+
+    re_str = '"[^"]*"'
+    re_float = '\\d*\\.\\d*'
+    re_int = '\\d+'
+    tokens = re.findall('|'.join((re_str, re_float, re_int)), raw_value)
+
+    values = []
+    for token in tokens:
+        if re.match(re_str, token):
+            values.append(token.strip('"'))
+        elif re.match(re_float, token):
+            values.append(float(token))
+        elif re.match(re_int, token):
+            values.append(int(token))
+
+    if not values:
+        return
+    elif len(values) == 1:
+        return values[0]
+    else:
+        return values
+
+
+def override_config_value(section, name, value):
+
+    def dump_value(value):
+        if isinstance(value, int):
+            return str(value)
+        elif isinstance(value, float):
+            return '{:f}'.format(value)
+        elif isinstance(value, str):
+            return '"{}"'.format(value)
+        elif isinstance(value, list or tuple):
+            return '[ {} ]'.format(', '.join(dump_value(v) for v in value))
+
+    def update_raw_config(raw_config):
+        lines = raw_config.split('\n')
+        section_start = next((n for n, line in enumerate(lines)
+                              if line.strip().startswith(section)), None)
+        if not section_start:
+            raw_section = '{} {{ {}={} }}'.format(section, name,
+                                                  dump_value(value))
+            lines.append(raw_section)
+            return '\n'.join(lines)
+
+        line_no = section_start
+        while not lines[line_no].strip().endswith('}'):
+            if lines[line_no].strip().startswith(name):
+                lines[line_no] = '{}={}'.format(name, dump_value(value))
+                return '\n'.join(lines)
+            line_no += 1
+
+        lines[line_no] += '{} {}={} }}'.format(lines[line_no].strip()[:-1],
+                                               name, dump_value(value))
+        return '\n'.join(lines)
+
+    current_config = utils.execute('lvm dumpconfig')[0]
+    updated_config = update_raw_config(current_config)
+
+    with open('\etc\lvm\lvm.conf', mode='w') as lvm_conf:
+        lvm_conf.write(updated_config)
+
+    current_config = utils.execute('lvm dumpconfig')[0]
+    with open('\etc\lvm\lvm.conf', mode='w') as lvm_conf:
+        lvm_conf.write(current_config)
 
 
 def get_first_by_key_value(collection, key, value, default=None):
