@@ -42,6 +42,11 @@ def make_fs(fs_type, fs_options, fs_label, dev):
         # NOTE(agordeev): force xfs creation.
         # Othwerwise, it will fail to proceed if filesystem exists.
         fs_options += ' -f '
+    if fs_type == 'swap':
+        # NOTE(dbilunov): force swap header to be created at the
+        # offset of 0. Otherwise, blkid would fail fetching the
+        # UUID value.
+        fs_options += ' -f '
     cmd_line.append(cmd_name)
     for opt in (fs_options, format_fs_label(fs_label)):
         cmd_line.extend([s for s in opt.split(' ') if s])

@@ -38,7 +38,7 @@ class TestFSUtils(unittest2.TestCase):
                                           'fake_label', '/dev/fake')
 
     def test_make_fs_swap(self, mock_exec):
-        fu.make_fs('swap', '-f', 'fake_label', '/dev/fake')
+        fu.make_fs('swap', '', 'fake_label', '/dev/fake')
         mock_exec.assert_called_once_with('mkswap', '-f', '-L', 'fake_label',
                                           '/dev/fake')
 
