@@ -17,7 +17,7 @@ from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import utils
 
 LOG = logging.getLogger(__name__)
-
+MAX_MKFS_TRIES = 5
 
 def format_fs_label(label):
     """Format filesystem label to match mkfs format
@@ -42,12 +42,30 @@ def make_fs(fs_type, fs_options, fs_label, dev):
         # NOTE(agordeev): force xfs creation.
         # Othwerwise, it will fail to proceed if filesystem exists.
         fs_options += ' -f '
+    if fs_type == 'swap':
+        fs_options += ' -f '
     cmd_line.append(cmd_name)
     for opt in (fs_options, format_fs_label(fs_label)):
         cmd_line.extend([s for s in opt.split(' ') if s])
     cmd_line.append(dev)
-    utils.execute(*cmd_line)
 
+    # NOTE(dbilunov): make sure the newly-created fs can
+    # be observed by blkid. Currently known problem is
+    # that generated UUID could possibly collide with
+    # minix filesystem magic (0x8f13)
+    mkfs_ok = False
+    for _ in range(MAX_MKFS_TRIES):
+        utils.execute(*cmd_line)
+        try:
+            utils.execute('blkid', '-o', 'value', '-s', 'UUID',
+                          dev, check_exit_code=[0])
+            mkfs_ok = True
+            break
+        except errors.ProcessExecutionError as e:
+            pass
+    if not mkfs_ok:
+        raise errors.FsUtilsError('Cannot get UUID of a newly-created' +
+                                  '{0} on {1}'.format(fs_type, dev))
 
 def extend_fs(fs_type, fs_dev):
     if fs_type in ('ext2', 'ext3', 'ext4'):

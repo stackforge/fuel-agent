@@ -19,6 +19,7 @@ from fuel_agent import errors
 from fuel_agent.utils import fs as fu
 from fuel_agent.utils import utils
 
+import uuid
 
 @mock.patch.object(utils, 'execute')
 class TestFSUtils(unittest2.TestCase):
@@ -38,9 +39,11 @@ class TestFSUtils(unittest2.TestCase):
                                           'fake_label', '/dev/fake')
 
     def test_make_fs_swap(self, mock_exec):
-        fu.make_fs('swap', '-f', 'fake_label', '/dev/fake')
-        mock_exec.assert_called_once_with('mkswap', '-f', '-L', 'fake_label',
-                                          '/dev/fake')
+        fu.make_fs('swap', '', 'fake_label', '/dev/fake')
+        mock_exec.assert_called_with('mkswap', '-f',
+                                     '-L', 'fake_label', '/dev/fake')
+        mock_exec.assert_called_with('blkid', '-o', 'value', '-s',
+                                     'UUID', dev, check_exit_code=[0])
 
     def test_extend_fs_ok_ext2(self, mock_exec):
         fu.extend_fs('ext2', '/dev/fake')
