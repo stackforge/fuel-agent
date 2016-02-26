@@ -29,7 +29,7 @@ def pvdisplay():
         '--units', 'm',
         '--options', 'pv_name,vg_name,pv_size,dev_size,pv_uuid',
         '--separator', ';',
-        check_exit_code=[0])[0]
+        check_exit_code=[0], split=False)[0]
     return pvdisplay_parse(output)
 
 
