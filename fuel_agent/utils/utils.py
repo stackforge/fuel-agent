@@ -76,7 +76,10 @@ CONF.register_opts(u_opts)
 def execute(*cmd, **kwargs):
     command = ' '.join(cmd)
     LOG.debug('Trying to execute command: %s', command)
-    commands = [c.strip() for c in re.split(r'\|', command)]
+    if kwargs.get(split, True):
+        commands = [c.strip() for c in re.split(r'\|', command)]
+    else:
+        commands = [command]
     if kwargs.get('env_variables'):
         LOG.debug('Env variables: {0}'.
                   format(kwargs.get('env_variables')))
