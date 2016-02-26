@@ -363,6 +363,13 @@ def unblacklist_udev_rules(udev_rules_dir, udev_rename_substr):
     udevadm_settle()
 
 
+def wait_for_udev_settle(attempts):
+    """Wait for emptiness of udev queue within attempts*0.1 seconds"""
+    for attempt in six.moves.range(attempts):
+        udevadm_settle()
+        time.sleep(0.1)
+
+
 def udevadm_settle():
     execute('udevadm', 'settle', '--quiet', check_exit_code=[0])
 

@@ -1006,3 +1006,69 @@ class TestImageBuild(unittest2.TestCase):
             }
         ]
         mock_yaml_dump.assert_called_once_with(metadata, stream=mock_open())
+
+class TestManagerMultipathPartition(unittest2.TestCase):
+
+    @mock.patch('fuel_agent.drivers.nailgun.Nailgun.parse_image_meta',
+                return_value={})
+
+    @mock.patch.object(hu, 'list_block_devices')
+    def setUp(self, mock_lbd, mock_image_meta):
+        super(TestManagerMultipathPartition, self).setUp()
+        mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_MPATH
+        data = test_nailgun.PROVISION_SAMPLE_DATA
+        data['ks_meta']['pm_data']['ks_spaces'] =\
+            test_nailgun.MPATH_DISK_KS_SPACES
+        self.mgr = manager.Manager(data)
+
+    @mock.patch.object(hu, 'is_multipath_device')
+    @mock.patch.object(manager.os.path, 'exists')
+    @mock.patch.object(manager.utils, 'blacklist_udev_rules')
+    @mock.patch.object(manager.utils, 'unblacklist_udev_rules')
+    @mock.patch.object(manager.utils, 'execute')
+    @mock.patch.object(mu, 'mdclean_all')
+    @mock.patch.object(lu, 'lvremove_all')
+    @mock.patch.object(lu, 'vgremove_all')
+    @mock.patch.object(lu, 'pvremove_all')
+    @mock.patch.object(fu, 'make_fs')
+    @mock.patch.object(lu, 'lvcreate')
+    @mock.patch.object(lu, 'vgcreate')
+    @mock.patch.object(lu, 'pvcreate')
+    @mock.patch.object(mu, 'mdcreate')
+    @mock.patch.object(pu, 'set_gpt_type')
+    @mock.patch.object(pu, 'set_partition_flag')
+    @mock.patch.object(pu, 'make_partition')
+    @mock.patch.object(pu, 'make_label')
+    @mock.patch.object(hu, 'list_block_devices')
+    def test_do_partitioning_mp(self, mock_hu_lbd, mock_pu_ml, mock_pu_mp,
+                             mock_pu_spf, mock_pu_sgt, mock_mu_m, mock_lu_p,
+                             mock_lu_v, mock_lu_l, mock_fu_mf, mock_pvr,
+                             mock_vgr, mock_lvr, mock_mdr, mock_exec,
+                             mock_unbl, mock_bl, mock_os_path, mock_mp):
+        mock_os_path.return_value = True
+        mock_hu_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_MPATH
+        self.mgr._make_partitions = mock.MagicMock()
+        mock_mp.side_effect = [True, False]
+
+        self.mgr.do_partitioning()
+
+        call = self.mgr._make_partitions.call_args_list[0]
+        self.assertEqual(call[0][0][0].name, '/dev/sdc')
+        self.assertEqual(len(call[0]), 1)
+
+        call = self.mgr._make_partitions.call_args_list[1]
+        self.assertEqual(call[1]['wait_for_udev_settle'], True) 
+        self.assertEqual(call[0][0][0].name, '/dev/mapper/12312')
+        self.assertEqual(len(call[0]), 1)
+
+        mock_unbl.assert_called_once_with(udev_rules_dir='/etc/udev/rules.d',
+                                          udev_rename_substr='.renamedrule')
+        mock_bl.assert_called_once_with(udev_rules_dir='/etc/udev/rules.d',
+                                        udev_rules_lib_dir='/lib/udev/rules.d',
+                                        udev_empty_rule='empty_rule',
+                                        udev_rename_substr='.renamedrule')
+
+        mock_fu_mf_expected_calls = [
+                mock.call('ext2', '', '', '/dev/mapper/123123'),
+                mock.call('ext4', '', '', '/dev/sdc1')]
+        self.assertEqual(mock_fu_mf_expected_calls, mock_fu_mf.call_args_list)
