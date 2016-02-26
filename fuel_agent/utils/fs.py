@@ -42,6 +42,13 @@ def make_fs(fs_type, fs_options, fs_label, dev):
         # NOTE(agordeev): force xfs creation.
         # Othwerwise, it will fail to proceed if filesystem exists.
         fs_options += ' -f '
+    if fs_type == 'swap':
+        # NOTE(dbilunov): make sure the generated UUID does not
+        # collide with minix filesystem magic (0x8f13)
+        fields = list(uuid.uuid4().fields)
+        if fields[1] == 0x8f13:
+            fields[1] += 1
+        fs_options += ' -U %s ' % uuid.UUID(fields=fields)
     cmd_line.append(cmd_name)
     for opt in (fs_options, format_fs_label(fs_label)):
         cmd_line.extend([s for s in opt.split(' ') if s])
