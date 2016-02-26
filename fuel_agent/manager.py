@@ -16,6 +16,7 @@ from io import open
 import os
 import shutil
 import signal
+import time
 
 from oslo_config import cfg
 import six
@@ -179,30 +180,9 @@ class Manager(object):
             if not fs.keep_data and not found_images:
                 fu.make_fs(fs.type, fs.options, fs.label, fs.device)
 
-    def do_partitioning(self):
-        LOG.debug('--- Partitioning disks (do_partitioning) ---')
-
-        if self.driver.partition_scheme.skip_partitioning:
-            LOG.debug('Some of fs has keep_data flag, '
-                      'partitioning is skiping')
-            self.do_clean_filesystems()
-            return
-
-        # If disks are not wiped out at all, it is likely they contain lvm
-        # and md metadata which will prevent re-creating a partition table
-        # with 'device is busy' error.
-        mu.mdclean_all(skip_containers=CONF.skip_md_containers)
-        lu.lvremove_all()
-        lu.vgremove_all()
-        lu.pvremove_all()
-
-        LOG.debug("Enabling udev's rules blacklisting")
-        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
-                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
-                                   udev_rename_substr=CONF.udev_rename_substr,
-                                   udev_empty_rule=CONF.udev_empty_rule)
-
-        for parted in self.driver.partition_scheme.parteds:
+    @staticmethod
+    def _make_partitions(parteds, settle_partition=False):
+        for parted in parteds:
             for prt in parted.partitions:
                 # We wipe out the beginning of every new partition
                 # right after creating it. It allows us to avoid possible
@@ -220,7 +200,7 @@ class Manager(object):
                               'seek=%s' % max(prt.end - 3, 0), 'count=5',
                               'of=%s' % prt.device, check_exit_code=[0, 1])
 
-        for parted in self.driver.partition_scheme.parteds:
+        for parted in parteds:
             pu.make_label(parted.name, parted.label)
             for prt in parted.partitions:
                 pu.make_partition(prt.device, prt.begin, prt.end, prt.type)
@@ -233,11 +213,54 @@ class Manager(object):
                 if not os.path.exists(prt.name):
                     raise errors.PartitionNotFoundError(
                         'Partition %s not found after creation' % prt.name)
+                if settle_partition:
+                    try:
+                        for n in six.range(7):
+                            fu.utils.udevadm_settle()
+                            time.sleep(0.5)
+                    except errors.ProcessExecutionError:
+                        raise errors.PartitionNotFoundError(
+                            "Partition %s don't released by udev" %
+                            parted.name)
 
-        LOG.debug("Disabling udev's rules blacklisting")
+    def do_partitioning(self):
+        LOG.debug('--- Partitioning disks (do_partitioning) ---')
+
+        if self.driver.partition_scheme.skip_partitioning:
+            LOG.debug('Some of fs has keep_data flag, '
+                      'partitioning is skiping')
+            self.do_clean_filesystems()
+            return
+
+        # If disks are not wiped out at all, it is likely they contain lvm
+        # and md metadata which will prevent re-creating a partition table
+        # with 'device is busy' error.
+        mu.mdclean_all(skip_containers=CONF.skip_md_containers)
+        lu.lvremove_all()
+        lu.vgremove_all()
+        lu.pvremove_all()
+
+        parteds = []
+        parteds_no_blacklist = []
+        for parted in self.driver.partition_scheme.parteds:
+            if parted.name.startswith('/dev/mapper'):
+                parteds_no_blacklist.append(parted)
+            else:
+                parteds.append(parted)
+
+        LOG.debug("Enabling udev's rules blacklisting")
+        utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
+                                   udev_rules_lib_dir=CONF.udev_rules_lib_dir,
+                                   udev_rename_substr=CONF.udev_rename_substr,
+                                   udev_empty_rule=CONF.udev_empty_rule)
+
+        self._make_partitions(parteds)
+
         utils.unblacklist_udev_rules(
             udev_rules_dir=CONF.udev_rules_dir,
             udev_rename_substr=CONF.udev_rename_substr)
+
+        self._make_partitions(parteds_no_blacklist, True)
 
         # If one creates partitions with the same boundaries as last time,
         # there might be md and lvm metadata on those partitions. To prevent
