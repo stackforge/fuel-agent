@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+import shutil
 
 import mock
 import unittest2
@@ -434,3 +436,90 @@ class TestLvmUtils(unittest2.TestCase):
                                        {'vg': None, 'name': '/dev/fake2'}]
         self.assertRaises(errors.PVNotFoundError, lu.vgreduce, 'vgname',
                           '/dev/fake1', '/dev/fake2')
+
+    @mock.patch.object(utils, 'execute')
+    def test_get_config_value(self, mock_exec):
+        mock_exec.return_value = [r'foo=42', '']
+        self.assertEqual(42, lu.get_config_value('section', 'foo'))
+
+        mock_exec.return_value = [r'bar=0.5', '']
+        self.assertEqual(0.5, lu.get_config_value('section', 'bar'))
+
+        mock_exec.return_value = [r'buzz="spam"', '']
+        self.assertEqual("spam", lu.get_config_value('section', 'buzz'))
+
+        mock_exec.return_value = [r'list=[1, 2.3, 4., .5, "6", "7", "8"]', '']
+        self.assertEqual([1, 2.3, 4., .5, "6", "7", "8"],
+                         lu.get_config_value('section', 'list'))
+
+        mock_exec.return_value = [r'ist2=["1", "spam egg", '
+                                  r'"^kind\of\regex?[.$42]"]', '']
+        self.assertEqual(["1", "spam egg", r"^kind\of\regex?[.$42]"],
+                         lu.get_config_value('section', 'list2'))
+
+    def test_update_raw_config(self):
+        RAW_CONFIG = '''
+foo {
+\tbar=42
+}'''
+        self.assertEqual('''
+foo {
+\tbar=1
+}''', lu._update_raw_config('foo', 'bar', 1, RAW_CONFIG))
+        self.assertEqual('''
+foo {
+\tbar=42
+\tbuzz=1
+}''', lu._update_raw_config('foo', 'buzz', 1, RAW_CONFIG))
+        self.assertEqual('''
+foo {
+\tbar=42
+}
+spam {
+\tegg=1
+}''', lu._update_raw_config('spam', 'egg', 1, RAW_CONFIG))
+        self.assertEqual('''
+foo {
+\tbar=[1, 2.3, "foo", "buzz"]
+}''', lu._update_raw_config('foo', 'bar', [1, 2.3, "foo", "buzz"], RAW_CONFIG))
+
+    @mock.patch.object(os, 'remove')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(lu, '_update_raw_config')
+    @mock.patch.object(shutil, 'copy')
+    @mock.patch.object(shutil, 'move')
+    def test_override_config_value(self, m_move, m_copy, m_upd, m_execute,
+                                   m_remove):
+        m_execute.side_effect = (['old_fake_config', ''],
+                                 ['fake_config', ''])
+        m_upd.return_value = 'fake_config'
+        with mock.patch('six.moves.builtins.open', create=True) as mock_open:
+            file_handle_mock = mock_open.return_value.__enter__.return_value
+            lu.override_config_value('foo', 'bar', 'buzz')
+        file_handle_mock.write.assert_called_with('fake_config')
+        m_upd.assert_called_once_with('foo', 'bar', 'buzz', 'old_fake_config')
+        m_copy.assert_called_once_with('/etc/lvm/lvm.conf',
+                                       '/etc/lvm/lvm.conf.bak')
+        m_remove.assert_called_once_with('/etc/lvm/lvm.conf.bak')
+
+    @mock.patch.object(os, 'remove')
+    @mock.patch.object(utils, 'execute')
+    @mock.patch.object(lu, '_update_raw_config')
+    @mock.patch.object(shutil, 'copy')
+    @mock.patch.object(shutil, 'move')
+    def test_override_config_value_fail(self, m_move, m_copy, m_upd, m_execute,
+                                        m_remove):
+        m_execute.side_effect = (['old_fake_config', ''],
+                                 errors.ProcessExecutionError())
+        m_upd.return_value = 'fake_config'
+        with mock.patch('six.moves.builtins.open', create=True) as mock_open:
+            file_handle_mock = mock_open.return_value.__enter__.return_value
+            self.assertRaises(errors.ProcessExecutionError,
+                              lu.override_config_value,
+                              'foo', 'bar', 'buzz')
+        self.assertTrue(file_handle_mock.write.called)
+        m_copy.assert_called_once_with('/etc/lvm/lvm.conf',
+                                       '/etc/lvm/lvm.conf.bak')
+        m_move.assert_called_once_with('/etc/lvm/lvm.conf.bak',
+                                       '/etc/lvm/lvm.conf')
+        self.assertFalse(m_remove.called)
