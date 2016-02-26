@@ -16,6 +16,7 @@ from io import open
 import os
 import shutil
 import signal
+import time
 
 from oslo_config import cfg
 import six
@@ -221,6 +222,13 @@ class Manager(object):
                               'of=%s' % prt.device, check_exit_code=[0, 1])
 
         for parted in self.driver.partition_scheme.parteds:
+            if 'mapper' in parted.name:
+                LOG.debug("Disabling udev's rules blacklisting for device %s"
+                          "" % parted.name)
+                utils.unblacklist_udev_rules(
+                    udev_rules_dir=CONF.udev_rules_dir,
+                    udev_rename_substr=CONF.udev_rename_substr)
+
             pu.make_label(parted.name, parted.label)
             for prt in parted.partitions:
                 pu.make_partition(prt.device, prt.begin, prt.end, prt.type)
@@ -233,6 +241,23 @@ class Manager(object):
                 if not os.path.exists(prt.name):
                     raise errors.PartitionNotFoundError(
                         'Partition %s not found after creation' % prt.name)
+
+                try:
+                    for n in range(7):
+                        fu.utils.udevadm_settle()
+                        time.sleep(0.5)
+                except errors.ProcessExecutionError as ex:
+                    raise errors.PartitionNotFoundError(
+                        "Partition %s don't released by udev" % parted.name)
+
+            if 'mapper' in parted.name:
+                LOG.debug("Enabling udev's rules blacklisting after device %s"
+                          "" % parted.name)
+                utils.blacklist_udev_rules(udev_rules_dir=CONF.udev_rules_dir,
+                                           udev_rules_lib_dir=CONF.udev_rules_lib_dir,
+                                           udev_rename_substr=CONF.udev_rename_substr,
+                                           udev_empty_rule=CONF.udev_empty_rule)
+
 
         LOG.debug("Disabling udev's rules blacklisting")
         utils.unblacklist_udev_rules(

@@ -99,6 +99,8 @@ class Parted(base.Serializable):
         special_devices = ('cciss', 'nvme', 'loop', 'md')
         if any(n in self.name for n in special_devices):
             separator = 'p'
+        if 'by-id' in self.name:
+            separator = '-part'
         return '%s%s%s' % (self.name, separator, self.next_count())
 
     def partition_by_name(self, name):
