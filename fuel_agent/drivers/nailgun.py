@@ -212,7 +212,15 @@ class Nailgun(BaseDataDriver):
     def _disk_dev(self, ks_disk):
         # first we try to find a device that matches ks_disk
         # comparing by-id and by-path links
-        matched = [hu_disk['device'] for hu_disk in self.hu_disks
+        LOG.error("HU: %s, KS: %s", self.hu_disks, ks_disk)
+        matched = []
+        for hu_disk in self.hu_disks:
+            devs = hu_disk['uspec'].get('DEVLINKS', [])
+            for dev in devs:
+                if dev == '/dev/%s' % ks_disk['name']:
+                    matched.append(dev)
+
+        matched = matched or [hu_disk['device'] for hu_disk in self.hu_disks
                    if match_device(hu_disk, ks_disk)]
         # if we can not find a device by its by-id and by-path links
         # we try to find a device by its name
