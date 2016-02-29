@@ -20,7 +20,6 @@ from six.moves.urllib.parse import urlsplit
 import unittest2
 
 from fuel_agent.drivers.nailgun import NailgunBuildImage
-from fuel_agent import errors
 from fuel_agent import objects
 
 DEFAULT_TRUSTY_PACKAGES = [
