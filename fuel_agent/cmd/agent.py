@@ -96,7 +96,11 @@ def handle_exception(exc):
 def main(actions=None):
     # NOTE(agordeev): get its own process group by calling setpgrp.
     # Process group is used to distribute signals to subprocesses.
-    os.setpgrp()
+    try:
+        os.setpgrp()
+    except OSError as exc:
+        if os.getpid() != os.getpgid(0):
+            raise errors.UnexpectedProcessError('raise')
     signal.signal(signal.SIGTERM, handle_sigterm)
     CONF(sys.argv[1:], project='fuel-agent',
          version=version.version_info.release_string())
