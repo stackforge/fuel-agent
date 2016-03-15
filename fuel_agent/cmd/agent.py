@@ -16,14 +16,15 @@ import os
 import signal
 import sys
 
-from oslo_config import cfg
 import six
 import yaml
 
 from fuel_agent import errors
 from fuel_agent import manager as manager
-from fuel_agent.openstack.common import log as logging
 from fuel_agent import version
+
+from oslo_config import cfg
+from oslo_log import log as logging
 
 cli_opts = [
     cfg.StrOpt(
@@ -104,7 +105,7 @@ def main(actions=None):
     CONF(sys.argv[1:], project='fuel-agent',
          version=version.version_info.release_string())
 
-    logging.setup('fuel-agent')
+    logging.setup(CONF, 'fuel-agent')
     LOG = logging.getLogger(__name__)
 
     try:
