@@ -81,7 +81,7 @@ def list_opts():
 
     :returns: a list of (group_name, opts) tuples
     """
-    return [(None, (cli_opts))]
+    return [('CLI', (cli_opts))]
 
 
 def provision():
