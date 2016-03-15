@@ -96,7 +96,6 @@ def handle_exception(exc):
 def main(actions=None):
     # NOTE(agordeev): get its own process group by calling setpgrp.
     # Process group is used to distribute signals to subprocesses.
-    os.setpgrp()
     signal.signal(signal.SIGTERM, handle_sigterm)
     CONF(sys.argv[1:], project='fuel-agent',
          version=version.version_info.release_string())
@@ -105,6 +104,13 @@ def main(actions=None):
     LOG = logging.getLogger(__name__)
 
     try:
+        try:
+            os.setpgrp()
+        except OSError:
+            if os.getpid() != os.getpgid():
+                raise errors.UnexpectedProcessError("""Main application was
+                                         unable to obtain group leadership.
+                                         Aborting the operation""")
         if CONF.input_data:
             data = yaml.safe_load(CONF.input_data)
         else:
