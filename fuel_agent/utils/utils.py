@@ -465,4 +465,4 @@ def list_opts():
 
     :returns: a list of (group_name, opts) tuples
     """
-    return [(None, (u_opts))]
+    return [('UTILS', (u_opts))]

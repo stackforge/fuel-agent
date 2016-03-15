@@ -1,214 +1,238 @@
 [DEFAULT]
 
 #
-# Options defined in fuel_agent.manager
+# From fuel_agent.manager
 #
-
-# Data driver (string value)
-#data_driver=nailgun
-
-# Directory where the image is supposed to be built (string
-# value)
-#image_build_dir=/tmp
 
 # Path to directory with cloud init templates (string value)
-#nc_template_path=/usr/share/fuel-agent/cloud-init-templates
+#nc_template_path = /usr/share/fuel-agent/cloud-init-templates
 
 # Temporary directory for file manipulations (string value)
-#tmp_path=/tmp
+#tmp_path = /tmp
 
-# Path where to store generated config drive image (string
-# value)
-#config_drive_path=/tmp/config-drive.img
+# Path where to store generated config drive image (string value)
+#config_drive_path = /tmp/config-drive.img
 
-# Path where to store actual rules for udev daemon (string
-# value)
-#udev_rules_dir=/etc/udev/rules.d
+# Path where to store actual rules for udev daemon (string value)
+#udev_rules_dir = /etc/udev/rules.d
 
-# Path where to store default rules for udev daemon (string
-# value)
-#udev_rules_lib_dir=/lib/udev/rules.d
+# Path where to store default rules for udev daemon (string value)
+#udev_rules_lib_dir = /lib/udev/rules.d
 
-# Substring to which file extension .rules be renamed (string
-# value)
-#udev_rename_substr=.renamedrule
+# Substring to which file extension .rules be renamed (string value)
+#udev_rename_substr = .renamedrule
 
 # Correct empty rule for udev daemon (string value)
-#udev_empty_rule=empty_rule
+#udev_empty_rule = empty_rule
 
-# Suffix which is used while creating temporary files (string
-# value)
-#image_build_suffix=.fuel-agent-image
+# Suffix which is used while creating temporary files (string value)
+#image_build_suffix = .fuel-agent-image
 
 # Timeout in secs for GRUB (integer value)
-#grub_timeout=10
+#grub_timeout = 10
 
 # Maximum allowed loop devices count to use (integer value)
-#max_loop_devices_count=255
+#max_loop_devices_count = 255
+
+# Maximum allowed attempts to attach image file to loop device
+# (integer value)
+#max_allowed_attempts_attach_image = 10
 
 # Size of sparse file in MiBs (integer value)
-#sparse_file_size=8192
+#sparse_file_size = 8192
 
 # System-wide major number for loop device (integer value)
-#loop_device_major_number=7
+#loop_device_major_number = 7
 
-# Maximum allowed debootstrap/apt-get attempts to execute
-# (integer value)
-#fetch_packages_attempts=10
+# Maximum allowed debootstrap/apt-get attempts to execute (integer
+# value)
+#fetch_packages_attempts = 10
 
-# File where to store apt setting for unsigned packages
-# (string value)
-#allow_unsigned_file=allow_unsigned_packages
+# File where to store apt setting for unsigned packages (string value)
+#allow_unsigned_file = allow_unsigned_packages
 
-# File where to store apt setting for forcing IPv4 usage
-# (string value)
-#force_ipv4_file=force_ipv4
+# File where to store apt setting for forcing IPv4 usage (string
+# value)
+#force_ipv4_file = force_ipv4
 
-# Create configdrive file, use pre-builded if set to False
-# (boolean value)
-#prepare_configdrive=true
+# Create configdrive file, use pre-builded if set to False (boolean
+# value)
+#prepare_configdrive = true
 
 # Add udev rules for NIC remapping (boolean value)
-#fix_udev_net_rules=true
+#fix_udev_net_rules = true
 
+# Allow to skip MD containers (fake raid leftovers) while cleaning the
+# rest of MDs (boolean value)
+#skip_md_containers = true
+
+# Extra filters for lvm.conf to force LVM works with partitions on
+# multipath devices properly. (list value)
+#lvm_filter_for_mpath = r|^/dev/disk/.*|,a|^/dev/mapper/.*|,r/.*/
+
+# List of devlinks patterns which are preffered for LVM. If multipath
+# device has a few devlinks, LVM will use the one matching to the
+# given pattern. (list value)
+#mpath_lvm_preferred_names = ^/dev/mapper/
+
+# List of directories to scan recursively for LVM physical volumes.
+# Devices in directories outside this hierarchy will be ignored. (list
+# value)
+#mpath_lvm_scan_dirs = /dev/disk/,/dev/mapper/
+
+# Set alignment for newly created partitions, valid alignment types
+# are: none, cylinder, minimal, optimal (string value)
+#partition_alignment = optimal
+
+# Path to LVM configuration file (string value)
+#lvm_conf_path = /etc/lvm/lvm.conf
+
+# Default password for root user (string value)
+#default_root_password = r00tme
 
 #
-# Options defined in fuel_agent.cmd.agent
+# From oslo.log
+#
+
+# If set to true, the logging level will be set to DEBUG instead of
+# the default INFO level. (boolean value)
+# Note: This option can be changed without restarting.
+#debug = false
+
+# If set to false, the logging level will be set to WARNING instead of
+# the default INFO level. (boolean value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+#verbose = true
+
+# The name of a logging configuration file. This file is appended to
+# any existing logging configuration files. For details about logging
+# configuration files, see the Python logging module documentation.
+# Note that when logging configuration files are used then all logging
+# configuration is set in the configuration file and other logging
+# configuration options are ignored (for example,
+# logging_context_format_string). (string value)
+# Deprecated group/name - [DEFAULT]/log_config
+#log_config_append = <None>
+
+# Defines the format string for %%(asctime)s in log records. Default:
+# %(default)s . This option is ignored if log_config_append is set.
+# (string value)
+#log_date_format = %Y-%m-%d %H:%M:%S
+
+# (Optional) Name of log file to send logging output to. If no default
+# is set, logging will go to stderr as defined by use_stderr. This
+# option is ignored if log_config_append is set. (string value)
+# Deprecated group/name - [DEFAULT]/logfile
+#log_file = <None>
+
+# (Optional) The base directory used for relative log_file  paths.
+# This option is ignored if log_config_append is set. (string value)
+# Deprecated group/name - [DEFAULT]/logdir
+#log_dir = <None>
+
+# Uses logging handler designed to watch file system. When log file is
+# moved or removed this handler will open a new log file with
+# specified path instantaneously. It makes sense only if log_file
+# option is specified and Linux platform is used. This option is
+# ignored if log_config_append is set. (boolean value)
+#watch_log_file = false
+
+# Use syslog for logging. Existing syslog format is DEPRECATED and
+# will be changed later to honor RFC5424. This option is ignored if
+# log_config_append is set. (boolean value)
+#use_syslog = false
+
+# Syslog facility to receive log lines. This option is ignored if
+# log_config_append is set. (string value)
+#syslog_log_facility = LOG_USER
+
+# Log output to standard error. This option is ignored if
+# log_config_append is set. (boolean value)
+#use_stderr = true
+
+# Format string to use for log messages with context. (string value)
+#logging_context_format_string = %(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
+
+# Format string to use for log messages when context is undefined.
+# (string value)
+#logging_default_format_string = %(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
+
+# Additional data to append to log message when logging level for the
+# message is DEBUG. (string value)
+#logging_debug_format_suffix = %(funcName)s %(pathname)s:%(lineno)d
+
+# Prefix each line of exception output with this format. (string
+# value)
+#logging_exception_prefix = %(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s
+
+# Defines the format string for %(user_identity)s that is used in
+# logging_context_format_string. (string value)
+#logging_user_identity_format = %(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s
+
+# List of package logging levels in logger=LEVEL pairs. This option is
+# ignored if log_config_append is set. (list value)
+#default_log_levels = amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO
+
+# Enables or disables publication of error events. (boolean value)
+#publish_errors = false
+
+# The format for an instance that is passed with the log message.
+# (string value)
+#instance_format = "[instance: %(uuid)s] "
+
+# The format for an instance UUID that is passed with the log message.
+# (string value)
+#instance_uuid_format = "[instance: %(uuid)s] "
+
+# Enables or disables fatal status of deprecations. (boolean value)
+#fatal_deprecations = false
+
+
+[CLI]
+
+#
+# From fuel_agent.agent
 #
 
 # Input data file (string value)
-#input_data_file=/tmp/provision.json
+#input_data_file = /tmp/provision.json
 
 # Input data (json string) (string value)
-#input_data=
+#input_data =
 
 
-#
-# Options defined in fuel_agent.openstack.common.log
-#
-
-# Print debugging output (set logging level to DEBUG instead
-# of default WARNING level). (boolean value)
-debug=true
-
-# Print more verbose output (set logging level to INFO instead
-# of default WARNING level). (boolean value)
-#verbose=false
-
-# Log output to standard error. (boolean value)
-use_stderr=false
-
-# Format string to use for log messages with context. (string
-# value)
-#logging_context_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
-
-# Format string to use for log messages without context.
-# (string value)
-#logging_default_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
-
-# Data to append to log format when level is DEBUG. (string
-# value)
-logging_debug_format_suffix=
-
-# Prefix each line of exception output with this format.
-# (string value)
-#logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s
-
-# List of logger=LEVEL pairs. (list value)
-#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN
-
-# Enables or disables publication of error events. (boolean
-# value)
-#publish_errors=false
-
-# Enables or disables fatal status of deprecations. (boolean
-# value)
-#fatal_deprecations=false
-
-# The format for an instance that is passed with the log
-# message.  (string value)
-#instance_format="[instance: %(uuid)s] "
-
-# The format for an instance UUID that is passed with the log
-# message.  (string value)
-#instance_uuid_format="[instance: %(uuid)s] "
-
-# The name of a logging configuration file. This file is
-# appended to any existing logging configuration files. For
-# details about logging configuration files, see the Python
-# logging module documentation. (string value)
-# Deprecated group/name - [DEFAULT]/log_config
-#log_config_append=<None>
-
-# DEPRECATED. A logging.Formatter log message format string
-# which may use any of the available logging.LogRecord
-# attributes. This option is deprecated.  Please use
-# logging_context_format_string and
-# logging_default_format_string instead. (string value)
-#log_format=<None>
-
-# Format string for %%(asctime)s in log records. Default:
-# %(default)s . (string value)
-#log_date_format=%Y-%m-%d %H:%M:%S
-
-# (Optional) Name of log file to output to. If no default is
-# set, logging will go to stdout. (string value)
-# Deprecated group/name - [DEFAULT]/logfile
-log_file=/var/log/fuel-agent.log
-
-# (Optional) The base directory used for relative --log-file
-# paths. (string value)
-# Deprecated group/name - [DEFAULT]/logdir
-#log_dir=<None>
-
-# Use syslog for logging. Existing syslog format is DEPRECATED
-# during I, and will change in J to honor RFC5424. (boolean
-# value)
-#use_syslog=false
-
-# (Optional) Enables or disables syslog rfc5424 format for
-# logging. If enabled, prefixes the MSG part of the syslog
-# message with APP-NAME (RFC5424). The format without the APP-
-# NAME is deprecated in I, and will be removed in J. (boolean
-# value)
-#use_syslog_rfc_format=false
-
-# Syslog facility to receive log lines. (string value)
-#syslog_log_facility=LOG_USER
-
+[UTILS]
 
 #
-# Options defined in fuel_agent.utils.artifact
+# From fuel_agent.artifact
 #
 
 # Size of data chunk to operate with images (integer value)
-#data_chunk_size=1048576
-
+#data_chunk_size = 1048576
 
 #
-# Options defined in fuel_agent.utils.utils
+# From fuel_agent.utils
 #
 
-# Maximum retries count for http requests. 0 means infinite
-# (integer value)
-#http_max_retries=30
+# Maximum retries count for http requests. 0 means infinite (integer
+# value)
+#http_max_retries = 30
 
 # Http request timeout in seconds (floating point value)
-#http_request_timeout=10.0
+#http_request_timeout = 10.0
 
-# Delay in seconds before the next http request retry
-# (floating point value)
-#http_retry_delay=2.0
-
-# Block size of data to read for calculating checksum (integer
+# Delay in seconds before the next http request retry (floating point
 # value)
-#read_chunk_size=1048576
+#http_retry_delay = 2.0
 
-# Delay in seconds before the next exectuion will retry
-# (floating point value)
-#execute_retry_delay=2.0
+# Block size of data to read for calculating checksum (integer value)
+#read_chunk_size = 1048576
 
+# Delay in seconds before the next exectuion will retry (floating
+# point value)
+#execute_retry_delay = 2.0
 
-# Default password for root user
-# (string value)
-default_root_password=r00tme
+# How many times udev settle will be called after partitioning
+# (integer value)
+#partition_udev_settle_attempts = 10
