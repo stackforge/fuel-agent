@@ -445,3 +445,23 @@ def gensalt():
     sha512prefix = "$6$"
     random_letters = ''.join(random.choice(letters) for _ in range(16))
     return sha512prefix + random_letters
+
+
+def list_opts():
+    """Returns a list of oslo.config options available in the library.
+
+    The returned list includes all oslo.config options which may be registered
+    at runtime by the library.
+
+    Each element of the list is a tuple. The first element is the name of the
+    group under which the list of elements in the second element will be
+    registered. A group name of None corresponds to the [DEFAULT] group in
+    config files.
+
+    The purpose of this is to allow tools like the Oslo sample config file
+    generator (oslo-config-generator) to discover the options exposed to users
+    by this library.
+
+    :returns: a list of (group_name, opts) tuples
+    """
+    return [(None, (u_opts))]
