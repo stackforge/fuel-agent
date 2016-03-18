@@ -199,7 +199,9 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'chroot', 'update-rc.d', 'puppet', 'disable'),
             mock.call('chroot', 'chroot', 'dpkg-divert', '--local', '--add',
                       'fake_path'),
-            mock.call('chroot', 'chroot', 'apt-get', 'clean')]
+            mock.call('chroot', 'chroot', 'apt-get', 'clean'),
+            mock.call('rsync', '-rlptDKv', '/etc/multipath.conf',
+                      os.path.join('chroot', 'etc/multipath.conf'))]
 
         self.assertEqual(mock_exec_expected_calls, mock_exec.call_args_list)
         self.assertEqual([mock.call('chroot', ['usr/sbin/policy-rc.d']),
@@ -212,6 +214,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'etc/shadow'),
             mock.call('chroot', 'etc/init.d/puppet'),
             mock.call('chroot', 'etc/init/mcollective.override'),
+            mock.call('chroot', 'etc/multipath.conf'),
             mock.call('/', bu.GRUB2_DMRAID_SETTINGS)]
         self.assertEqual(mock_path_join_expected_calls,
                          mock_path.join.call_args_list)
