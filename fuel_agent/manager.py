@@ -210,6 +210,7 @@ class Manager(object):
                     pu.set_partition_flag(prt.device, prt.count, flag)
                 if prt.guid:
                     pu.set_gpt_type(prt.device, prt.count, prt.guid)
+                utils.udevadm_trigger()
                 # If any partition to be created doesn't exist it's an error.
                 # Probably it's again 'device or resource busy' issue.
                 if not os.path.exists(prt.name):
@@ -280,6 +281,9 @@ class Manager(object):
         lu.lvremove_all()
         lu.vgremove_all()
         lu.pvremove_all()
+
+        if parteds_with_rules:
+            utils.refresh_multipath()
 
         # creating meta disks
         for md in self.driver.partition_scheme.mds:

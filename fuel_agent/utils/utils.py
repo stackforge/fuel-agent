@@ -380,6 +380,19 @@ def udevadm_settle():
     execute('udevadm', 'settle', '--quiet', check_exit_code=[0])
 
 
+def udevadm_trigger():
+    try:
+        execute('udevadm', 'trigger', check_exit_code=[0])
+    except errors.ProcessExecutionError:
+        LOG.warning("udevadm trigger did return non-zero exit code. "
+                    "Partitioning continues.")
+
+
+def refresh_multipath():
+    execute('dmsetup', 'remove_all')
+    execute('multipath', '-r')
+
+
 def parse_kernel_cmdline():
     """Parse linux kernel command line"""
     with open('/proc/cmdline', 'rt') as f:
