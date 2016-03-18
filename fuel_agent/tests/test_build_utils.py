@@ -188,9 +188,10 @@ class BuildUtilsTestCase(unittest2.TestCase):
         bu.do_post_inst('chroot',
                         hashed_root_password=password,
                         allow_unsigned_file='fake_unsigned',
-                        force_ipv4_file='fake_force_ipv4')
+                        force_ipv4_file='fake_force_ipv4',
+                        add_multipath_conf=CONF.add_multipath_conf)
         file_handle_mock = mock_open.return_value.__enter__.return_value
-        file_handle_mock.write.assert_called_once_with('manual\n')
+        file_handle_mock.write.assert_called_with('manual\n')
         mock_exec_expected_calls = [
             mock.call('sed',
                       '-i',

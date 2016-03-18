@@ -178,7 +178,8 @@ def clean_apt_settings(chroot, allow_unsigned_file='allow_unsigned_packages',
 
 def do_post_inst(chroot, hashed_root_password,
                  allow_unsigned_file='allow_unsigned_packages',
-                 force_ipv4_file='force_ipv4'):
+                 force_ipv4_file='force_ipv4',
+                 add_multipath_conf=True):
     # NOTE(agordeev): set up password for root
     utils.execute('sed', '-i',
                   's%root:[\*,\!]%root:' + hashed_root_password + '%',
@@ -207,6 +208,9 @@ def do_post_inst(chroot, hashed_root_password,
     utils.execute('chroot', chroot, 'apt-get', 'clean')
     clean_apt_settings(chroot, allow_unsigned_file=allow_unsigned_file,
                        force_ipv4_file=force_ipv4_file)
+    # Add multipath-tools blacklist (LP: #1551432)
+    if add_multipath_conf and os.path.isfile('/etc/multipath.conf'):
+        shutil.copy('/etc/multipath.conf', os.path.join(chroot, 'etc/multipath.conf'))
 
 
 def stop_chrooted_processes(chroot, signal=sig.SIGTERM,
