@@ -203,6 +203,7 @@ class Manager(object):
             pu.make_label(parted.name, parted.label)
             for prt in parted.partitions:
                 pu.make_partition(prt.device, prt.begin, prt.end, prt.type)
+                utils.udevadm_trigger_blocks()
                 if wait_for_udev_settle:
                     utils.wait_for_udev_settle(
                         attempts=CONF.partition_udev_settle_attempts)
@@ -280,6 +281,9 @@ class Manager(object):
         lu.lvremove_all()
         lu.vgremove_all()
         lu.pvremove_all()
+
+        if parteds_with_rules:
+            utils.refresh_multipath()
 
         # creating meta disks
         for md in self.driver.partition_scheme.mds:
