@@ -1021,6 +1021,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
             test_nailgun.MPATH_DISK_KS_SPACES
         self.mgr = manager.Manager(data)
 
+    @mock.patch.object(manager.utils, 'refresh_multipath')
     @mock.patch.object(hu, 'is_multipath_device')
     @mock.patch.object(manager.os.path, 'exists')
     @mock.patch.object(manager.utils, 'blacklist_udev_rules')
@@ -1028,9 +1029,9 @@ class TestManagerMultipathPartition(unittest2.TestCase):
     @mock.patch.object(manager.utils, 'execute')
     @mock.patch.object(fu, 'make_fs')
     @mock.patch.object(hu, 'list_block_devices')
-    def test_do_partitioning_mp(self, mock_hu_lbd,
-                                mock_fu_mf, mock_exec,
-                                mock_unbl, mock_bl, mock_os_path, mock_mp):
+    def test_do_partitioning_mp(self, mock_hu_lbd, mock_fu_mf, mock_exec,
+                                mock_unbl, mock_bl, mock_os_path, mock_mp,
+                                mock_refresh_multipath):
         mock_os_path.return_value = True
         mock_hu_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_MPATH
         self.mgr._make_partitions = mock.MagicMock()
@@ -1039,6 +1040,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
         seq.attach_mock(mock_bl, 'blacklist')
         seq.attach_mock(mock_unbl, 'unblacklist')
         seq.attach_mock(self.mgr._make_partitions, '_make_partitions')
+        seq.attach_mock(mock_refresh_multipath, 'refresh_multipath')
 
         self.mgr.do_partitioning()
 
@@ -1051,7 +1053,8 @@ class TestManagerMultipathPartition(unittest2.TestCase):
             mock.call.unblacklist(udev_rules_dir='/etc/udev/rules.d',
                                   udev_rename_substr='.renamedrule'),
             mock.call._make_partitions([mock.ANY],
-                                       wait_for_udev_settle=True)]
+                                       wait_for_udev_settle=True),
+            mock.call.refresh_multipath()]
         self.assertEqual(seq_calls, seq.mock_calls)
 
         parted_list = seq.mock_calls[1][1][0]
@@ -1064,6 +1067,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
             mock.call('ext4', '', '', '/dev/sdc1')]
         self.assertEqual(mock_fu_mf_expected_calls, mock_fu_mf.call_args_list)
 
+    @mock.patch.object(manager.utils, 'udevadm_trigger_blocks')
     @mock.patch.object(manager.os.path, 'exists')
     @mock.patch.object(fu, 'make_fs')
     @mock.patch.object(pu, 'set_gpt_type')
@@ -1074,13 +1078,15 @@ class TestManagerMultipathPartition(unittest2.TestCase):
     def test_paritition_settle(self, mock_utils_wait, mock_make_label,
                                mock_make_partition, mock_set_partition_flag,
                                mock_set_gpt_type, mock_make_fs,
-                               mock_exists
+                               mock_exists, mock_utils_trigger
                                ):
         self.mgr._make_partitions(self.mgr.driver.partition_scheme.parteds,
                                   wait_for_udev_settle=True)
 
         for call in mock_utils_wait.mock_calls:
             self.assertEqual(call, mock.call(attempts=10))
+
+        self.assertEqual(len(mock_utils_trigger.call_args_list), 6)
 
         self.assertEqual(mock_make_label.mock_calls, [
             mock.call('/dev/mapper/12312', 'gpt'),
