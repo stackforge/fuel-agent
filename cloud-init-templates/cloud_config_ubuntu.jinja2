@@ -53,6 +53,14 @@ write_files:
      path: /etc/nailgun-agent/config.yaml
  -   content: target
      path: /etc/nailgun_systemtype
+ -   content: |
+			blacklist {
+				devnode "^(ram|raw|loop|fd|md|dm-|sr|scd|st)[0-9]*"
+				devnode "^hd[a-z]"
+				devnode "^dcssblk[0-9]*"
+				devnode "^nvme.*"
+			}
+		 path: /etc/multipath.conf
 
 mcollective:
   conf:
