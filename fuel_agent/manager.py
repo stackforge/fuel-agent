@@ -157,6 +157,11 @@ opts = [
         'default_root_password',
         default='r00tme',
         help='Default password for root user',
+    ),
+    cfg.BoolOpt(
+        'add_multipath_conf',
+        default=True,
+        help='Add blacklist for multipath-tools'
     )
 ]
 
@@ -893,7 +898,8 @@ class Manager(object):
             bu.do_post_inst(chroot,
                             hashed_root_password=root.hashed_password,
                             allow_unsigned_file=CONF.allow_unsigned_file,
-                            force_ipv4_file=CONF.force_ipv4_file)
+                            force_ipv4_file=CONF.force_ipv4_file,
+                            add_multipath_conf=False)
             # restore disabled hosts/resolv files
             bu.restore_resolv_conf(chroot)
             metadata['all_packages'] = bu.get_installed_packages(chroot)
