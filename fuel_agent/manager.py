@@ -699,6 +699,16 @@ class Manager(object):
             raise errors.WrongPartitionSchemeError(
                 'Error: device with / mountpoint has not been found')
 
+        lvm_white_list = []
+        for parted in self.driver.partition_scheme.parteds:
+            lvm_white_list.append(''.join(('a|', parted.name, '.*|')))
+        lvm_white_list.append('r/.*/')
+
+        bu.override_lvm_config_value(chroot, 'devices', 'global_filter',
+                                     lvm_white_list, CONF.lvm_conf_path)
+        bu.override_lvm_config_value(chroot, 'devices', 'preferred_names',
+                                     '^/dev/mapper/.*', CONF.lvm_conf_path)
+
         grub = self.driver.grub
 
         guessed_version = gu.guess_grub_version(chroot=chroot)
