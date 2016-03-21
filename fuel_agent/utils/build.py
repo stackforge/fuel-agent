@@ -963,6 +963,7 @@ def override_lvm_config_value(chroot, section, name, value, lvm_conf_file):
     If option is not valid, then errors.ProcessExecutionError will be raised
     and lvm configuration will remain unchanged
     """
+    lvm_conf_file = os.path.join(chroot, lvm_conf_file.lstrip('/'))
     updated_config = _update_option_in_lvm_raw_config(
         section, name, value,
         utils.execute('chroot', chroot, 'lvm dumpconfig')[0])
@@ -980,7 +981,8 @@ def override_lvm_config_value(chroot, section, name, value, lvm_conf_file):
         current_config = utils.execute('chroot', chroot, 'lvm dumpconfig')[0]
         with open(lvm_conf_file, mode='w') as lvm_conf:
             lvm_conf.write(current_config)
-        LOG.info('LVM configuration updated')
+        LOG.info('LVM configuration updated. Option {}/{} gets new value: {}'
+                 ''.format(section, name, value))
     except errors.ProcessExecutionError as exc:
         shutil.move(lvm_conf_file_bak, lvm_conf_file)
         LOG.debug('Option {}/{} can not be updated with value {}.'
@@ -988,20 +990,27 @@ def override_lvm_config_value(chroot, section, name, value, lvm_conf_file):
         raise exc
 
 
-def append_lvm_devices_filter(chroot, multipath_lvm_filter,
-                              lvm_conf_path='/etc/lvm/lvm.conf'):
-    """Append custom devises filters to LVM configuration
+def add_lvm_devices_filters(chroot, lvm_filter,
+                            section='filter',
+                            lvm_conf_path='/etc/lvm/lvm.conf',
+                            update_initramfs=False):
+    """Add custom filters to LVM configuration
 
-    LVM configuration should de updated to force lvm work with partitions
-    on multipath devices using /dev/mapper/<id>-part<n> links.
-    Other links to these devices should be blacklisted in devices/filter
-    option
+    :param lvm_filter should be a list
+    :param section can be 'filter' or 'global_filter'
     """
-    lvm_filter = get_lvm_config_value(chroot, 'devices', 'filter') or []
-    if isinstance(lvm_filter, str):
-        lvm_filter = [lvm_filter]
-    lvm_filter = set(lvm_filter)
-    lvm_filter.update(multipath_lvm_filter)
-    override_lvm_config_value(chroot, 'devices', 'filter',
+    old_lvm_filter = get_lvm_config_value(chroot, 'devices', section) or []
+    if isinstance(old_lvm_filter, str):
+        old_lvm_filter = [old_lvm_filter]
+    lvm_filter.extend(old_lvm_filter)
+    override_lvm_config_value(chroot, 'devices', section,
                               sorted(list(lvm_filter)),
-                              os.path.join(chroot, lvm_conf_path.lstrip('/')))
+                              lvm_conf_path)
+    override_lvm_config_value(chroot, 'devices', 'preferred_names',
+                              '^/dev/mapper/', lvm_conf_path)
+
+    if update_initramfs:
+        LOG.info('Updating target initramfs')
+        utils.execute('chroot', chroot, 'update-initramfs -v -c -k all',
+                      logged=True)
+        LOG.debug('Running "update-initramfs" completed')
