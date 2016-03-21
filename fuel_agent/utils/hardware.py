@@ -393,3 +393,9 @@ def match_device(uspec1, uspec2):
         return True
 
     return False
+
+def get_used_block_devs(dm_dev):
+    report = utils.execute('dmsetup', '-c --nameprefixes --noheadings',
+                           '-o blkdevs_used', '{}'.format(dm_dev),
+                           check_exit_code=[0])[0]
+    used_devs = report.split('=')[1].strip().strip("'")
