@@ -219,12 +219,15 @@ title Default ({kernel})
 
 
 def grub2_install(install_devices, chroot=''):
+    env_vars = copy.deepcopy(os.environ)
+    env_vars['GRUB_DISABLE_OS_PROBER'] = 'true'
     grub_install = guess_grub_install(chroot=chroot)
     for install_device in install_devices:
         cmd = [grub_install, install_device]
         if chroot:
             cmd[:0] = ['chroot', chroot]
-        utils.execute(*cmd, run_as_root=True, check_exit_code=[0])
+        utils.execute(*cmd, run_as_root=True, check_exit_code=[0],
+                env_variables=env_vars)
 
 
 def grub2_cfg(kernel_params='', chroot='', grub_timeout=10):

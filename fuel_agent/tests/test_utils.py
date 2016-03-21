@@ -443,8 +443,9 @@ class TestUdevRulesBlacklisting(unittest2.TestCase):
                          mock_os.rename.call_args_list)
         self.assertEqual(2 * [mock.call()], mock_udev.call_args_list)
 
+    @mock.patch.object(utils, 'copy')
     def test_unblacklist_udev_rules_not_a_rule(self, mock_udev, mock_execute,
-                                               mock_os, mock_open):
+                                               mock_os, mock_open, mock_copy):
         mock_os.path.join.side_effect = self._fake_join
         mock_os.listdir.return_value = ['not_a_rule', 'dir']
         mock_os.path.isdir.side_effect = [False, True]
