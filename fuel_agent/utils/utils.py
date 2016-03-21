@@ -444,3 +444,24 @@ def gensalt():
     sha512prefix = "$6$"
     random_letters = ''.join(random.choice(letters) for _ in range(16))
     return sha512prefix + random_letters
+
+
+def lvm_whitelist_filter(parteds, is_multipath):
+    """Return list of LVM filters for non-multipath devices
+
+    Return list of regexps, one per each non-multipath devices from given list
+    of parteds. Also, this function returns the flag, that any multipath
+    devices are present on the node.
+    :param is_mutlipath should be a dict, each item of it indicates
+    that corresponding device is multipath device. Example:
+     is_mutlipath = {
+     '/dev/sda': False,
+     '/dev/mapper/31545df3': True,
+     ...
+     }
+    """
+    lvm_filter = []
+    for parted in parteds:
+        if not is_multipath[parted.name]:
+            lvm_filter.append('a|^{}p?[0-9]*|'.format(parted.name))
+    return lvm_filter
