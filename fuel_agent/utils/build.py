@@ -966,6 +966,7 @@ def override_lvm_config_value(chroot, section, name, value, lvm_conf_file):
     If option is not valid, then errors.ProcessExecutionError will be raised
     and lvm configuration will remain unchanged
     """
+    lvm_conf_file=os.path.join(chroot, lvm_conf_file.lstrip('/'))
     updated_config = _update_option_in_lvm_raw_config(
         section, name, value,
         utils.execute('chroot', chroot, 'lvm dumpconfig')[0])
@@ -1007,4 +1008,4 @@ def append_lvm_devices_filter(chroot, multipath_lvm_filter,
     lvm_filter.update(multipath_lvm_filter)
     override_lvm_config_value(chroot, 'devices', 'filter',
                               sorted(list(lvm_filter)),
-                              os.path.join(chroot, lvm_conf_path.lstrip('/')))
+                              lvm_conf_path)
