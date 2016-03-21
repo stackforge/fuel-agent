@@ -440,8 +440,10 @@ title Default (kernel-version-set)
         mock_guess_grub.return_value = '/sbin/grub'
         expected_calls = [
             mock.call('chroot', '/target', '/sbin/grub', '/dev/foo',
+                      '--skip-fs-probe',
                       run_as_root=True, check_exit_code=[0]),
             mock.call('chroot', '/target', '/sbin/grub', '/dev/bar',
+                      '--skip-fs-probe',
                       run_as_root=True, check_exit_code=[0])
         ]
         gu.grub2_install(['/dev/foo', '/dev/bar'], chroot='/target')

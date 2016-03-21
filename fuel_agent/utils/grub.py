@@ -219,9 +219,10 @@ title Default ({kernel})
 
 
 def grub2_install(install_devices, chroot=''):
+    # NOTE(azvyagintsev) skip-fs-probe bug#1559017
     grub_install = guess_grub_install(chroot=chroot)
     for install_device in install_devices:
-        cmd = [grub_install, install_device]
+        cmd = [grub_install, install_device, '--skip-fs-probe']
         if chroot:
             cmd[:0] = ['chroot', chroot]
         utils.execute(*cmd, run_as_root=True, check_exit_code=[0])
