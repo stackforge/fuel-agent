@@ -142,8 +142,7 @@ opts = [
     ),
     cfg.ListOpt(
         'multipath_lvm_filter',
-        default=['r|/dev/mapper/.*-part.*|',
-                 'r|/dev/dm-.*|',
+        default=['r|/dev/dm-.*|',
                  'r|/dev/disk/by-id/.*|'],
         help='Extra filters for lvm.conf to force lvm work with partions '
              'on multipath devices using /dev/mapper/<id>-part<n> links'
@@ -700,6 +699,25 @@ class Manager(object):
             raise errors.WrongPartitionSchemeError(
                 'Error: device with / mountpoint has not been found')
 
+        # NOTE(sslypushenko) Due to possible races between LVM and multipath,
+        # we need to adjust LVM devices filter. We need to explicitly whitelist
+        # all non-mutlipath devices and devices from /dev/mapper folder.
+        lvm_filter = []
+        is_mutlipath_on_node = False
+        for parted in self.driver.partition_scheme.parteds:
+            if hw.is_multipath_device(parted.name):
+                is_mutlipath_on_node = True
+            else:
+                lvm_filter.append('a|^{}p?[0-9]*|'.format(parted.name))
+        # If there are no multipath devices on the node, we should not do
+        # anything to prevent regression.
+        if is_mutlipath_on_node:
+            # Also we need to blacklist all other devices, to prevent LVM from
+            # grubbing underlying multipath devices.
+            lvm_filter.extend(['a|^/dev/mapper/.*|', 'r/.*/'])
+            bu.add_lvm_devices_filters(chroot, lvm_filter, CONF.lvm_conf_path,
+                                       update_initramfs=True)
+
         grub = self.driver.grub
 
         guessed_version = gu.guess_grub_version(chroot=chroot)
@@ -799,7 +817,6 @@ class Manager(object):
                 else:
                     f.write(u'UUID=%s %s %s defaults 0 0\n' %
                             (mount2uuid[fs.mount], fs.mount, fs.type))
-
         self.umount_target(chroot)
 
     def do_reboot(self):
@@ -886,9 +903,8 @@ class Manager(object):
             bu.dump_runtime_uuid(bs_scheme.uuid,
                                  os.path.join(chroot,
                                               'etc/nailgun-agent/config.yaml'))
-            bu.append_lvm_devices_filter(chroot, CONF.multipath_lvm_filter,
-                                         CONF.lvm_conf_path)
-
+            bu.add_lvm_devices_filters(chroot, CONF.multipath_lvm_filter,
+                                       CONF.lvm_conf_path)
             root = driver_os.get_user_by_name('root')
             bu.do_post_inst(chroot,
                             hashed_root_password=root.hashed_password,
