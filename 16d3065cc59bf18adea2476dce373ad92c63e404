@@ -1,0 +1,11 @@
+Verified+1: Fuel CI <fuel-ci-bot@mirantis.com>
+Code-Review+2: Aleksandr Gordeev <agordeev@mirantis.com>
+Code-Review+1: Albert Syriy <asyriy@mirantis.com>
+Code-Review+1: Sergey Slipushenko <sslypushenko@mirantis.com>
+Workflow+1: Aleksandr Gordeev <agordeev@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 28 Mar 2016 15:44:58 +0000
+Reviewed-on: https://review.openstack.org/297065
+Project: openstack/fuel-agent
+Branch: refs/heads/master
