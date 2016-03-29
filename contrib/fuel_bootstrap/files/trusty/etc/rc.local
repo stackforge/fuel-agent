@@ -1,8 +1,13 @@
 #!/bin/sh -e
 
+# Prevent running nailgun-agent before multipath-reload and configuration
+mkdir -p /etc/nailgun-agent/
+touch /etc/nailgun-agent/nodiscover
+
 # Perform multipath reload
 multipath-reload || true
 
+rm -f /etc/nailgun-agent/nodiscover
+
 # Perform fuel bootstrap configuration
 fix-configs-on-startup || true
-
