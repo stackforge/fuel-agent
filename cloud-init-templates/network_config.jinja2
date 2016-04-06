@@ -1,0 +1,4 @@
+auto {{ common.admin_iface_name|default("eth0") }}
+iface {{ common.admin_iface_name|default("eth0") }} inet static
+address {{ common.admin_ip }}
+netmask {{ common.admin_mask }}
