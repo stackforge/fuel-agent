@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import utils
@@ -118,3 +120,13 @@ def umount_fs(fs_mount, try_lazy_umount=False):
                 utils.execute('umount', '-l', fs_mount, check_exit_code=[0])
             else:
                 raise
+
+
+def get_fs_type(device):
+    output = utils.execute('blkid', device)[0]
+    m = re.search('TYPE="(\S+)"', output)
+    if not m:
+        raise errors.WrongImageDataError("Invalid data on %s, " % device +
+                                         "It doesn't container any FS, " +
+                                         "blkid reported: %s" % output)
+    return m.group(1)
