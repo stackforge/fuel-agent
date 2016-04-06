@@ -161,6 +161,13 @@ class TestFSUtils(unittest2.TestCase):
         self.assertEqual(fu.format_fs_label(long_label),
                          template.format(long_label_trimmed))
 
+    def test_get_fs_type(self, mock_exec):
+        output = """/dev/sda1: UUID="ZLEMSO-SdLg-sphX-uijh-DmUA-PRf5-RcoF1B"
+                    TYPE="megafs" PARTUUID="99a0de95-01" """
+        mock_exec.return_value = (output, '')
+        ret = fu.get_fs_type('/dev/sda4')
+        self.assertEqual(ret, 'megafs')
+
 
 class TestFSRetry(unittest2.TestCase):
 
