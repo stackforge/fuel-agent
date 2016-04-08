@@ -1141,7 +1141,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
 
         mock_fu_mf_expected_calls = [
             mock.call('ext2', '', '', '/dev/mapper/12312-part3'),
-            mock.call('ext4', '', '', '/dev/sdc1')]
+            mock.call('ext4', '', '', '/dev/sdc3')]
         self.assertEqual(mock_fu_mf_expected_calls, mock_fu_mf.call_args_list)
 
     @mock.patch.object(manager.utils, 'udevadm_trigger_blocks')
@@ -1162,7 +1162,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
         for call in mock_utils_wait.mock_calls:
             self.assertEqual(call, mock.call(attempts=10))
 
-        self.assertEqual(len(mock_utils_trigger.call_args_list), 6)
+        self.assertEqual(len(mock_utils_trigger.call_args_list), 8)
 
         self.assertEqual(mock_make_label.mock_calls, [
             mock.call('/dev/mapper/12312', 'gpt'),
@@ -1177,4 +1177,5 @@ class TestManagerMultipathPartition(unittest2.TestCase):
             mock.call('/dev/sdc', 1, 201, 'primary')])
 
         self.assertEqual(mock_set_partition_flag.mock_calls, [
-            mock.call('/dev/mapper/12312', 1, 'bios_grub')])
+            mock.call('/dev/mapper/12312', 1, 'bios_grub'),
+            mock.call('/dev/sdc', 1, 'bios_grub')])
