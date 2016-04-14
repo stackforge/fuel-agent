@@ -40,6 +40,12 @@ write_files:
  -   content: target
      path: /etc/nailgun_systemtype
 
+# ensure mcollective is stopped before overriding its config and starting it over
+bootcmd:
+{% if mcollective.enable = 1 %}
+ - service mcollective stop
+{% endif %}
+
 mcollective:
   conf:
     main_collective: mcollective
