@@ -40,10 +40,10 @@ write_files:
  -   content: target
      path: /etc/nailgun_systemtype
 
-# ensure mcollective is stopped before overriding its config and starting it over
+# ensure mcollective is purged before cloudinit installs and configures it
 bootcmd:
 {% if mcollective.enable == 1 %}
- - service mcollective stop
+ - apt-get purge mcollective
 {% endif %}
 
 mcollective:
