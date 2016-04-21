@@ -163,9 +163,18 @@ class Nailgun(BaseDataDriver):
         md_boot_disks = [
             disk for disk in self.md_os_disks if disk in suitable_disks]
         if md_boot_disks:
-            return md_boot_disks
+            disks = md_boot_disks
         else:
-            return suitable_disks
+            disks = suitable_disks
+        bootable_disk = [disk for disk in disks
+                         if disk.get('bootable')]
+        if bootable_disk:
+            if len(bootable_disk) >= 2:
+                raise errors.WrongPartitionSchemeError(
+                    "Two bootable disks found! %{0}".format(bootable_disk))
+            return bootable_disk
+
+        return disks
 
     def _have_boot_partition(self, disks):
         return any(self._is_boot_disk(d) for d in disks)
