@@ -125,6 +125,10 @@ class Nailgun(BaseDataDriver):
     def partition_data(self):
         return self.data['ks_meta']['pm_data']['ks_spaces']
 
+    @property
+    def bootable_disk(self):
+        return self.data['ks_meta'].get('bootable_disk')
+
     def _needs_configdrive(self):
         return (CONF.prepare_configdrive or
                 os.path.isfile(CONF.config_drive_path))
@@ -321,6 +325,7 @@ class Nailgun(BaseDataDriver):
         ceph_osds = self._num_ceph_osds()
         journals_left = ceph_osds
         ceph_journals = self._num_ceph_journals()
+        bootable_disk = self.bootable_disk
 
         LOG.debug('Looping over all disks in provision data')
         for disk in self.ks_disks:
@@ -409,6 +414,8 @@ class Nailgun(BaseDataDriver):
 
                     elif volume.get('mount') == '/boot' \
                             and not self._boot_partition_done \
+                            and (bootable_disk is None
+                                    or bootable_disk == disk['name'])\
                             and disk in self.boot_disks:
                         LOG.debug('Adding /boot partition on disk %s: '
                                   'size=%s', disk['name'], volume['size'])
