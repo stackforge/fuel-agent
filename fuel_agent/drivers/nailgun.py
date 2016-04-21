@@ -125,6 +125,10 @@ class Nailgun(BaseDataDriver):
     def partition_data(self):
         return self.data['ks_meta']['pm_data']['ks_spaces']
 
+    @property
+    def bootable_disk(self):
+        return self.data['ks_meta'].get('bootable_disk')
+
     def _needs_configdrive(self):
         return (CONF.prepare_configdrive or
                 os.path.isfile(CONF.config_drive_path))
@@ -163,9 +167,18 @@ class Nailgun(BaseDataDriver):
         md_boot_disks = [
             disk for disk in self.md_os_disks if disk in suitable_disks]
         if md_boot_disks:
-            return md_boot_disks
+            disks = md_boot_disks
         else:
-            return suitable_disks
+            disks = suitable_disks
+        if self.bootable_disk:
+            disks = [disk for disk in disks
+                     if disk['name'] == self.bootable_disk]
+            if not disks:
+                raise errors.WrongPartitionSchemeError(
+                    "bootable_disk '{0}' could not be found in suitable disks "
+                    "for '/boot'".format(self.bootable_disk))
+
+        return disks
 
     def _have_boot_partition(self, disks):
         return any(self._is_boot_disk(d) for d in disks)

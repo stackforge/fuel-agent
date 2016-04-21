@@ -1296,7 +1296,8 @@ class TestNailgunBootDisks(unittest2.TestCase):
                           not_expected_disk, expected_disks):
         with mock.patch.object(nailgun.Nailgun, '__init__', return_value=None):
             ks_disks = self.PropertyMock()
-            with mock.patch.object(nailgun.Nailgun, 'ks_disks', ks_disks):
+            with mock.patch.object(nailgun.Nailgun, 'ks_disks', ks_disks),\
+                    mock.patch.object(nailgun.Nailgun, 'bootable_disk', None):
                 drv = nailgun.Nailgun('fake_data')
                 ks_disks.return_value = ks_disks_return_value
                 self.assertNotIn(not_expected_disk, drv.boot_disks)
@@ -1605,6 +1606,15 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         self.assertEqual(
             drv.partition_scheme.fs_by_mount('/boot').device,
             '/dev/sda3')
+
+    def test_boot_partition_bootable_flag(self, mock_lbd, mock_image_meta):
+        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['ks_meta']['bootable_disk'] = 'sdb'
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        drv = nailgun.Nailgun(data)
+        self.assertEqual(
+            drv.partition_scheme.fs_by_mount('/boot').device,
+            '/dev/sdb3')
 
     def test_elevate_keep_data_single_disk(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
