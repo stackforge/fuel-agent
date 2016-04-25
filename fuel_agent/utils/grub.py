@@ -200,6 +200,7 @@ def grub1_stage1(chroot=''):
 def grub1_cfg(kernel=None, initrd=None,
               kernel_params='', chroot='', grub_timeout=10):
 
+    kernel_params = ' console=ttyS0,115200 ' + kernel_params
     if not kernel:
         kernel = guess_kernel(chroot=chroot)
     if not initrd:
@@ -228,6 +229,7 @@ def grub2_install(install_devices, chroot=''):
 
 
 def grub2_cfg(kernel_params='', chroot='', grub_timeout=10):
+    kernel_params = ' console=ttyS0,115200 ' + kernel_params
     grub_defaults = chroot + guess_grub2_default(chroot=chroot)
     rekerparams = re.compile(r'^.*GRUB_CMDLINE_LINUX=.*')
     retimeout = re.compile(r'^.*GRUB_TIMEOUT=.*')
