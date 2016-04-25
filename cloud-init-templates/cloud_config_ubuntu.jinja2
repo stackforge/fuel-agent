@@ -116,5 +116,6 @@ runcmd:
 {% endif %}
  - iptables -t filter -F INPUT
  - iptables -t filter -F FORWARD
+ - echo kernel.sysrq = 1 >> /etc/sysctl.conf
 
 final_message: "YAY! The system is finally up, after $UPTIME seconds"
