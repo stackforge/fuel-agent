@@ -135,7 +135,7 @@ def set_gpt_type(dev, num, type_guid):
                   dev, check_exit_code=[0])
 
 
-def make_partition(dev, begin, end, ptype):
+def make_partition(dev, begin, end, ptype, alignment='optimal'):
     LOG.debug('Trying to create a partition: dev=%s begin=%s end=%s' %
               (dev, begin, end))
     if ptype not in ('primary', 'logical'):
@@ -156,7 +156,7 @@ def make_partition(dev, begin, end, ptype):
 
     utils.udevadm_settle()
     out, err = utils.execute(
-        'parted', '-a', 'optimal', '-s', dev, 'unit', 'MiB',
+        'parted', '-a', alignment, '-s', dev, 'unit', 'MiB',
         'mkpart', ptype, str(begin), str(end), check_exit_code=[0, 1])
     LOG.debug('Parted output: \n%s' % out)
     reread_partitions(dev, out=out)
