@@ -78,14 +78,6 @@ class Nailgun(BaseDataDriver):
     def __init__(self, data):
         super(Nailgun, self).__init__(data)
 
-        # this var states whether boot partition
-        # was already allocated on first matching volume
-        # or not
-        self._boot_partition_done = False
-        # this var is used as a flag that /boot fs
-        # has already been added. we need this to
-        # get rid of md over all disks for /boot partition.
-        self._boot_done = False
         self._image_meta = self.parse_image_meta()
 
         self._operating_system = self.parse_operating_system()
@@ -135,54 +127,11 @@ class Nailgun(BaseDataDriver):
             lambda x: x['type'] == 'disk' and x['size'] > 0,
             self.partition_data())
 
-    @property
-    def boot_disks(self):
-        # FIXME(agordeev): NVMe drives should be skipped as
-        # accessing such drives during the boot typically
-        # requires using UEFI which is still not supported
-        # by fuel-agent (it always installs BIOS variant of
-        # grub)
-        # * grub bug (http://savannah.gnu.org/bugs/?41883)
-        # NOTE(kozhukalov): On some hardware GRUB is not able
-        # to see disks larger than 2T due to firmware bugs,
-        # so we'd better avoid placing /boot on such
-        # huge disks if it is possible.
-        disks = self.small_ks_disks or self.ks_disks
-        suitable_disks = [
-            disk for disk in disks
-            if ('nvme' not in disk['name'] and self._is_boot_disk(disk))
-        ]
-        # NOTE(agordeev) sometimes, there's no separate /boot fs image.
-        # Therefore bootloader should be installed into
-        # the disk where rootfs image lands. Ironic's case.
-        if not suitable_disks and not self._have_boot_partition(disks):
-            return [d for d in disks
-                    if self._is_root_disk(d) and 'nvme' not in d['name']]
-        # FIXME(agordeev): if we have rootfs on fake raid, then /boot should
-        # land on it too. We can't proceed with grub-install otherwise.
-        md_boot_disks = [
-            disk for disk in self.md_os_disks if disk in suitable_disks]
-        if md_boot_disks:
-            disks = md_boot_disks
-        else:
-            disks = suitable_disks
-        bootable_disk = [disk for disk in disks
-                         if disk.get('bootable')]
-        if bootable_disk:
-            if len(bootable_disk) >= 2:
-                raise errors.WrongPartitionSchemeError(
-                    "Two bootable disks found! %{0}".format(bootable_disk))
-            return bootable_disk
-
-        return disks
+    def _is_boot_disk(self, disk):
+        return disk.get('bootable', False)
 
     def _have_boot_partition(self, disks):
         return any(self._is_boot_disk(d) for d in disks)
-
-    def _is_boot_disk(self, disk):
-        return any(v["type"] in ('partition', 'raid') and
-                   v.get("mount") == "/boot"
-                   for v in disk["volumes"])
 
     def _is_root_disk(self, disk):
         return any(v["type"] in ('partition', 'raid') and
@@ -331,7 +280,19 @@ class Nailgun(BaseDataDriver):
         journals_left = ceph_osds
         ceph_journals = self._num_ceph_journals()
 
+        # NOTE(agordeev) sometimes, there's no separate /boot fs image.
+        # Therefore bootloader should be installed into
+        # the disk where rootfs image lands. Ironic's case.
+        if not self._have_boot_partition(self.ks_disks):
+            suitable_root_disk = next(
+                (disk for disk in self.ks_disks
+                 if self._is_root_disk(disk) and 'nvme' not in disk['name']),
+                None)
+            if suitable_root_disk:
+                suitable_root_disk['bootable'] = True
+
         LOG.debug('Looping over all disks in provision data')
+
         for disk in self.ks_disks:
             # skipping disk if there are no volumes with size >0
             # to be allocated on it which are not boot partitions
@@ -347,18 +308,25 @@ class Nailgun(BaseDataDriver):
             parted = partition_scheme.add_parted(
                 name=self._disk_dev(disk), label='gpt')
 
-            # we install bootloader only on every suitable disk
-            LOG.debug('Adding bootloader stage0 on disk %s' % disk['name'])
-            parted.install_bootloader = True
+            if self._is_boot_disk(disk):
+                LOG.debug('Adding bootloader stage0 on disk %s' % disk['name'])
+                parted.install_bootloader = True
 
-            # legacy boot partition
-            LOG.debug('Adding bios_grub partition on disk %s: size=24' %
-                      disk['name'])
-            parted.add_partition(size=24, flags=['bios_grub'])
-            # uefi partition (for future use)
-            LOG.debug('Adding UEFI partition on disk %s: size=200' %
-                      disk['name'])
-            parted.add_partition(size=200)
+                # legacy boot partition
+                LOG.debug('Adding bios_grub partition on disk %s: size=24' %
+                          disk['name'])
+                parted.add_partition(size=24, flags=['bios_grub'])
+                # uefi partition (for future use)
+                prt = parted.add_partition(size=200)
+                LOG.debug('Adding UEFI partition %s on disk %s: size=200' %
+                          (prt.name, disk['name']))
+                prt = parted.add_partition(size=200)
+                LOG.debug('Adding boot partition %s', prt.name)
+                partition_scheme.add_fs(
+                    device=prt.name, mount='/boot',
+                    fs_type='ext2')
+                LOG.debug('Adding file system on partition: '
+                          'mount=/boot type=ext2')
 
             LOG.debug('Looping over all volumes on disk %s' % disk['name'])
             for volume in disk['volumes']:
@@ -409,28 +377,12 @@ class Nailgun(BaseDataDriver):
                     continue
 
                 if volume['type'] in ('partition', 'pv', 'raid'):
-                    if volume.get('mount') != '/boot':
-                        LOG.debug('Adding partition on disk %s: size=%s' %
-                                  (disk['name'], volume['size']))
-                        prt = parted.add_partition(
-                            size=volume['size'],
-                            keep_data=volume.get('keep_data', False))
-                        LOG.debug('Partition name: %s' % prt.name)
-
-                    elif volume.get('mount') == '/boot' \
-                            and not self._boot_partition_done \
-                            and disk in self.boot_disks:
-                        LOG.debug('Adding /boot partition on disk %s: '
-                                  'size=%s', disk['name'], volume['size'])
-                        prt = parted.add_partition(
-                            size=volume['size'],
-                            keep_data=volume.get('keep_data', False))
-                        LOG.debug('Partition name: %s', prt.name)
-                        self._boot_partition_done = True
-                    else:
-                        LOG.debug('No need to create partition on disk %s. '
-                                  'Skipping.', disk['name'])
-                        continue
+                    LOG.debug('Adding partition on disk %s: size=%s' %
+                              (disk['name'], volume['size']))
+                    prt = parted.add_partition(
+                        size=volume['size'],
+                        keep_data=volume.get('keep_data', False))
+                    LOG.debug('Partition name: %s' % prt.name)
 
                 if volume['type'] == 'partition':
                     if 'partition_guid' in volume:
@@ -447,8 +399,6 @@ class Nailgun(BaseDataDriver):
                             device=prt.name, mount=volume['mount'],
                             fs_type=volume.get('file_system', 'xfs'),
                             fs_label=volume.get('disk_label'))
-                        if volume['mount'] == '/boot' and not self._boot_done:
-                            self._boot_done = True
 
                 if volume['type'] == 'pv':
                     LOG.debug('Creating pv on partition: pv=%s vg=%s' %
@@ -495,18 +445,6 @@ class Nailgun(BaseDataDriver):
                             fs_label=volume.get('disk_label'),
                             metadata=metadata)
 
-                    if 'mount' in volume and volume['mount'] == '/boot' and \
-                            not self._boot_done:
-                        LOG.debug('Adding file system on partition: '
-                                  'mount=%s type=%s' %
-                                  (volume['mount'],
-                                   volume.get('file_system', 'ext2')))
-                        partition_scheme.add_fs(
-                            device=prt.name, mount=volume['mount'],
-                            fs_type=volume.get('file_system', 'ext2'),
-                            fs_label=volume.get('disk_label'))
-                        self._boot_done = True
-
             # this partition will be used to put there configdrive image
             if (partition_scheme.configdrive_device() is None and
                     self._needs_configdrive() and
@@ -514,12 +452,6 @@ class Nailgun(BaseDataDriver):
                 LOG.debug('Adding configdrive partition on disk %s: size=20' %
                           disk['name'])
                 parted.add_partition(size=20, configdrive=True)
-
-        # checking if /boot is expected to be created
-        if self._have_boot_partition(self.ks_disks) and \
-                (not self._boot_partition_done or not self._boot_done):
-            raise errors.WrongPartitionSchemeError(
-                '/boot partition has not been created for some reasons')
 
         # checking if configdrive partition is created
         if (not partition_scheme.configdrive_device() and

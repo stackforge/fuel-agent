@@ -145,17 +145,11 @@ PROVISION_SAMPLE_DATA = {
                         "disk/by-id/ata-VBOX_HARDDISK_VB69050467-b385c7cd"
                     ],
                     "free_space": 64907,
+                    "bootable": True,
                     "volumes": [
                         {
                             "type": "boot",
-                            "size": 300
-                        },
-                        {
-                            "mount": "/boot",
-                            "size": 200,
-                            "type": "raid",
-                            "file_system": "ext2",
-                            "name": "Boot"
+                            "size": 500
                         },
                         {
                             "mount": "/tmp",
@@ -609,17 +603,11 @@ SINGLE_DISK_KS_SPACES = [
         "name": "sda",
         "extra": ["sda"],
         "free_space": 1024,
+        "bootable": True,
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext2",
-                "name": "Boot"
+                "size": 500
             },
             {
                 "mount": "/",
@@ -644,7 +632,7 @@ SECOND_DISK_OS_KS_SPACES = [
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
+                "size": 500
             },
         ],
         "type": "disk",
@@ -655,17 +643,11 @@ SECOND_DISK_OS_KS_SPACES = [
         "name": "sdb",
         "extra": ["sdb"],
         "free_space": 1024,
+        "bootable": True,
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext2",
-                "name": "Boot"
+                "size": 500
             },
             {
                 "mount": "/",
@@ -689,17 +671,11 @@ MPATH_DISK_KS_SPACES = [
             'disk/by-id/scsi-SATA_VBOX_HARDDISK_VB69050467-b385c7cd',
             'disk/by-id/wwn-fake_wwn_1'],
         "free_space": 1024,
+        "bootable": True,
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext2",
-                "name": "Boot"
+                "size": 500
             },
             {
                 "mount": "/",
@@ -742,7 +718,7 @@ NO_BOOT_KS_SPACES = [
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
+                "size": 500
             },
             {
                 "mount": "/",
@@ -755,96 +731,6 @@ NO_BOOT_KS_SPACES = [
         "type": "disk",
         "id": "sda",
         "size": 102400
-    }
-]
-
-MD_RAID_KS_SPACES = [
-    {
-        "name": "sda",
-        "extra": ["sda"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext4",
-                "name": "Root"
-            },
-        ],
-        "type": "disk",
-        "id": "sda",
-        "size": 102400
-    }
-]
-
-FIRST_DISK_HUGE_KS_SPACES = [
-    {
-        "name": "sda",
-        "extra": ["sda"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext4",
-                "name": "Root"
-            },
-        ],
-        "type": "disk",
-        "id": "sda",
-        "size": 2097153
-    },
-    {
-        "name": "sdb",
-        "extra": ["sdb"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/tmp",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext2",
-                "name": "TMP"
-            },
-        ],
-        "type": "disk",
-        "id": "sdb",
-        "size": 65535
     }
 ]
 
@@ -867,169 +753,14 @@ ONLY_ROOTFS_IMAGE_SPACES = [
     }
 ]
 
-FIRST_DISK_NVME_KS_SPACES = [
-    {
-        "name": "nvme0n1",
-        "extra": ["nvme0n1"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext4",
-                "name": "Root"
-            },
-        ],
-        "type": "disk",
-        "id": "nvme0n1",
-        "size": 97153
-    },
-    {
-        "name": "sda",
-        "extra": ["sda"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/tmp",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext2",
-                "name": "TMP"
-            },
-        ],
-        "type": "disk",
-        "id": "sda",
-        "size": 65535
-    }
-]
-
-ONLY_ONE_NVME_KS_SPACES = [
-    {
-        "name": "nvme0n1",
-        "extra": ["/dev/nvme0n1"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext4",
-                "name": "Root"
-            },
-        ],
-        "type": "disk",
-        "id": "nvme0n1",
-        "size": 97153
-    },
-]
-
-MANY_HUGE_DISKS_KS_SPACES = [
-    {
-        "name": "sda",
-        "extra": ["sda"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext4",
-                "name": "Root"
-            },
-        ],
-        "type": "disk",
-        "id": "sda",
-        "size": 2097153
-    },
-    {
-        "name": "sdb",
-        "extra": ["sdb"],
-        "free_space": 1024,
-        "volumes": [
-            {
-                "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
-            },
-            {
-                "mount": "/tmp",
-                "size": 200,
-                "type": "partition",
-                "file_system": "ext2",
-                "name": "TMP"
-            },
-        ],
-        "type": "disk",
-        "id": "sdb",
-        "size": 2097153
-    }
-]
-
 LVM_META_POOL_KS_SPACES = [
     {
         'name': 'sda',
+        'bootable': True,
         'volumes': [
             {
                 'type': 'boot',
-                'size': 300
-            },
-            {
-                'mount': '/boot',
-                'size': 200,
-                'type': 'raid',
-                'file_system': 'ext2',
-                'name': 'Boot'
+                'size': 500
             },
             {
                 'type': 'lvm_meta_pool',
@@ -1059,14 +790,7 @@ LVM_META_POOL_KS_SPACES = [
         'volumes': [
             {
                 'type': 'boot',
-                'size': 300
-            },
-            {
-                'mount': '/boot',
-                'size': 200,
-                'type': 'raid',
-                'file_system': 'ext2',
-                'name': 'Boot'
+                'size': 500
             },
             {
                 'type': 'lvm_meta_pool',
@@ -1096,14 +820,7 @@ LVM_META_POOL_KS_SPACES = [
         'volumes': [
             {
                 'type': 'boot',
-                'size': 300
-            },
-            {
-                'mount': '/boot',
-                'size': 200,
-                'type': 'raid',
-                'file_system': 'ext2',
-                'name': 'Boot'
+                'size': 500
             },
             {
                 'type': 'lvm_meta_pool',
@@ -1167,25 +884,6 @@ LVM_META_POOL_KS_SPACES = [
         'label': 'Virtual Storage'}
 ]
 
-SINGLE_NVME_DISK_KS_SPACES = [
-    {
-        'extra': ['disk/by-id/wwn-0x65cd2e4080864356494e000000010000'],
-        'free_space': 762469,
-        'id': 'disk/by-path/pci-0000:05:00.0',
-        'name': 'nvme0n1',
-        'size': 763097,
-        'type': 'disk',
-        'volumes': [
-            {'size': 300, 'type': 'boot'},
-            {'file_system': 'ext2', 'mount': '/boot', 'name': 'Boot',
-             'size': 200, 'type': 'raid'},
-            {'size': 0, 'type': 'lvm_meta_pool'},
-            {'lvm_meta_size': 64, 'size': 55360, 'type': 'pv', 'vg': 'os'},
-            {'lvm_meta_size': 64, 'size': 707237, 'type': 'pv', 'vg': 'vm'}
-        ]
-    }
-]
-
 
 FAKE_RAID_DISK_KS_SPACES = [
     {
@@ -1195,14 +893,7 @@ FAKE_RAID_DISK_KS_SPACES = [
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
+                "size": 500
             },
             {
                 "mount": "/var",
@@ -1223,14 +914,7 @@ FAKE_RAID_DISK_KS_SPACES = [
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
+                "size": 500
             },
             {
                 "mount": "/tmp",
@@ -1248,17 +932,11 @@ FAKE_RAID_DISK_KS_SPACES = [
         "name": "md123",
         "extra": ["md123"],
         "free_space": 1024,
+        "bootable": True,
         "volumes": [
             {
                 "type": "boot",
-                "size": 300
-            },
-            {
-                "mount": "/boot",
-                "size": 200,
-                "type": "raid",
-                "file_system": "ext2",
-                "name": "Boot"
+                "size": 500
             },
             {
                 "lvm_meta_size": 64,
@@ -1410,72 +1088,6 @@ class TestNailgunMatch(unittest2.TestCase):
         self.assertFalse(nailgun.match_device(fake_hu_disk, fake_ks_disk))
 
 
-class TestNailgunBootDisks(unittest2.TestCase):
-    class PropertyMock(mock.Mock):
-        def __get__(self, instance, owner):
-            return self()
-
-    nvme_disk = {
-        'name': 'nvmen1', 'size': 5,
-        'volumes': [{'type': 'raid', 'mount': '/boot', 'size': 1}],
-    }
-    disks = [
-        {'name': 'sda', 'size': 5,
-         'volumes': [{'type': 'partition', 'mount': '/boot',
-                     'size': 1}],
-         },
-        {'name': 'sdb', 'size': 5,
-         'volumes': [{'type': 'raid', 'mount': '/boot', 'size': 1}],
-         },
-    ]
-    big_disk = {
-        'name': '2big', 'size': 555555555,
-        'volumes': [{'type': 'raid', 'mount': '/boot', 'size': 1}],
-    }
-    fake_raid = {
-        'name': 'md123', 'size': 5,
-        'volumes': [{'type': 'raid', 'mount': '/boot', 'size': 1},
-                    {'type': 'pv', 'vg': 'os', 'size': 1}],
-    }
-    non_os_fake_raid = {
-        'name': 'md456', 'size': 5,
-        'volumes': [{'type': 'raid', 'mount': '/boot', 'size': 1},
-                    {'type': 'pv', 'vg': 'image', 'size': 1}],
-    }
-
-    def _check_boot_disks(self, ks_disks_return_value,
-                          not_expected_disk, expected_disks):
-        with mock.patch.object(nailgun.Nailgun, '__init__', return_value=None):
-            ks_disks = self.PropertyMock()
-            with mock.patch.object(nailgun.Nailgun, 'ks_disks', ks_disks):
-                drv = nailgun.Nailgun('fake_data')
-                ks_disks.return_value = ks_disks_return_value
-                self.assertNotIn(not_expected_disk, drv.boot_disks)
-                self.assertEqual(expected_disks, drv.boot_disks)
-
-    def test_md_boot_disk(self):
-        ks_disks_return_value = self.disks + [self.non_os_fake_raid] +\
-            [self.fake_raid]
-        not_expected_disk = self.non_os_fake_raid
-        expected_disks = [self.fake_raid]
-        self._check_boot_disks(ks_disks_return_value, not_expected_disk,
-                               expected_disks)
-
-    def test_only_small_boot_disks(self):
-        ks_disks_return_value = self.disks + [self.big_disk]
-        not_expected_disk = self.big_disk
-        expected_disks = self.disks
-        self._check_boot_disks(ks_disks_return_value, not_expected_disk,
-                               expected_disks)
-
-    def test_boot_disks_no_nvme(self):
-        ks_disks_return_value = self.disks + [self.nvme_disk]
-        not_expected_disk = self.nvme_disk
-        expected_disks = self.disks
-        self._check_boot_disks(ks_disks_return_value, not_expected_disk,
-                               expected_disks)
-
-
 @mock.patch.object(nailgun.Nailgun, '__init__', return_value=None)
 class TestNailgunGetOSMethods(unittest2.TestCase):
     def test_parse_operating_system_test_profiles(self, mock_nailgun):
@@ -1582,16 +1194,6 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         self.assertEqual(2, len(p_scheme.vgs))
         self.assertEqual(3, len(p_scheme.parteds))
 
-    def test_parse_partition_scheme_for_nvme_disks(
-            self, mock_lbd, mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['ks_meta']['pm_data']['ks_spaces'] = (SINGLE_NVME_DISK_KS_SPACES +
-                                                   SINGLE_DISK_KS_SPACES)
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE_NVME
-        drv = nailgun.Nailgun(data)
-        p_scheme = drv.partition_scheme
-        self.assertEqual(2, len(p_scheme.parteds))
-
     def test_image_scheme(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
@@ -1670,7 +1272,7 @@ class TestNailgunMockedMeta(unittest2.TestCase):
     def test_get_partition_count(self, mock_lbd, mock_image_meta):
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(PROVISION_SAMPLE_DATA)
-        self.assertEqual(3, drv._get_partition_count('Boot'))
+        self.assertEqual(2, drv._get_partition_count('Boot'))
         self.assertEqual(1, drv._get_partition_count('TMP'))
 
     def test_partition_scheme_ceph(self, mock_lbd, mock_image_meta):
@@ -1695,16 +1297,6 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         for disk, part in enumerate((-2, -1, -1)):
             self.assertEqual(CEPH_DATA['partition_guid'],
                              p_scheme.parteds[disk].partitions[part].guid)
-
-    def test_grub_stage1_on_all_disks(self, mock_lbd, mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['ks_meta']['pm_data']['ks_spaces'] = FIRST_DISK_HUGE_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        for parted in drv.partition_scheme.parteds:
-            # check that the first partition was created for stage1
-            # it should have very specific flag 'bios_grub'
-            self.assertIn('bios_grub', parted.partitions[0].flags)
 
     def test_grub_centos_26(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
@@ -1759,6 +1351,7 @@ class TestNailgunMockedMeta(unittest2.TestCase):
 
     def test_boot_partition_bootable_flag(self, mock_lbd, mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['ks_meta']['pm_data']['ks_spaces'][0]['bootable'] = False
         data['ks_meta']['pm_data']['ks_spaces'][1]['bootable'] = True
         mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
         drv = nailgun.Nailgun(data)
@@ -1821,26 +1414,6 @@ class TestNailgunMockedMeta(unittest2.TestCase):
             drv.partition_scheme.fs_by_mount('/boot').device,
             '/dev/sda3')
 
-    def test_boot_partition_ok_first_disk_huge(self, mock_lbd,
-                                               mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['ks_meta']['pm_data']['ks_spaces'] = FIRST_DISK_HUGE_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        self.assertEqual(
-            drv.partition_scheme.fs_by_mount('/boot').device,
-            '/dev/sdb3')
-
-    def test_boot_partition_ok_many_huge_disks(self, mock_lbd,
-                                               mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['ks_meta']['pm_data']['ks_spaces'] = MANY_HUGE_DISKS_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        self.assertEqual(
-            drv.partition_scheme.fs_by_mount('/boot').device,
-            '/dev/sda3')
-
     def test_boot_partition_and_rootfs_on_fake_raid(self, mock_lbd,
                                                     mock_image_meta):
         data = copy.deepcopy(PROVISION_SAMPLE_DATA)
@@ -1858,28 +1431,7 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         drv = nailgun.Nailgun(data)
         self.assertEqual(
             drv.partition_scheme.fs_by_mount('/').device,
-            '/dev/sda3')
-        # there's no boot partition is scheme.
-        # It is not expected to be created
-        self.assertIsNone(drv.partition_scheme.fs_by_mount('/boot'))
-
-    def test_boot_partition_no_boot_nvme(self, mock_lbd, mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['ks_meta']['pm_data']['ks_spaces'] = ONLY_ONE_NVME_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE_NVME
-        with self.assertRaisesRegexp(
-                errors.WrongPartitionSchemeError,
-                '/boot partition has not been created for some reasons'):
-            nailgun.Nailgun(data)
-
-    def test_boot_partition_is_not_on_nvme(self, mock_lbd, mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['ks_meta']['pm_data']['ks_spaces'] = FIRST_DISK_NVME_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE_NVME
-        drv = nailgun.Nailgun(data)
-        self.assertEqual(
-            drv.partition_scheme.fs_by_mount('/boot').device,
-            '/dev/sda3')
+            '/dev/sda4')
 
     def test_boot_partition_is_on_rootfs_nailgun(self, mock_lbd,
                                                  mock_image_meta):
@@ -1889,8 +1441,7 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         drv = nailgun.Nailgun(data)
         self.assertEqual(
             drv.partition_scheme.fs_by_mount('/').device,
-            '/dev/sda3')
-        self.assertIsNone(drv.partition_scheme.fs_by_mount('/boot'))
+            '/dev/sda4')
 
     def test_unallocated_disks_lvm_meta(self, mock_lbd, mock_image_meta):
         # even if a disk contains /boot partition or lvm_meta_pool volume
@@ -1911,38 +1462,7 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         drv = nailgun.Ironic(data)
         self.assertEqual(
             drv.partition_scheme.fs_by_mount('/').device,
-            '/dev/sda3')
-        self.assertIsNone(drv.partition_scheme.fs_by_mount('/boot'))
-
-    def test_md_metadata_centos(self, mock_lbd, mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['profile'] = 'base-centos-x86_64'
-        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        self.assertEqual(1, drv.grub.version)
-        self.assertEqual(1, len(drv.partition_scheme.mds))
-        self.assertEqual('0.90', drv.partition_scheme.mds[0].metadata)
-
-    def test_md_metadata_centos70(self, mock_lbd, mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['profile'] = 'base-centos7-x86_64'
-        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        self.assertEqual(2, drv.grub.version)
-        self.assertEqual(1, len(drv.partition_scheme.mds))
-        self.assertEqual('default', drv.partition_scheme.mds[0].metadata)
-
-    def test_md_metadata_ubuntu(self, mock_lbd, mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['profile'] = 'base-ubuntu_1404_x86_64'
-        data['ks_meta']['pm_data']['ks_spaces'] = MD_RAID_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        self.assertEqual(1, len(drv.partition_scheme.mds))
-        self.assertEqual(2, drv.grub.version)
-        self.assertEqual('default', drv.partition_scheme.mds[0].metadata)
+            '/dev/sda4')
 
 
 @mock.patch.object(utils, 'init_http_request')

@@ -92,7 +92,7 @@ class TestManager(unittest2.TestCase):
             initrd='guessed_initrd', kernel='guessed_kernel',
             chroot='/tmp/target', grub_timeout=10)
         mock_gu.grub1_install.assert_called_once_with(
-            ['/dev/sda', '/dev/sdb', '/dev/sdc'],
+            ['/dev/sda'],
             '/dev/sda3', chroot='/tmp/target')
         mock_gu.guess_initrd.assert_called_once_with(
             regexp='fake_initrd_regexp', chroot='/tmp/target')
@@ -126,7 +126,7 @@ class TestManager(unittest2.TestCase):
             initrd='initrd_name', kernel='kernel_name', chroot='/tmp/target',
             grub_timeout=10)
         mock_gu.grub1_install.assert_called_once_with(
-            ['/dev/sda', '/dev/sdb', '/dev/sdc'],
+            ['/dev/sda'],
             '/dev/sda3', chroot='/tmp/target')
         self.assertFalse(mock_gu.guess_initrd.called)
         self.assertFalse(mock_gu.guess_kernel.called)
@@ -225,7 +225,7 @@ class TestManager(unittest2.TestCase):
             kernel='guessed_kernel',
             grub_timeout=10)
         mock_gu.grub1_install.assert_called_once_with(
-            ['/dev/sda', '/dev/sdb', '/dev/sdc'],
+            ['/dev/sda'],
             '/dev/sda3', chroot='/tmp/target')
         self.assertFalse(mock_gu.grub2_cfg.called)
         self.assertFalse(mock_gu.grub2_install.called)
@@ -252,7 +252,7 @@ class TestManager(unittest2.TestCase):
                           'nomodeset root=UUID=fake_UUID ',
             chroot='/tmp/target', grub_timeout=10)
         mock_gu.grub2_install.assert_called_once_with(
-            ['/dev/sda', '/dev/sdb', '/dev/sdc'],
+            ['/dev/sda'],
             chroot='/tmp/target')
         self.assertFalse(mock_gu.grub1_cfg.called)
         self.assertFalse(mock_gu.grub1_install.called)
@@ -445,7 +445,6 @@ class TestManager(unittest2.TestCase):
                                      mock.call('/dev/sdb', 'gpt'),
                                      mock.call('/dev/sdc', 'gpt')]
         self.assertEqual(mock_pu_ml_expected_calls, mock_pu_ml.call_args_list)
-
         mock_pu_mp_expected_calls = [
             mock.call('/dev/sda', 1, 25, 'primary'),
             mock.call('/dev/sda', 26, 226, 'primary'),
@@ -454,18 +453,14 @@ class TestManager(unittest2.TestCase):
             mock.call('/dev/sda', 629, 20067, 'primary'),
             mock.call('/dev/sda', 20068, 65665, 'primary'),
             mock.call('/dev/sda', 65666, 65686, 'primary'),
-            mock.call('/dev/sdb', 1, 25, 'primary'),
-            mock.call('/dev/sdb', 26, 226, 'primary'),
-            mock.call('/dev/sdb', 227, 65198, 'primary'),
-            mock.call('/dev/sdc', 1, 25, 'primary'),
-            mock.call('/dev/sdc', 26, 226, 'primary'),
-            mock.call('/dev/sdc', 227, 65198, 'primary')]
+            mock.call('/dev/sdb', 1, 201, 'primary'),
+            mock.call('/dev/sdb', 202, 65173, 'primary'),
+            mock.call('/dev/sdc', 1, 201, 'primary'),
+            mock.call('/dev/sdc', 202, 65173, 'primary')]
 
         self.assertEqual(mock_pu_mp_expected_calls, mock_pu_mp.call_args_list)
 
-        mock_pu_spf_expected_calls = [mock.call('/dev/sda', 1, 'bios_grub'),
-                                      mock.call('/dev/sdb', 1, 'bios_grub'),
-                                      mock.call('/dev/sdc', 1, 'bios_grub')]
+        mock_pu_spf_expected_calls = [mock.call('/dev/sda', 1, 'bios_grub')]
         self.assertEqual(mock_pu_spf_expected_calls,
                          mock_pu_spf.call_args_list)
 
@@ -476,13 +471,13 @@ class TestManager(unittest2.TestCase):
         mock_lu_p_expected_calls = [
             mock.call('/dev/sda5', metadatasize=28, metadatacopies=2),
             mock.call('/dev/sda6', metadatasize=28, metadatacopies=2),
-            mock.call('/dev/sdb3', metadatasize=28, metadatacopies=2),
-            mock.call('/dev/sdc3', metadatasize=28, metadatacopies=2)]
+            mock.call('/dev/sdb2', metadatasize=28, metadatacopies=2),
+            mock.call('/dev/sdc2', metadatasize=28, metadatacopies=2)]
         self.assertEqual(mock_lu_p_expected_calls, mock_lu_p.call_args_list)
 
         mock_lu_v_expected_calls = [mock.call('os', '/dev/sda5'),
                                     mock.call('image', '/dev/sda6',
-                                              '/dev/sdb3', '/dev/sdc3')]
+                                              '/dev/sdb2', '/dev/sdc2')]
         self.assertEqual(mock_lu_v_expected_calls, mock_lu_v.call_args_list)
 
         mock_lu_l_expected_calls = [mock.call('os', 'root', 15360),
@@ -1143,7 +1138,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
 
         mock_fu_mf_expected_calls = [
             mock.call('ext2', '', '', '/dev/mapper/12312-part3'),
-            mock.call('ext4', '', '', '/dev/sdc3')]
+            mock.call('ext4', '', '', '/dev/sdc1')]
         self.assertEqual(mock_fu_mf_expected_calls, mock_fu_mf.call_args_list)
 
     @mock.patch.object(manager.utils, 'udevadm_trigger_blocks')
@@ -1164,7 +1159,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
         for call in mock_utils_wait.mock_calls:
             self.assertEqual(call, mock.call(attempts=10))
 
-        self.assertEqual(len(mock_utils_trigger.call_args_list), 8)
+        self.assertEqual(len(mock_utils_trigger.call_args_list), 6)
 
         self.assertEqual(mock_make_label.mock_calls, [
             mock.call('/dev/mapper/12312', 'gpt'),
@@ -1176,10 +1171,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
             mock.call('/dev/mapper/12312', 227, 427, 'primary'),
             mock.call('/dev/mapper/12312', 428, 628, 'primary'),
             mock.call('/dev/mapper/12312', 629, 649, 'primary'),
-            mock.call('/dev/sdc', 1, 25, 'primary'),
-            mock.call('/dev/sdc', 26, 226, 'primary'),
-            mock.call('/dev/sdc', 227, 427, 'primary')])
+            mock.call('/dev/sdc', 1, 201, 'primary')])
 
         self.assertEqual(mock_set_partition_flag.mock_calls, [
-            mock.call('/dev/mapper/12312', 1, 'bios_grub'),
-            mock.call('/dev/sdc', 1, 'bios_grub')])
+            mock.call('/dev/mapper/12312', 1, 'bios_grub')])
