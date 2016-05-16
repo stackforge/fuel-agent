@@ -236,7 +236,7 @@ def _activate_flavor(flavor=None):
 
 
 @notifier.notify_webui_on_fail
-def _activate(image_uuid):
+def _activate_image(image_uuid):
     symlink = CONF.active_bootstrap_symlink
 
     if os.path.lexists(symlink):
@@ -263,4 +263,4 @@ def activate(image_uuid):
     #                    after cobbler will be used for is_active
     parse(image_uuid)
 
-    return _activate(image_uuid)
+    return _activate_image(image_uuid)
