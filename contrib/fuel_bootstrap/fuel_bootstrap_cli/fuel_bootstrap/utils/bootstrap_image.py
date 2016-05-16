@@ -235,18 +235,21 @@ def _activate_flavor(flavor=None):
     utils.execute('service', 'astute', 'restart')
 
 
-@notifier.notify_webui_on_fail
-def _activate(image_uuid):
-    symlink = CONF.active_bootstrap_symlink
-
+def _make_symlink(symlink, dir_path):
     if os.path.lexists(symlink):
         os.unlink(symlink)
         LOG.debug("Symlink %s was deleted", symlink)
 
-    dir_path = full_path(image_uuid)
     os.symlink(dir_path, symlink)
-    LOG.debug("Symlink %s to %s directory has been created",
-              symlink, dir_path)
+    LOG.debug("Symlink %s to %s directory has been created", symlink, dir_path)
+
+
+@notifier.notify_webui_on_fail
+def _activate_image(image_uuid):
+    symlink = CONF.active_bootstrap_symlink
+    dir_path = full_path(image_uuid)
+
+    _make_symlink(symlink, dir_path)
 
     # FIXME: Add pre-activate verify
     flavor = 'ubuntu'
@@ -263,4 +266,4 @@ def activate(image_uuid):
     #                    after cobbler will be used for is_active
     parse(image_uuid)
 
-    return _activate(image_uuid)
+    return _activate_image(image_uuid)
