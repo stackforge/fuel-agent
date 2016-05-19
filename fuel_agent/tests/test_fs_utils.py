@@ -128,3 +128,12 @@ class TestFSUtils(unittest2.TestCase):
         self.assertRaises(errors.ProcessExecutionError,
                           fu.umount_fs, '/fake', try_lazy_umount=False)
         self.assertEqual(expected_calls, mock_exec.call_args_list)
+
+    def test_get_fs_type(self, mock_exec):
+        output = "megafs\n"
+        mock_exec.return_value = (output, '')
+        ret = fu.get_fs_type('/dev/sda4')
+        mock_exec.assert_called_once_with('blkid', '-o', 'value',
+                                          '-s', 'TYPE', '-c', '/dev/null',
+                                          '/dev/sda4')
+        self.assertEqual(ret, 'megafs')
