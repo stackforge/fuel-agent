@@ -51,9 +51,13 @@ def extend_fs(fs_type, fs_dev):
         raise errors.FsUtilsError('Unsupported file system type')
 
 
-def mount_fs(fs_type, fs_dev, fs_mount):
-    utils.execute('mount', '-t', fs_type, fs_dev, fs_mount,
-                  check_exit_code=[0])
+def mount_fs(fs_type, fs_dev, fs_mount, mount_opts=None):
+    if mount_opts:
+        utils.execute('mount', '-t', fs_type, '-o', mount_opts, fs_dev,
+                      fs_mount, check_exit_code=[0])
+    else:
+        utils.execute('mount', '-t', fs_type, fs_dev, fs_mount,
+                      check_exit_code=[0])
 
 
 def mount_bind(chroot, path, path2=None):
@@ -80,3 +84,9 @@ def umount_fs(fs_mount, try_lazy_umount=False):
                 utils.execute('umount', '-l', fs_mount, check_exit_code=[0])
             else:
                 raise
+
+
+def get_fs_type(device):
+    output = utils.execute('blkid', '-o', 'value', '-s', 'TYPE',
+                           '-c', '/dev/null', device)[0]
+    return output.strip()
