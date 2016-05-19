@@ -16,6 +16,7 @@
 Fuel Agent deploy driver.
 """
 
+import errno
 import json
 import os
 import tempfile
@@ -27,7 +28,6 @@ from oslo_utils import excutils
 from oslo_utils import fileutils
 import six
 
-from ironic_lib import utils as ironic_utils
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -87,6 +87,17 @@ FUEL_AGENT_PROVISION_TEMPLATE = {
         }
     }
 }
+
+
+def unlink_without_raise(path):
+    try:
+        os.unlink(path)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            return
+        else:
+            LOG.warning(_LW("Failed to unlink %(path)s, error: %(e)s"),
+                        {'path': path, 'e': e})
 
 
 def _parse_driver_info(node):
@@ -285,7 +296,7 @@ def _clean_up_pxe(task):
     pxe_info = _get_tftp_image_info(task.node)
     for label in pxe_info:
         path = pxe_info[label][1]
-        ironic_utils.unlink_without_raise(path)
+        unlink_without_raise(path)
     AgentTFTPImageCache().clean_up()
     pxe_utils.clean_up_pxe_config(task)
 
