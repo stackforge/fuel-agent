@@ -24,7 +24,7 @@ from fuel_bootstrap import consts
 from fuel_bootstrap import errors
 from fuel_bootstrap.utils import data as bs_data
 
-DATA = {'ubuntu_release': 'trusty',
+DATA = {'ubuntu_release': 'xenial',
         'repos': ['deb http://archive.ubuntu.com/ubuntu suite'],
         'post_script_file': None,
         'root_ssh_authorized_file': '/root/test',

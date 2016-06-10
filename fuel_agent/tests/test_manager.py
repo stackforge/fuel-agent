@@ -1004,7 +1004,7 @@ class TestImageBuild(unittest2.TestCase):
                     'priority': 1001
                 }
             ],
-            "codename": "trusty",
+            "codename": "xenial",
             "hashed_root_password": self.TEST_ROOT_PASSWORD,
         }
         self.mgr = manager.Manager(image_conf)
@@ -1040,9 +1040,9 @@ class TestImageBuild(unittest2.TestCase):
         self.mgr.driver._operating_system = objects.Ubuntu(
             repos=[
                 objects.DEBRepo('ubuntu', 'http://fakeubuntu',
-                                'trusty', 'fakesection', priority=900),
+                                'xenial', 'fakesection', priority=900),
                 objects.DEBRepo('ubuntu_zero', 'http://fakeubuntu_zero',
-                                'trusty', 'fakesection', priority=None),
+                                'xenial', 'fakesection', priority=None),
                 objects.DEBRepo('mos', 'http://fakemos',
                                 'mosX.Y', 'fakesection', priority=1000)],
             packages=['fakepackage1', 'fakepackage2'],
@@ -1108,7 +1108,7 @@ class TestImageBuild(unittest2.TestCase):
         self.assertEqual([mock.call('/tmp/imgdir')] * 2,
                          mock_bu.suppress_services_start.call_args_list)
         mock_bu.run_debootstrap.assert_called_once_with(
-            uri='http://fakeubuntu', suite='trusty', chroot='/tmp/imgdir',
+            uri='http://fakeubuntu', suite='xenial', chroot='/tmp/imgdir',
             attempts=CONF.fetch_packages_attempts,
             proxies={'fake': 'fake'}, direct_repo_addr='fake_addr')
         mock_bu.set_apt_get_env.assert_called_once_with()
