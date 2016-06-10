@@ -710,7 +710,7 @@ class NailgunBuildImage(BaseDataDriver):
     # we need to handle package list in nailgun. Even more,
     # in the future, we'll be building not only ubuntu images
     # and we'll likely move this list into some kind of config.
-    DEFAULT_TRUSTY_PACKAGES = [
+    DEFAULT_XENIAL_PACKAGES = [
         "acl",
         "anacron",
         "bash-completion",
@@ -723,12 +723,10 @@ class NailgunBuildImage(BaseDataDriver):
         "debconf-utils",
         "gdisk",
         "grub-pc",
-        "hpsa-dkms",
         "i40e-dkms",
         "linux-firmware",
-        "linux-firmware-nonfree",
-        "linux-headers-generic-lts-trusty",
-        "linux-image-generic-lts-trusty",
+        "linux-headers-generic-lts-xenial",
+        "linux-image-generic-lts-xenial",
         "lvm2",
         "mcollective",
         "mdadm",
@@ -785,7 +783,7 @@ class NailgunBuildImage(BaseDataDriver):
         return None
 
     def parse_operating_system(self):
-        packages = self.data.get('packages', self.DEFAULT_TRUSTY_PACKAGES)
+        packages = self.data.get('packages', self.DEFAULT_XENIAL_PACKAGES)
 
         repos = []
         for repo in self.data['repos']:
