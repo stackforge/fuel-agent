@@ -892,7 +892,7 @@ class Manager(object):
         install_devices = [d.name for d in self.driver.partition_scheme.parteds
                            if d.install_bootloader]
 
-        grub.append_kernel_params('root=UUID=%s ' % mount2uuid['/'])
+        #grub.append_kernel_params('root=UUID=%s ' % mount2uuid['/'])
 
         kernel = grub.kernel_name or gu.guess_kernel(chroot=chroot,
                                                      regexp=grub.kernel_regexp)

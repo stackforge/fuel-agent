@@ -22,7 +22,7 @@ import unittest2
 from fuel_agent.drivers.nailgun import NailgunBuildImage
 from fuel_agent import objects
 
-DEFAULT_TRUSTY_PACKAGES = [
+DEFAULT_XENIAL_PACKAGES = [
     "acl",
     "anacron",
     "bash-completion",
@@ -35,12 +35,9 @@ DEFAULT_TRUSTY_PACKAGES = [
     "debconf-utils",
     "gdisk",
     "grub-pc",
-    "hpsa-dkms",
-    "i40e-dkms",
     "linux-firmware",
-    "linux-firmware-nonfree",
-    "linux-headers-generic-lts-trusty",
-    "linux-image-generic-lts-trusty",
+    "linux-headers-generic-lts-xenial",
+    "linux-image-generic-lts-xenial",
     "lvm2",
     "mcollective",
     "mdadm",
@@ -74,7 +71,7 @@ REPOS_SAMPLE = [
         "section": "main universe multiverse",
         "uri": "http://archive.ubuntu.com/ubuntu/",
         "priority": None,
-        "suite": "trusty",
+        "suite": "xenial",
         "type": "deb"
     },
     {
@@ -103,9 +100,9 @@ IMAGE_DATA_SAMPLE = {
 
 class TestNailgunBuildImage(unittest2.TestCase):
 
-    def test_default_trusty_packages(self):
-        self.assertEqual(NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES,
-                         DEFAULT_TRUSTY_PACKAGES)
+    def test_default_xenial_packages(self):
+        self.assertEqual(NailgunBuildImage.DEFAULT_XENIAL_PACKAGES,
+                         DEFAULT_XENIAL_PACKAGES)
 
     @mock.patch('fuel_agent.objects.RepoProxies')
     @mock.patch('fuel_agent.objects.Ubuntu')
@@ -114,7 +111,7 @@ class TestNailgunBuildImage(unittest2.TestCase):
                                                    mock_ub, mock_proxies):
         data = {
             'repos': [],
-            'codename': 'trusty',
+            'codename': 'xenial',
             'packages': ['pack']
         }
         mock_ub_instance = mock_ub.return_value
@@ -132,16 +129,16 @@ class TestNailgunBuildImage(unittest2.TestCase):
             self, mock_parse_schemes, mock_ub, mock_proxies):
         data = {
             'repos': [],
-            'codename': 'trusty'
+            'codename': 'xenial'
         }
         mock_ub_instance = mock_ub.return_value
-        mock_ub_instance.packages = NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES
+        mock_ub_instance.packages = NailgunBuildImage.DEFAULT_XENIAL_PACKAGES
         driver = NailgunBuildImage(data)
         mock_ub.assert_called_once_with(
-            repos=[], packages=NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES,
+            repos=[], packages=NailgunBuildImage.DEFAULT_XENIAL_PACKAGES,
             major=14, minor=4, proxies=mock_proxies.return_value)
         self.assertEqual(driver.operating_system.packages,
-                         NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES)
+                         NailgunBuildImage.DEFAULT_XENIAL_PACKAGES)
 
     @mock.patch('fuel_agent.objects.RepoProxies')
     @mock.patch('fuel_agent.objects.DEBRepo')
@@ -151,7 +148,7 @@ class TestNailgunBuildImage(unittest2.TestCase):
                                           mock_deb, mock_proxies):
         data = {
             'repos': REPOS_SAMPLE,
-            'codename': 'trusty'
+            'codename': 'xenial'
         }
 
         mock_deb_expected_calls = []
@@ -170,7 +167,7 @@ class TestNailgunBuildImage(unittest2.TestCase):
         mock_ub_instance = mock_ub.return_value
         mock_ub_instance.repos = repos
         mock_ub.assert_called_once_with(
-            repos=repos, packages=NailgunBuildImage.DEFAULT_TRUSTY_PACKAGES,
+            repos=repos, packages=NailgunBuildImage.DEFAULT_XENIAL_PACKAGES,
             major=14, minor=4, proxies=mock_proxies.return_value)
         self.assertEqual(mock_deb_expected_calls,
                          mock_deb.call_args_list[:len(REPOS_SAMPLE)])
