@@ -1064,6 +1064,8 @@ class Manager(object):
                             hashed_root_password=root.hashed_password,
                             allow_unsigned_file=CONF.allow_unsigned_file,
                             force_ipv4_file=CONF.force_ipv4_file)
+            # Mask mcollective service
+            bu.mask_mcollective(chroot)
             # restore disabled hosts/resolv files
             bu.restore_resolv_conf(chroot)
             metadata['all_packages'] = bu.get_installed_packages(chroot)

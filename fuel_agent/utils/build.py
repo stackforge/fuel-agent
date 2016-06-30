@@ -207,6 +207,10 @@ def do_post_inst(chroot, hashed_root_password,
     clean_apt_settings(chroot, allow_unsigned_file=allow_unsigned_file,
                        force_ipv4_file=force_ipv4_file)
 
+def mask_mcollective(chroot)
+    # mask mcollective service
+    os.symlink('/dev/null',
+               os.path.join(chroot, 'etc/systemd/system/mcollective.service'))
 
 def stop_chrooted_processes(chroot, signal=sig.SIGTERM,
                             attempts=10, attempts_delay=2):
