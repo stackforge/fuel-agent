@@ -213,6 +213,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'etc/shadow'),
             mock.call('chroot', 'etc/init.d/puppet'),
             mock.call('chroot', 'etc/init/mcollective.override'),
+            mock.call('chroot', 'etc/systemd/system/mcollective.service'),
             mock.call('/', bu.GRUB2_DMRAID_SETTINGS)]
         self.assertEqual(mock_path_join_expected_calls,
                          mock_path.join.call_args_list)

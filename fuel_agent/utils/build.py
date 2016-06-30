@@ -195,6 +195,9 @@ def do_post_inst(chroot, hashed_root_password,
     # to prevent confusing messages in its log (regarding connection errors).
     with open(os.path.join(chroot, 'etc/init/mcollective.override'), 'w') as f:
         f.write("manual\n")
+    if os.path.exists(os.path.join(chroot, 'etc/systemd/system')):
+        os.symlink('/dev/null',
+            os.path.join(chroot, 'etc/systemd/system/mcollective.service'))
     # NOTE(agordeev): remove custom policy-rc.d which is needed to disable
     # execution of post/pre-install package hooks and start of services
     remove_files(chroot, ['usr/sbin/policy-rc.d'])
