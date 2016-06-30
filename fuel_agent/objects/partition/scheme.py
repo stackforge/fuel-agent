@@ -60,6 +60,16 @@ class PartitionScheme(object):
 
     def add_fs(self, **kwargs):
         fs = FileSystem(**kwargs)
+        # There is a bug in isabs function, that leads to
+        # AttributeError exception if we run it against NoneType
+        # objects
+        try:
+            isabs = os.path.isabs(fs.mount)
+        except:
+            isabs = False
+        if not isabs and fs.mount != 'swap':
+            raise errors.WrongFSMount(
+                'Incorrect mount point %s' % fs.mount)
         self.fss.append(fs)
         return fs
 
