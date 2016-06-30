@@ -912,12 +912,28 @@ none /run/shm tmpfs rw,nosuid,nodev 0 0"""
         self.mgr.driver.partition_scheme.add_fs(
             device='/dev/fake1', mount='/', fs_type='ext4')
         self.mgr.driver.partition_scheme.add_fs(
-            device='/dev/fake2', mount='/var/lib', fs_type='ext4')
+            device='/dev/fake2', mount='/var/lib/', fs_type='ext4')
         self.assertEqual({'/': '/tmp/dir1', '/var/lib': '/tmp/dir2'},
                          self.mgr.mount_target_flat())
         self.assertEqual([mock.call('ext4', '/dev/fake1'),
                           mock.call('ext4', '/dev/fake2')],
                          mock_mfst.call_args_list)
+
+    @mock.patch('fuel_agent.utils.fs.mount_fs_temp')
+    def test_mount_target_flat_malformed(self, mock_mfst):
+        def mfst_side_effect(*args, **kwargs):
+            if '/dev/fake1' in args:
+                return '/tmp/dir1'
+            elif '/dev/fake2' in args:
+                return '/tmp/dir2'
+        mock_mfst.side_effect = mfst_side_effect
+        self.mgr.driver._partition_scheme = objects.PartitionScheme()
+        self.mgr.driver.partition_scheme.add_fs(
+            device='/dev/fake1', mount='/', fs_type='ext4')
+        self.mgr.driver.partition_scheme.add_fs(
+            device='/dev/fake2', mount='var/lib', fs_type='ext4')
+        self.assertRaisesRegexp(ValueError, 'Incorrect mount point var/lib',
+                                self.mgr.mount_target_flat)
 
     @mock.patch('fuel_agent.manager.shutil.rmtree')
     @mock.patch('fuel_agent.utils.fs.umount_fs')
