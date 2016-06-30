@@ -1172,8 +1172,8 @@ class TestImageBuild(unittest2.TestCase):
                           mock.call('/tmp/img-boot', 'gzip',
                                     chunk_size=CONF.data_chunk_size)],
                          mock_bu.containerize.call_args_list)
-        mock_open.assert_called_once_with('/fake/img.yaml', 'wt',
-                                          encoding='utf-8')
+        mock_open.assert_called_with('/fake/img.yaml', 'wt',
+                                     encoding='utf-8')
         self.assertEqual(
             [mock.call('/tmp/img.gz', '/fake/img.img.gz'),
              mock.call('/tmp/img-boot.gz', '/fake/img-boot.img.gz')],
