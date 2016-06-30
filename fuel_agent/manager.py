@@ -515,8 +515,9 @@ class Manager(object):
                     check_path = os.path.join(mount_map[head], tail)
                     LOG.debug('Trying to check if path %s exists', check_path)
                     if os.path.exists(check_path):
-                        LOG.debug('Path %s exists. Trying to sync all files '
-                                  'from there to %s', mount_map[fs_mount])
+                        LOG.debug('Path exists. Trying to sync all files '
+                                  'from %s to %s', check_path,
+                                  mount_map[fs_mount])
                         src_path = check_path + '/'
                         utils.execute('rsync', '-avH', src_path,
                                       mount_map[fs_mount])
@@ -543,11 +544,14 @@ class Manager(object):
                 continue
             # It is an ugly hack to resolve python2/3 encoding issues and
             # should be removed after transistion to python3
+            if not os.path.isabs(fs.mount):
+                raise ValueError('Incorrect mount point %s' % fs.mount)
             try:
                 type(fs.mount) is unicode
                 fs_mount = fs.mount.encode('ascii', 'ignore')
             except NameError:
                 fs_mount = fs.mount
+            fs_mount=os.path.normpath(fs_mount)
             mount_map[fs_mount] = fu.mount_fs_temp(fs.type, str(fs.device))
         LOG.debug('Flat mount map: %s', mount_map)
         return mount_map
