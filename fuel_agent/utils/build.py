@@ -208,6 +208,12 @@ def do_post_inst(chroot, hashed_root_password,
                        force_ipv4_file=force_ipv4_file)
 
 
+def mask_mcollective(chroot):
+    # mask mcollective service
+    os.symlink('/dev/null',
+               os.path.join(chroot, 'etc/systemd/system/mcollective.service'))
+
+
 def stop_chrooted_processes(chroot, signal=sig.SIGTERM,
                             attempts=10, attempts_delay=2):
     """Sends signal to all processes, which are running inside chroot.
