@@ -218,6 +218,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'var/lib/cloud'),
             mock.call('fake_path', 'data'),
             mock.call('fake_path', 'data', 'upgraded-network'),
+            mock.call('chroot', 'etc/systemd/system/mcollective.service'),
             mock.call('/', bu.GRUB2_DMRAID_SETTINGS)]
         self.assertEqual(mock_path_join_expected_calls,
                          mock_path.join.call_args_list)
