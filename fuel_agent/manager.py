@@ -1168,6 +1168,12 @@ class Manager(object):
                             hashed_root_password=root.hashed_password,
                             allow_unsigned_file=CONF.allow_unsigned_file,
                             force_ipv4_file=CONF.force_ipv4_file)
+            # NOTE(isuzdal): disable cloud-init network auto configuration
+            with open(os.path.join(
+                    chroot,
+                    'etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'),
+                    'w') as f:
+                f.write(u'network: {config: disabled}\n')
 
             LOG.debug('Making sure there are no running processes '
                       'inside chroot before trying to umount chroot')

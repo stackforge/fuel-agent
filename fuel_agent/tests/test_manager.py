@@ -1140,6 +1140,9 @@ class TestImageBuild(unittest2.TestCase):
             hashed_root_password=self.TEST_ROOT_PASSWORD,
             allow_unsigned_file=CONF.allow_unsigned_file,
             force_ipv4_file=CONF.force_ipv4_file)
+        file_handle_mock = mock_open.return_value.__enter__.return_value
+        file_handle_mock.write.assert_called_once_with(
+            'network: {config: disabled}\n')
 
         signal_calls = mock_bu.stop_chrooted_processes.call_args_list
         self.assertEqual(2 * [mock.call('/tmp/imgdir', signal=signal.SIGTERM),
@@ -1172,8 +1175,8 @@ class TestImageBuild(unittest2.TestCase):
                           mock.call('/tmp/img-boot', 'gzip',
                                     chunk_size=CONF.data_chunk_size)],
                          mock_bu.containerize.call_args_list)
-        mock_open.assert_called_once_with('/fake/img.yaml', 'wt',
-                                          encoding='utf-8')
+        mock_open.assert_called_with('/fake/img.yaml', 'wt',
+                                     encoding='utf-8')
         self.assertEqual(
             [mock.call('/tmp/img.gz', '/fake/img.img.gz'),
              mock.call('/tmp/img-boot.gz', '/fake/img-boot.img.gz')],
