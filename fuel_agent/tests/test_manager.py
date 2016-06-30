@@ -971,6 +971,28 @@ none /run/shm tmpfs rw,nosuid,nodev 0 0"""
             mock_ute.call_args_list)
         self.assertFalse(mock_shrmt.called)
 
+    @mock.patch('fuel_agent.manager.shutil.rmtree')
+    @mock.patch('fuel_agent.manager.os.path.exists')
+    @mock.patch('fuel_agent.manager.utils.execute')
+    @mock.patch('fuel_agent.manager.Manager.umount_target_flat')
+    @mock.patch('fuel_agent.manager.Manager.mount_target_flat')
+    def test_move_files_to_their_places_mailformed(self, mock_mtf, mock_utf,
+                                        mock_ute, mock_ope, mock_shrmt):
+
+        def ope_side_effect(path):
+            if path == '/tmp/dir1/var/lib':
+                return True
+
+        mock_ope.side_effect = ope_side_effect
+        mock_mtf.return_value = {'/': '/tmp/dir1', '/var/lib///': '/tmp/dir2'}
+        self.mgr.move_files_to_their_places()
+        self.assertEqual(
+            [mock.call('rsync', '-avH', '/tmp/dir1/var/lib/', '/tmp/dir2')],
+            mock_ute.call_args_list)
+        self.assertEqual(
+            [mock.call('/tmp/dir1/var/lib')],
+            mock_shrmt.call_args_list)
+
 
 class TestImageBuild(unittest2.TestCase):
     @mock.patch('yaml.load')
