@@ -515,9 +515,13 @@ class Manager(object):
                     check_path = os.path.join(mount_map[head], tail)
                     LOG.debug('Trying to check if path %s exists', check_path)
                     if os.path.exists(check_path):
-                        LOG.debug('Path %s exists. Trying to sync all files '
-                                  'from there to %s', mount_map[fs_mount])
-                        src_path = check_path + '/'
+                        LOG.debug('Path exists. Trying to sync all files '
+                                  'from %s to %s', check_path,
+                                  mount_map[fs_mount])
+                        if check_path.endswith("/"):
+                            src_path = check_path
+                        else:
+                            src_path = check_path + "/"
                         utils.execute('rsync', '-avH', src_path,
                                       mount_map[fs_mount])
                         if remove_src:
