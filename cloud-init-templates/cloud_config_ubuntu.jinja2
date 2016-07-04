@@ -133,10 +133,11 @@ runcmd:
  - if [ -x /bin/systemctl ]; then
  - /bin/systemctl unmask mcollective
  - /bin/systemctl enable mcollective
+ - /bin/systemctl start mcollective
  - else
  - rm -f /etc/init/mcollective.override
  - fi
-{% endif %}
+ % endif %}
  - iptables -t filter -F INPUT
  - iptables -t filter -F FORWARD
 
