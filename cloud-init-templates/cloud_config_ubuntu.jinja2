@@ -136,6 +136,7 @@ runcmd:
  - else
  - rm -f /etc/init/mcollective.override
  - fi
+ - /usr/sbin/service mcollective restart
 {% endif %}
  - iptables -t filter -F INPUT
  - iptables -t filter -F FORWARD
