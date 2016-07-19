@@ -192,6 +192,11 @@ cli_opts = [
         default='/tmp',
         help='Directory where the image is supposed to be built',
     ),
+    cfg.BoolOpt(
+        'use_uuid_root',
+        default=False,
+        help='Add extra "root=UUID" option to the kernel cmdline'
+    )
 ]
 
 CONF = cfg.CONF
@@ -895,8 +900,8 @@ class Manager(object):
         boot_device = self.driver.partition_scheme.boot_device(grub.version)
         install_devices = [d.name for d in self.driver.partition_scheme.parteds
                            if d.install_bootloader]
-
-        grub.append_kernel_params('root=UUID=%s ' % mount2uuid['/'])
+        if CONF.use_uuid_root:
+            grub.append_kernel_params('root=UUID=%s ' % mount2uuid['/'])
 
         kernel = grub.kernel_name or gu.guess_kernel(chroot=chroot,
                                                      regexp=grub.kernel_regexp)
