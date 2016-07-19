@@ -88,7 +88,7 @@ class TestManager(unittest2.TestCase):
         self.assertFalse(mock_gu.grub2_cfg.called)
         self.assertFalse(mock_gu.grub2_install.called)
         mock_gu.grub1_cfg.assert_called_once_with(
-            kernel_params='fake_kernel_params root=UUID= ',
+            kernel_params='fake_kernel_params',
             initrd='guessed_initrd', kernel='guessed_kernel',
             chroot='/tmp/target', grub_timeout=10)
         mock_gu.grub1_install.assert_called_once_with(
@@ -122,7 +122,7 @@ class TestManager(unittest2.TestCase):
         self.assertFalse(mock_gu.grub2_cfg.called)
         self.assertFalse(mock_gu.grub2_install.called)
         mock_gu.grub1_cfg.assert_called_once_with(
-            kernel_params='fake_kernel_params root=UUID= ',
+            kernel_params='fake_kernel_params',
             initrd='initrd_name', kernel='kernel_name', chroot='/tmp/target',
             grub_timeout=10)
         mock_gu.grub1_install.assert_called_once_with(
@@ -131,36 +131,6 @@ class TestManager(unittest2.TestCase):
         self.assertFalse(mock_gu.guess_initrd.called)
         self.assertFalse(mock_gu.guess_kernel.called)
         self.assertFalse(mock_bu.override_lvm_config.called)
-
-    @mock.patch('fuel_agent.manager.hw', autospec=True)
-    @mock.patch('fuel_agent.manager.bu', autospec=True)
-    @mock.patch('fuel_agent.objects.bootloader.Grub', autospec=True)
-    @mock.patch('fuel_agent.manager.open',
-                create=True, new_callable=mock.mock_open)
-    @mock.patch('fuel_agent.manager.gu', create=True)
-    @mock.patch('fuel_agent.manager.utils', create=True)
-    @mock.patch.object(manager.Manager, 'mount_target')
-    @mock.patch.object(manager.Manager, 'umount_target')
-    def test_do_bootloader_rootfs_uuid(self, mock_umount, mock_mount,
-                                       mock_utils, mock_gu, mock_open,
-                                       mock_grub, mock_bu, mock_hw):
-        def _fake_uuid(*args, **kwargs):
-            if len(args) >= 8 and args[7] == '/dev/mapper/os-root':
-                return ('FAKE_ROOTFS_UUID', None)
-            else:
-                return ('FAKE_UUID', None)
-        mock_hw.is_multipath_device.return_value = False
-        mock_utils.execute.side_effect = _fake_uuid
-        mock_grub.version = 2
-        mock_gu.guess_grub_version.return_value = 2
-        mock_grub.kernel_name = 'fake_kernel_name'
-        mock_grub.initrd_name = 'fake_initrd_name'
-        mock_grub.kernel_params = 'fake_kernel_params'
-        self.mgr.driver._grub = mock_grub
-        self.mgr.do_bootloader()
-        mock_grub.append_kernel_params.assert_called_once_with(
-            'root=UUID=FAKE_ROOTFS_UUID ')
-        self.assertEqual(2, mock_grub.version)
 
     @mock.patch('fuel_agent.manager.hw', autospec=True)
     @mock.patch('fuel_agent.manager.bu', autospec=True)
@@ -219,7 +189,7 @@ class TestManager(unittest2.TestCase):
             chroot='/tmp/target')
         mock_gu.grub1_cfg.assert_called_once_with(
             kernel_params=' console=ttyS0,9600 console=tty0 rootdelay=90 '
-                          'nomodeset root=UUID=fake_UUID ',
+                          'nomodeset',
             initrd='guessed_initrd',
             chroot='/tmp/target',
             kernel='guessed_kernel',
@@ -249,7 +219,7 @@ class TestManager(unittest2.TestCase):
             chroot='/tmp/target')
         mock_gu.grub2_cfg.assert_called_once_with(
             kernel_params=' console=ttyS0,9600 console=tty0 rootdelay=90 '
-                          'nomodeset root=UUID=fake_UUID ',
+                          'nomodeset',
             chroot='/tmp/target', grub_timeout=10)
         mock_gu.grub2_install.assert_called_once_with(
             ['/dev/sda', '/dev/sdb', '/dev/sdc'],
