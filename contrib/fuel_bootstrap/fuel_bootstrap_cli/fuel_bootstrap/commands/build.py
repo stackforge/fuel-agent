@@ -28,7 +28,7 @@ class BuildCommand(command.Command):
             '--ubuntu-release',
             type=str,
             help="Choose the Ubuntu release (currently supports"
-                 " only trusty).",
+                 " only Trusty or Xenial).",
         )
         parser.add_argument(
             '--repo',
