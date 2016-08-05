@@ -104,6 +104,8 @@ def run_apt_get(chroot, packages, eatmydata=False, attempts=10):
     dpkg/apt-get tools. It's dangerous, but could decrease package install
     time in X times.
     """
+    utils.execute('chroot', chroot, 'find', '/var/lib/apt/lists',
+                  '-type', 'f', '-delete')
     for action in ('update', 'dist-upgrade'):
         cmds = ['chroot', chroot, 'apt-get', '-y', action]
         stdout, stderr = utils.execute(*cmds, attempts=attempts)
@@ -170,6 +172,9 @@ def clean_apt_settings(chroot, allow_unsigned_file='allow_unsigned_packages',
     for p_file in six.itervalues(PROXY_PROTOCOLS):
         files.append(os.path.join(DEFAULT_APT_PATH['conf_dir'], p_file))
     remove_files(chroot, files)
+    LOG.debug('Cleaning /var/lib/apt/lists in chroot ...')
+    utils.execute('chroot', chroot, 'find', '/var/lib/apt/list',
+                  '-type', 'f', '-delete')
     dirs = [DEFAULT_APT_PATH['preferences_dir'],
             DEFAULT_APT_PATH['sources_dir']]
     clean_dirs(chroot, dirs)
