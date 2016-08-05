@@ -24,6 +24,9 @@ from fuel_bootstrap import consts
 
 class Configuration(object):
     def __init__(self, config_file=None):
+        self.read(config_file)
+
+    def read(self, config_file):
         data = {}
         if not config_file:
             config_file = consts.CONFIG_FILE

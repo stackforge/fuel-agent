@@ -18,6 +18,7 @@ from cliff import command
 
 from fuel_bootstrap.utils import bootstrap_image as bs_image
 
+CONF = settings.CONF
 
 class BuildCommand(command.Command):
     """Build new bootstrap image with specified parameters."""
@@ -170,9 +171,19 @@ class BuildCommand(command.Command):
                   " by ssh still rejected by default! This password actual"
                   " only for tty login!"),
         )
+        parser.add_argument(
+            '--config',
+            dest='config_file',
+            type=str,
+            metavar='FILE',
+            help="The config file is to be used for taking configuration"
+                 " parameters from during building of the bootstrap."
+        )
         return parser
 
     def take_action(self, parsed_args):
+        if parsed_args.config_file:
+            CONF.read(parsed_args.config_file)
         image_uuid, path = bs_image.make_bootstrap(vars(parsed_args))
         self.app.stdout.write("Bootstrap image {0} has been built: {1}\n"
                               .format(image_uuid, path))
