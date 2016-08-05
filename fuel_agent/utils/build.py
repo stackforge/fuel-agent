@@ -166,6 +166,9 @@ def clean_apt_settings(chroot, allow_unsigned_file='allow_unsigned_packages',
              DEFAULT_APT_PATH['preferences_file'],
              os.path.join(DEFAULT_APT_PATH['conf_dir'], force_ipv4_file),
              os.path.join(DEFAULT_APT_PATH['conf_dir'], allow_unsigned_file)]
+    # remove cached lists
+    utils.execute('chroot', chroot, 'find', '/var/lib/apt/list',
+                  '-type', 'f', '-delete')
     # also remove proxies
     for p_file in six.itervalues(PROXY_PROTOCOLS):
         files.append(os.path.join(DEFAULT_APT_PATH['conf_dir'], p_file))
