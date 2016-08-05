@@ -14,12 +14,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from cliff import command
-
+from fuel_bootstrap.commands import base
 from fuel_bootstrap.utils import bootstrap_image as bs_image
+from fuel_bootstrap import consts
+
+CONF = settings.CONF
 
 
-class BuildCommand(command.Command):
+class BuildCommand(base.BaseCommand):
     """Build new bootstrap image with specified parameters."""
 
     def get_parser(self, prog_name):
@@ -173,6 +175,7 @@ class BuildCommand(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        super(BuildCommand, self).take_action(parsed_args)
         image_uuid, path = bs_image.make_bootstrap(vars(parsed_args))
         self.app.stdout.write("Bootstrap image {0} has been built: {1}\n"
                               .format(image_uuid, path))
