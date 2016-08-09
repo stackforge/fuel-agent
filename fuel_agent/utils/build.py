@@ -524,6 +524,10 @@ def pre_apt_get(chroot, allow_unsigned_file='allow_unsigned_packages',
     with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
                            force_ipv4_file), 'w') as f:
         f.write('Acquire::ForceIPv4 "true";\n')
+    with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
+                           'zero_pipeline_depth'), 'w') as f:
+        f.write('Acquire::http::No-Cache "true";\n')
+        f.write('Acquire::http::Pipeline-Depth 0;\n')
 
     if proxies:
         set_apt_proxy(chroot, proxies, direct_repo_addr)
