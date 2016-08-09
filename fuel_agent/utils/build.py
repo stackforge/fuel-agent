@@ -513,6 +513,7 @@ def set_apt_proxy(chroot, proxies, direct_repo_addr=None):
 
 def pre_apt_get(chroot, allow_unsigned_file='allow_unsigned_packages',
                 force_ipv4_file='force_ipv4',
+                pipeline_depth_file='pipeline_depth',
                 proxies=None, direct_repo_addr=None):
     """It must be called prior run_apt_get."""
     clean_apt_settings(chroot, allow_unsigned_file=allow_unsigned_file,
@@ -524,6 +525,9 @@ def pre_apt_get(chroot, allow_unsigned_file='allow_unsigned_packages',
     with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
                            force_ipv4_file), 'w') as f:
         f.write('Acquire::ForceIPv4 "true";\n')
+    with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
+                           pipeline_depth_file), 'w') as f:
+        f.write('Acquire::http::Pipeline-Depth 0;\n')
 
     if proxies:
         set_apt_proxy(chroot, proxies, direct_repo_addr)
