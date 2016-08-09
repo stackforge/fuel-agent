@@ -33,6 +33,9 @@ from fuel_agent import errors
 from fuel_agent.utils import fs as fu
 from fuel_agent.utils import hardware as hu
 from fuel_agent.utils import utils
+from fuel_bootstrap import settings
+
+CONF = settings.CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -517,13 +520,15 @@ def pre_apt_get(chroot, allow_unsigned_file='allow_unsigned_packages',
     """It must be called prior run_apt_get."""
     clean_apt_settings(chroot, allow_unsigned_file=allow_unsigned_file,
                        force_ipv4_file=force_ipv4_file)
-    # NOTE(agordeev): allow to install packages without gpg digest
-    with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
-                           allow_unsigned_file), 'w') as f:
-        f.write('APT::Get::AllowUnauthenticated 1;\n')
-    with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
-                           force_ipv4_file), 'w') as f:
-        f.write('Acquire::ForceIPv4 "true";\n')
+
+    apt_conf_d = CONF.apt_get_d
+    if isinstance(apt_conf_d, dict):
+        for filename, lines in apt_conf_d.get('pre_apt_get', {}).items():
+            with open(os.path.join(chroot, DEFAULT_APT_PATH['conf_dir'],
+                           filename), 'w') as f:
+                for line in lines:
+                    LOG.debug('Writing "%s" to %s', filename, line)
+                    f.write('{}\n'.format(line))
 
     if proxies:
         set_apt_proxy(chroot, proxies, direct_repo_addr)

@@ -18,6 +18,12 @@ extra_dirs:
 output_dir: /tmp/
 # Defines kernel version
 kernel_flavor: linux-image-generic-lts-xenial
+apt_conf_d:
+  pre_apt_get:
+    allow_unsigned_packages:
+      - 'APT::Get::AllowUnauthenticated 1;'
+    force_ipv4:
+      - 'Acquire::ForceIPv4 "true";'
 # Define packages list
 packages:
   - fuel-agent
