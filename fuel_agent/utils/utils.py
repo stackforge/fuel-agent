@@ -110,6 +110,8 @@ def execute(*cmd, **kwargs):
     for attempt in reversed(six.moves.range(attempts)):
         try:
             process = []
+            stdout = []
+            stderr = []
             for c in commands:
                 try:
                     # NOTE(eli): Python's shlex implementation doesn't like
@@ -144,6 +146,8 @@ def execute(*cmd, **kwargs):
             return (stdout, stderr)
         except errors.ProcessExecutionError as e:
             LOG.warning('Failed to execute command: %s', e)
+            LOG.warning('Attempts left: {0}\nstdout:\n{1}\nstderr:\n{2}\n'
+                        .format(attempt, stdout, stderr))
             if not attempt:
                 raise
             else:
