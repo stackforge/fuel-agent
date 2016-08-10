@@ -144,6 +144,8 @@ def execute(*cmd, **kwargs):
             return (stdout, stderr)
         except errors.ProcessExecutionError as e:
             LOG.warning('Failed to execute command: %s', e)
+            LOG.warning('Attempts left: {0}\nstdout:\n{1}\nstderr:\n{2}'
+                        .format(attempt, e.stdout, e.stderr))
             if not attempt:
                 raise
             else:
