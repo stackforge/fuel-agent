@@ -107,7 +107,7 @@ def run_apt_get(chroot, packages, eatmydata=False, attempts=10):
     for action in ('update', 'dist-upgrade'):
         cmds = ['chroot', chroot, 'apt-get', '-y', action]
         stdout, stderr = utils.execute(*cmds, attempts=attempts)
-        LOG.debug('Running apt-get %s completed.\nstdout: %s\nstderr: %s',
+        LOG.debug('Running apt-get %s completed.\nstdout:\n%s\nstderr:\n%s',
                   action, stdout, stderr)
     cmds = ['chroot', chroot, 'apt-get', '-y', 'install', ' '.join(packages)]
     if eatmydata:
