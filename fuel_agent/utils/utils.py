@@ -143,7 +143,12 @@ def execute(*cmd, **kwargs):
                           format(stdout, stderr))
             return (stdout, stderr)
         except errors.ProcessExecutionError as e:
-            LOG.warning('Failed to execute command: %s', e)
+            LOG.warning('Failed to execute command: %(cmd)s\n'
+                        'Attempts left: %(attempt)s\n'
+                        'StdOut:\n%(stdout)s\n'
+                        'StdErr:\n%(stderr)s\n'
+                        .format(attempt=attempt, cmd=e.cmd,
+                                stdout=e.stdout, stderr=e.stderr))
             if not attempt:
                 raise
             else:
