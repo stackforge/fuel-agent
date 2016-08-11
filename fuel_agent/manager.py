@@ -438,9 +438,6 @@ class Manager(object):
                          grub_timeout=CONF.grub_timeout)
             gu.grub2_install(install_devices, chroot=chroot)
 
-        provision.udev_nic_naming_rules(
-            chroot, self.driver.configdrive_scheme.common.udevrules)
-
         # FIXME(agordeev): Normally, that should be handled out side of
         # fuel-agent. Just a temporary fix to avoid dealing with cloud-init
         # boothooks.
@@ -491,6 +488,11 @@ class Manager(object):
                 else:
                     f.write('UUID=%s %s %s defaults 0 0\n' %
                             (mount2uuid[fs.mount], fs.mount, fs.type))
+        # NOTE(agordeev): rebuild initramfs image for including
+        # custom udev rules from /etc/udev/rules.d/
+        provision.udev_nic_naming_rules(
+            chroot, self.driver.configdrive_scheme.common.udevrules)
+        bu.recompress_initramfs(chroot)
 
         self.umount_target(chroot)
 
