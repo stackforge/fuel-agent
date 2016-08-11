@@ -134,7 +134,7 @@ opts = [
     cfg.BoolOpt(
         'fix_udev_net_rules',
         default=True,
-        help='Add udev rules for NIC remapping'
+        help='Add udev rules for NIC remapping and include them to initramfs'
     ),
     cfg.BoolOpt(
         'skip_md_containers',
@@ -922,10 +922,6 @@ class Manager(object):
                          grub_timeout=CONF.grub_timeout)
             gu.grub2_install(install_devices, chroot=chroot)
 
-        if CONF.fix_udev_net_rules:
-            provision.udev_nic_naming_rules(
-                chroot, self.driver.configdrive_scheme.common.udevrules)
-
         # FIXME(agordeev): Normally, that should be handled out side of
         # fuel-agent. Just a temporary fix to avoid dealing with cloud-init
         # boothooks.
@@ -962,6 +958,12 @@ class Manager(object):
                 else:
                     f.write(u'UUID=%s %s %s defaults 0 0\n' %
                             (mount2uuid[fs.mount], fs.mount, fs.type))
+        # NOTE(agordeev): rebuild initramfs image for including
+        # custom udev rules from /etc/udev/rules.d/
+        if CONF.fix_udev_net_rules:
+            provision.udev_nic_naming_rules(
+                chroot, self.driver.configdrive_scheme.common.udevrules)
+            bu.recompress_initramfs(chroot)
 
         self.umount_target(chroot)
 
