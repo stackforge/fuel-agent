@@ -1,8 +1,6 @@
 ---
-# This settings.yaml.sample will build only CLEAN
-# image, w\o any additional fuel packages.
-# Builded image can't be used for fuel provisioning!
-# Base OS are ubuntu xenial
+# This settings-fuel-trusty.yaml.sample will build
+# fuel bootstrap from trusty release, using upstream fuel 9.0 mirrors.
 
 # User can pass any type of executable script
 #post_script_file: /tmp/my_custom_script
@@ -12,30 +10,37 @@ extend_kopts: "biosdevname=0 net.ifnames=1 debug ignore_loglevel log_buf_len=10M
 # Here is the template name for Ubuntu release.
 # Keep in mind, that you also should fix 'kernel_flavor' parameter and
 # repositories  url's.
-ubuntu_release: xenial
+ubuntu_release: trusty
 # Directory that will be injected to the image
 # root filesystem. **NOTE** Files/packages will be
 # injected after installing all packages, but before
 # generating system initramfs - thus it's possible to
 # adjust initramfs
-#extra_dirs:
-#    - /usr/share/fuel_bootstrap_cli/files/xenial
+extra_dirs:
+    - /usr/share/fuel_bootstrap_cli/files/trusty
 # Save generated bootstrap container to
 output_dir: /tmp/
 # Defines kernel version
-kernel_flavor: linux-image-generic-lts-xenial
+kernel_flavor: linux-image-generic-lts-trusty
 # Define packages list
 packages:
+    - fuel-agent
+    - hpsa-dkms
     - hwloc
+    - i40e-dkms
     - linux-firmware
     - linux-firmware-nonfree
     - linux-headers-generic
     - live-boot
     - live-boot-initramfs-tools
     - mc
+    - mcollective
     - msmtp-mta
     - multipath-tools
     - multipath-tools-boot
+    - nailgun-agent
+    - nailgun-mcagents
+    - network-checker
     - ntp
     - openssh-client
     - openssh-server
@@ -56,21 +61,45 @@ repos:
     - name: ubuntu
       priority:
       section: "main universe multiverse"
-      suite: xenial
+      suite: trusty
       type: deb
       uri: "http://archive.ubuntu.com/ubuntu"
     - name: ubuntu-updates
       priority:
       section: "main universe multiverse"
-      suite: xenial-updates
+      suite: trusty-updates
       type: deb
       uri: "http://archive.ubuntu.com/ubuntu"
     - name: ubuntu-security
       priority:
       section: "main universe multiverse"
-      suite: xenial-security
+      suite: trusty-security
       type: deb
       uri: "http://archive.ubuntu.com/ubuntu"
+    - name: mos
+      priority: 1050
+      section: "main restricted"
+      suite: mos9.0
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/9.0"
+    - name: mos-updates
+      priority: 1050
+      section: "main restricted"
+      suite: mos9.0-updates
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/9.0"
+    - name: mos-security
+      priority: 1050
+      section: "main restricted"
+      suite: mos9.0-security
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/9.0"
+    - name: mos-holdback
+      priority: 1100
+      section: "main restricted"
+      suite: mos9.0-holdback
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/9.0"
 # For fuel-bootstrap import\activate commands only.
 bootstrap_images_dir: /var/www/nailgun/bootstraps
 # For fuel-bootstrap import\activate commands only.
