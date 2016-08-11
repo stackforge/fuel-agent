@@ -635,8 +635,14 @@ def recompress_initramfs(chroot, compress='xz', initrd_mask='initrd*'):
     :initrd_mask: search kernel file by Unix style pathname
     """
     env_vars = copy.deepcopy(os.environ)
+    # NOTE(agordeev): NEED_PERSISTENT_NET allows the including of
+    # 70-persistent-net.rules udev rule into the initramfs.
+    # Actual only for Trusty.
+    # udev hook from Xenial will include custom udev rules automatically.
     add_env_vars = {'TMPDIR': '/tmp',
-                    'TMP': '/tmp'}
+                    'TMP': '/tmp',
+                    'NEED_PERSISTENT_NET': 'yes',
+                    }
 
     LOG.debug('Changing initramfs compression type to: %s', compress)
     utils.execute(

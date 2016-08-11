@@ -346,6 +346,7 @@ class TestManager(unittest2.TestCase):
             ip=self.mgr.driver.configdrive_scheme.common.admin_ip,
             netmask=self.mgr.driver.configdrive_scheme.common.admin_mask,
             gw=self.mgr.driver.configdrive_scheme.common.gw)
+        mock_bu.recompress_initramfs.assert_called_once_with('/tmp/target')
 
     @mock.patch('fuel_agent.drivers.nailgun.Nailgun.parse_image_meta',
                 return_value={})
