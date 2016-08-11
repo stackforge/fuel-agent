@@ -302,8 +302,8 @@ class TestManager(unittest2.TestCase):
                     'r|^/dev/disk/.*|',
                     'a|^/dev/mapper/.*|',
                     'r/.*/']}},
-            update_initramfs=True,
             lvm_conf_path='/etc/lvm/lvm.conf')
+        mock_bu.recompress_initramfs.assert_called_once_with('/tmp/target')
 
     @mock.patch('fuel_agent.manager.provision', autospec=True)
     @mock.patch('fuel_agent.manager.hw', autospec=True)
@@ -346,6 +346,7 @@ class TestManager(unittest2.TestCase):
             ip=self.mgr.driver.configdrive_scheme.common.admin_ip,
             netmask=self.mgr.driver.configdrive_scheme.common.admin_mask,
             gw=self.mgr.driver.configdrive_scheme.common.gw)
+        mock_bu.recompress_initramfs.assert_called_once_with('/tmp/target')
 
     @mock.patch('fuel_agent.drivers.nailgun.Nailgun.parse_image_meta',
                 return_value={})

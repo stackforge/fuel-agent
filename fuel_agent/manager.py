@@ -134,7 +134,7 @@ opts = [
     cfg.BoolOpt(
         'fix_udev_net_rules',
         default=True,
-        help='Add udev rules for NIC remapping'
+        help='Add udev rules for NIC remapping and include them to initramfs'
     ),
     cfg.BoolOpt(
         'skip_md_containers',
@@ -887,8 +887,7 @@ class Manager(object):
                     'scan': CONF.mpath_lvm_scan_dirs,
                     'global_filter': lvm_filter,
                     'preferred_names': CONF.mpath_lvm_preferred_names}},
-                lvm_conf_path=CONF.lvm_conf_path,
-                update_initramfs=True)
+                lvm_conf_path=CONF.lvm_conf_path)
 
         grub = self.driver.grub
 
@@ -921,10 +920,6 @@ class Manager(object):
             gu.grub2_cfg(kernel_params=grub.kernel_params, chroot=chroot,
                          grub_timeout=CONF.grub_timeout)
             gu.grub2_install(install_devices, chroot=chroot)
-
-        if CONF.fix_udev_net_rules:
-            provision.udev_nic_naming_rules(
-                chroot, self.driver.configdrive_scheme.common.udevrules)
 
         # FIXME(agordeev): Normally, that should be handled out side of
         # fuel-agent. Just a temporary fix to avoid dealing with cloud-init
@@ -962,6 +957,15 @@ class Manager(object):
                 else:
                     f.write(u'UUID=%s %s %s defaults 0 0\n' %
                             (mount2uuid[fs.mount], fs.mount, fs.type))
+        # NOTE(agordeev): rebuild initramfs image for including
+        # custom udev rules from /etc/udev/rules.d/
+        if CONF.fix_udev_net_rules:
+            provision.udev_nic_naming_rules(
+                chroot, self.driver.configdrive_scheme.common.udevrules)
+        if CONF.fix_udev_net_rules or multipath_devs:
+            # FIXME(agordeev): is it fine to re-compress images
+            # to xz instead of gzip?
+            bu.recompress_initramfs(chroot)
 
         self.umount_target(chroot)
 

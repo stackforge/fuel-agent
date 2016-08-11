@@ -651,7 +651,13 @@ def recompress_initramfs(chroot, compress='xz', initrd_mask='initrd*'):
     utils.execute(
         'sed', '-i', 's/^COMPRESS=.*/COMPRESS={0}/'.format(compress),
         os.path.join(chroot, 'etc/initramfs-tools/initramfs.conf'))
-
+    # NOTE(agordeev): NEED_PERSISTENT_NET allows the including of
+    # 70-persistent-net.rules udev rule into the initramfs.
+    # Actual only for Trusty.
+    # udev hook from Xenial will include custom udev rules automatically.
+    utils.execute(
+        'sed', '-i', '-e', '$aexport\ NEED_PERSISTENT_NET=yes',
+        os.path.join(chroot, 'etc/initramfs-tools/update-initramfs.conf'))
     boot_dir = os.path.join(chroot, 'boot')
     initrds = glob.glob(os.path.join(boot_dir, initrd_mask))
     LOG.debug('Removing initrd images: %s', initrds)

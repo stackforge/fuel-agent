@@ -688,7 +688,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
             'chroot', '/test/path',
             'update-initramfs -v -c -k all',
             logged=True,
-            env_variables={'TMP': '/tmp', 'TMPDIR': '/tmp'}
+            env_variables={'TMP': '/tmp', 'TMPDIR': '/tmp',
+                           'NEED_PERSISTENT_NET': 'yes'}
         )
 
     @mock.patch.object(utils, 'execute')
