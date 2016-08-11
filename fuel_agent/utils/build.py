@@ -104,11 +104,15 @@ def run_apt_get(chroot, packages, eatmydata=False, attempts=10):
     dpkg/apt-get tools. It's dangerous, but could decrease package install
     time in X times.
     """
-    for action in ('update', 'dist-upgrade'):
-        cmds = ['chroot', chroot, 'apt-get', '-y', action]
+    actions = []
+    actions.append('sh -c "find /var/lib/apt/lists -type f -delete && apt-get -y update"')
+    actions.append('apt-get -y dist-upgrade')
+    for action in actions:
+        cmds = ['chroot', chroot, action]
         stdout, stderr = utils.execute(*cmds, attempts=attempts)
-        LOG.debug('Running apt-get %s completed.\nstdout: %s\nstderr: %s',
+        LOG.debug('Running %s completed.\nstdout: %s\nstderr: %s',
                   action, stdout, stderr)
+
     cmds = ['chroot', chroot, 'apt-get', '-y', 'install', ' '.join(packages)]
     if eatmydata:
         cmds.insert(2, 'eatmydata')
