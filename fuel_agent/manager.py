@@ -134,7 +134,7 @@ opts = [
     cfg.BoolOpt(
         'fix_udev_net_rules',
         default=True,
-        help='Add udev rules for NIC remapping'
+        help='Add udev rules for NIC remapping and include them to initramfs'
     ),
     cfg.BoolOpt(
         'skip_md_containers',
@@ -887,8 +887,25 @@ class Manager(object):
                     'scan': CONF.mpath_lvm_scan_dirs,
                     'global_filter': lvm_filter,
                     'preferred_names': CONF.mpath_lvm_preferred_names}},
-                lvm_conf_path=CONF.lvm_conf_path,
-                update_initramfs=True)
+                lvm_conf_path=CONF.lvm_conf_path)
+
+        # NOTE(agordeev): rebuild initramfs image for including
+        # custom udev rules from /etc/udev/rules.d/
+        if CONF.fix_udev_net_rules or CONF.prepare_configdrive:
+            provision.udev_nic_naming_rules(
+                chroot, self.driver.configdrive_scheme.common.udevrules)
+            # NOTE(agordeev): NEED_PERSISTENT_NET allows the including of
+            # 70-persistent-net.rules udev rule into the initramfs.
+            # Actual only for Trusty. udev hook from Xenial will include
+            # custom udev rules automatically.
+            utils.execute(
+                'sed', '-i', '-e', '$aexport\ NEED_PERSISTENT_NET=yes',
+                os.path.join(chroot,
+                             'etc/initramfs-tools/update-initramfs.conf'))
+        if CONF.fix_udev_net_rules or multipath_devs:
+            # FIXME(agordeev): is it fine to re-compress images
+            # to xz instead of gzip?
+            bu.recompress_initramfs(chroot)
 
         grub = self.driver.grub
 
@@ -921,10 +938,6 @@ class Manager(object):
             gu.grub2_cfg(kernel_params=grub.kernel_params, chroot=chroot,
                          grub_timeout=CONF.grub_timeout)
             gu.grub2_install(install_devices, chroot=chroot)
-
-        if CONF.fix_udev_net_rules:
-            provision.udev_nic_naming_rules(
-                chroot, self.driver.configdrive_scheme.common.udevrules)
 
         if CONF.prepare_configdrive:
             # FIXME(agordeev): Normally, that should be handled out side of
