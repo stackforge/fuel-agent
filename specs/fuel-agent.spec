@@ -100,6 +100,7 @@ cd %{_builddir}/%{name}-%{version}/contrib/fuel_bootstrap/fuel_bootstrap_cli/ &&
 install -d -m 755 %{buildroot}%{_sysconfdir}/fuel-bootstrap-cli
 install -p -D -m 644 %{_builddir}/%{name}-%{version}/contrib/fuel_bootstrap/fuel_bootstrap_cli/fuel_bootstrap/settings.yaml.sample %{buildroot}%{_sysconfdir}/fuel-bootstrap-cli/fuel_bootstrap_cli.yaml
 install -p -D -m 644 %{_builddir}/%{name}-%{version}/contrib/fuel_bootstrap/fuel_bootstrap_cli/fuel_bootstrap/settings.yaml.sample %{buildroot}%{_datadir}/fuel_bootstrap_cli/fuel_bootstrap_cli.yaml.sample
+install -p -D -m 644 %{_builddir}/%{name}-%{version}/contrib/fuel_bootstrap/fuel_bootstrap_cli/fuel_bootstrap/settings-fuel-trusty.yaml.sample %{buildroot}%{_datadir}/fuel_bootstrap_cli/fuel_bootstrap_cli-fuel-trusty.yaml.sample
 install -d -m 755 %{buildroot}%{_datadir}/fuel_bootstrap_cli/files/
 cp -a %{_builddir}/%{name}-%{version}/contrib/fuel_bootstrap/files/* %{buildroot}%{_datadir}/fuel_bootstrap_cli/files/
 
