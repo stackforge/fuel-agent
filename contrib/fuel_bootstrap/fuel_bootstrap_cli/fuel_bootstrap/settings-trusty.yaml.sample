@@ -1,0 +1,109 @@
+--- 
+# User can pass any type of executable script
+#post_script_file: /tmp/my_custom_script
+  root_ssh_authorized_file: /root/.ssh/id_rsa.pub
+# Extended kernel PXE options
+  extend_kopts: "biosdevname=0 net.ifnames=1 debug ignore_loglevel log_buf_len=10M print_fatal_signals=1 LOGLEVEL=8"
+# Here is the template for Xenial Ubuntu release.
+# Keep in mind, that you also should fix 'kernel_flavor' parameter.
+ubuntu_release: xenial
+# Directory that will be injected to the image
+# root filesystem. **NOTE** Files/packages will be
+# injected after installing all packages, but before
+# generating system initramfs - thus it's possible to
+# adjust initramfs
+  extra_dirs: 
+    - /usr/share/fuel_bootstrap_cli/files/trusty
+# Save generated bootstrap container to
+  output_dir: /tmp/
+# Defines kernel version
+  kernel_flavor: linux-image-generic-lts-trusty
+# Define packages list
+  packages: 
+    - vim
+    - mc
+    - openssh-client
+    - openssh-server
+    - ntp
+    - mcollective
+    - nailgun-agent
+    - nailgun-mcagents
+    - network-checker
+    - fuel-agent
+    - ubuntu-minimal
+    - live-boot
+    - live-boot-initramfs-tools
+    - wget
+    - linux-firmware
+    - linux-firmware-nonfree
+    - linux-headers-generic
+    - hpsa-dkms
+    - i40e-dkms
+    - xz-utils
+    - squashfs-tools
+    - msmtp-mta
+# Specify flavor
+  flavor: ubuntu
+# Ignore proxy for this repos
+#direct_repo_addresses:
+#    - 127.0.0.1
+#    - 172.18.196.50
+# Pass proxy parameters, for access to repos
+  http_proxy: ""
+  https_proxy: ""
+# Define repos: upstream ubuntu-mirror, MirantisOpenstack mirror, extra repos.
+# First repo should be distro repo.
+  repos: 
+    - name: ubuntu
+      priority: 
+      section: "main universe multiverse"
+      suite: trusty
+      type: deb
+      uri: "http://archive.ubuntu.com/ubuntu"
+    - name: ubuntu-updates
+      priority: 
+      section: "main universe multiverse"
+      suite: trusty-updates
+      type: deb
+      uri: "http://archive.ubuntu.com/ubuntu"
+    - name: ubuntu-security
+      priority: 
+      section: "main universe multiverse"
+      suite: trusty-security
+      type: deb
+      uri: "http://archive.ubuntu.com/ubuntu"
+    - name: mos
+      priority: 1050
+      section: "main restricted"
+      suite: mos8.0
+      type: deb
+      uri: "http://127.0.0.1:8080/ubuntu/x86_64"
+    - name: mos-updates
+      priority: 1050
+      section: "main restricted"
+      suite: mos8.0-updates
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+    - name: mos-security
+      priority: 1050
+      section: "main restricted"
+      suite: mos8.0-security
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+    - name: mos-holdback
+      priority: 1100
+      section: "main restricted"
+      suite: mos8.0-holdback
+      type: deb
+      uri: "http://mirror.fuel-infra.org/mos-repos/ubuntu/8.0"
+  direct_repo_addresses: 
+    - "10.20.0.2"
+    - "127.0.0.1"
+#    uri: "http://archive.ubuntu.com/ubuntu"
+# For import\activate commands only.
+  bootstrap_images_dir: /var/www/nailgun/bootstraps
+# For import\activate commands only
+  active_bootstrap_symlink: /var/www/nailgun/bootstraps/active_bootstrap
+# For import\activate commands only
+#"fuel_access"
+#  "user": "admin"
