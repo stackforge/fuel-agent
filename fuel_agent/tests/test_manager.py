@@ -302,8 +302,8 @@ class TestManager(unittest2.TestCase):
                     'r|^/dev/disk/.*|',
                     'a|^/dev/mapper/.*|',
                     'r/.*/']}},
-            update_initramfs=True,
             lvm_conf_path='/etc/lvm/lvm.conf')
+        mock_bu.recompress_initramfs.assert_called_once_with('/tmp/target')
 
     @mock.patch('fuel_agent.manager.provision', autospec=True)
     @mock.patch('fuel_agent.manager.hw', autospec=True)
@@ -346,6 +346,23 @@ class TestManager(unittest2.TestCase):
             ip=self.mgr.driver.configdrive_scheme.common.admin_ip,
             netmask=self.mgr.driver.configdrive_scheme.common.admin_mask,
             gw=self.mgr.driver.configdrive_scheme.common.gw)
+        mock_bu.recompress_initramfs.assert_called_once_with('/tmp/target')
+
+        expected_execute_calls = [
+            mock.call('blkid', '-c', '/dev/null', '-o', 'value', '-s', 'UUID',
+                      '/dev/sda3', check_exit_code=[0]),
+            mock.call('blkid', '-c', '/dev/null', '-o', 'value', '-s', 'UUID',
+                      '/dev/sda4', check_exit_code=[0]),
+            mock.call('blkid', '-c', '/dev/null', '-o', 'value', '-s', 'UUID',
+                      '/dev/mapper/os-root', check_exit_code=[0]),
+            mock.call('blkid', '-c', '/dev/null', '-o', 'value', '-s', 'UUID',
+                      '/dev/mapper/os-swap', check_exit_code=[0]),
+            mock.call('blkid', '-c', '/dev/null', '-o', 'value', '-s', 'UUID',
+                      '/dev/mapper/image-glance', check_exit_code=[0]),
+            mock.call('sed', '-i', '-e', '$aexport\ NEED_PERSISTENT_NET=yes',
+                      '/tmp/target/etc/initramfs-tools/update-initramfs.conf')]
+        self.assertEqual(expected_execute_calls,
+                         mock_utils.execute.call_args_list)
 
     @mock.patch('fuel_agent.drivers.nailgun.Nailgun.parse_image_meta',
                 return_value={})
