@@ -1,0 +1,12 @@
+Verified+1: Fuel CI <fuel-ci-bot@mirantis.com>
+Code-Review+1: Oleksiy Molchanov <omolchanov@mirantis.com>
+Code-Review+1: Alex Schultz <aschultz@mirantis.com>
+Code-Review+1: Dmitry Pyzhov <dpyzhov+gerrit@mirantis.com>
+Code-Review+2: Aleksandr Gordeev <agordeev@mirantis.com>
+Workflow+1: Aleksandr Gordeev <agordeev@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 17 Aug 2016 16:01:41 +0000
+Reviewed-on: https://review.openstack.org/350296
+Project: openstack/fuel-agent
+Branch: refs/heads/stable/mitaka
