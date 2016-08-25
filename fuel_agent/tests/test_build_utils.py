@@ -68,8 +68,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
                       attempts=2),
             mock.call('chroot', 'chroot', 'apt-get', '-y', 'dist-upgrade',
                       attempts=2),
-            mock.call('chroot', 'chroot', 'apt-get', '-y', 'install',
-                      'package1 package2', attempts=2)]
+            mock.call('chroot', 'chroot', 'apt-get', '-y', '--force-yes',
+                      'install', 'package1 package2', attempts=2)]
         self.assertEqual(mock_exec_expected_calls, mock_exec.call_args_list)
 
     @mock.patch.object(utils, 'execute', return_value=(None, None))
@@ -82,7 +82,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'chroot', 'apt-get', '-y', 'dist-upgrade',
                       attempts=2),
             mock.call('chroot', 'chroot', 'eatmydata', 'apt-get', '-y',
-                      'install', 'package1 package2', attempts=2)]
+                      '--force-yes', 'install', 'package1 package2',
+                      attempts=2)]
         self.assertEqual(mock_exec_expected_calls, mock_exec.call_args_list)
 
     @mock.patch.object(os, 'fchmod')
