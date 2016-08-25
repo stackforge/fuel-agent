@@ -109,7 +109,8 @@ def run_apt_get(chroot, packages, eatmydata=False, attempts=10):
         stdout, stderr = utils.execute(*cmds, attempts=attempts)
         LOG.debug('Running apt-get %s completed.\nstdout: %s\nstderr: %s',
                   action, stdout, stderr)
-    cmds = ['chroot', chroot, 'apt-get', '-y', 'install', ' '.join(packages)]
+    cmds = ['chroot', chroot, 'apt-get', '-y', '--force-yes', 'install',
+            ' '.join(packages)]
     if eatmydata:
         cmds.insert(2, 'eatmydata')
     stdout, stderr = utils.execute(*cmds, attempts=attempts)
