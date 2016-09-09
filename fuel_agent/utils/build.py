@@ -201,6 +201,14 @@ def do_post_inst(chroot, hashed_root_password,
     if os.path.exists(os.path.join(chroot, 'etc/systemd/system')):
         os.symlink('/dev/null', os.path.join(chroot,
                    'etc/systemd/system/mcollective.service'))
+    cloud_init_conf = os.path.join(chroot, 'etc/cloud/cloud.cfg')
+    with open(cloud_init_conf, 'r') as cloud_conf:
+        config = yaml.safe_load(cloud_conf)
+    if 'write-files' in config['cloud_init_modules']:
+        config['cloud_init_modules'].remove('write-files')
+    config['cloud_config_modules'].append('write-files')
+    with open(cloud_init_conf, 'w') as cloud_conf:
+        yaml.safe_dump(config, cloud_conf, default_flow_style=False)
     # NOTE(mzhnichkov): skip auto networking configuration at cloud-init stage
     cloud_path = os.path.join(chroot, 'var/lib/cloud')
     if os.path.exists(cloud_path):
