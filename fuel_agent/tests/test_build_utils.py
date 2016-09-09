@@ -173,6 +173,24 @@ class BuildUtilsTestCase(unittest2.TestCase):
         self.assertEqual('chroot', mock_files.call_args[0][0])
         self.assertEqual(files, set(mock_files.call_args[0][1]))
 
+    @mock.patch('fuel_agent.utils.build.open',
+                create=True, new_callable=mock.mock_open)
+    @mock.patch('fuel_agent.utils.build.yaml.safe_dump')
+    @mock.patch('fuel_agent.utils.build.yaml.safe_load',
+                return_value={'cloud_init_modules': ['write-files', 'ssh'],
+                              'cloud_config_modules': ['runcmd']
+                              }
+                )
+    def test_fix_cloud_init_config(self, mock_yaml_load, mock_yaml_dump,
+                                   mock_open):
+        bu.fix_cloud_init_config('fake_path')
+        file_handle_mock = mock_open.return_value.__enter__.return_value
+        mock_yaml_load.assert_called_once_with(file_handle_mock)
+        mock_yaml_dump.assert_called_once_with({
+            'cloud_init_modules': ['ssh'],
+            'cloud_config_modules': ['runcmd', 'write-files']
+        }, file_handle_mock, default_flow_style=False)
+
     @mock.patch('fuel_agent.utils.build.os.symlink')
     @mock.patch('fuel_agent.utils.build.os.mkdir')
     @mock.patch('fuel_agent.utils.build.open',
@@ -181,7 +199,14 @@ class BuildUtilsTestCase(unittest2.TestCase):
     @mock.patch.object(bu, 'clean_apt_settings')
     @mock.patch.object(bu, 'remove_files')
     @mock.patch.object(utils, 'execute')
-    def test_do_post_inst(self, mock_exec, mock_files, mock_clean, mock_path,
+    @mock.patch('fuel_agent.utils.build.yaml.safe_dump')
+    @mock.patch('fuel_agent.utils.build.yaml.safe_load',
+                return_value={'cloud_init_modules': ['write-files'],
+                              'cloud_config_modules': []
+                              }
+                )
+    def test_do_post_inst(self, mock_yaml_load, mock_yaml_dump, mock_exec,
+                          mock_files, mock_clean, mock_path,
                           mock_open, mock_mkdir, mock_symlink):
         mock_path.join.return_value = 'fake_path'
         mock_path.exists.return_value = True
@@ -223,6 +248,7 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'etc/init/mcollective.override'),
             mock.call('chroot', 'etc/systemd/system'),
             mock.call('chroot', 'etc/systemd/system/mcollective.service'),
+            mock.call('chroot', 'etc/cloud/cloud.cfg'),
             mock.call('chroot', 'var/lib/cloud'),
             mock.call('fake_path', 'data'),
             mock.call('fake_path', 'data', 'upgraded-network'),
