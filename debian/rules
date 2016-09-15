@@ -31,6 +31,9 @@ override_dh_install:
 	done
 	dh_install --remaining-packages
 
+override_dh_systemd_enable:
+	dh_systemd_enable -pironic-callback --name ironic-callback  ironic-callback.service
+
 override_dh_auto_test:
 ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
 	echo "===> Running tests"
