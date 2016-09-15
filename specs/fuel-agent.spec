@@ -1,6 +1,6 @@
 %define name fuel-agent
 %{!?version: %define version 10.0.0}
-%{!?release: %define release 1}
+%{!?release: %define release 2}
 
 Name: %{name}
 Version: %{version}
@@ -114,6 +114,7 @@ rm -rf $RPM_BUILD_ROOT
 %files -n ironic-fa-bootstrap-configs
 %attr(0644,root,root) %config(noreplace) %{_datadir}/ironic-fa-bootstrap-configs/*
 %attr(0755,root,root) %config(noreplace) %{_datadir}/ironic-fa-bootstrap-configs/usr/bin/configure-remote-logging.sh
+%attr(0755,root,root) %config(noreplace) %{_datadir}/ironic-fa-bootstrap-configs/usr/bin/ironic-callback.sh
 
 %files -n fuel-bootstrap-cli -f %{_builddir}/%{name}-%{version}/contrib/fuel_bootstrap/fuel_bootstrap_cli/INSTALLED_FILES
 %defattr(0644,root,root,0755)
