@@ -1,1 +1,4 @@
+contrib/ironic/bootstrap-files/usr/bin/configure-remote-logging.sh /usr/bin/
+contrib/ironic/bootstrap-files/usr/bin/ironic-callback.sh /usr/bin/
 contrib/ironic/bootstrap-files/* /usr/share/ironic-fa-bootstrap-configs/
+debian/systemd/ironic-callback.service /lib/systemd/system
