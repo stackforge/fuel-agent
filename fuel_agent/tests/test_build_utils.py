@@ -241,7 +241,6 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'etc/init.d/puppet'),
             mock.call('chroot', 'etc/init/mcollective.override'),
             mock.call('chroot', 'etc/systemd/system'),
-            mock.call('chroot', 'etc/systemd/system/mcollective.service'),
             mock.call('chroot', 'etc/cloud/cloud.cfg'),
             mock.call('chroot', 'var/lib/cloud'),
             mock.call('fake_path', 'data'),
