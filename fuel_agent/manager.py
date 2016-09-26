@@ -937,19 +937,6 @@ class Manager(object):
                 netmask=self.driver.configdrive_scheme.common.admin_mask,
                 gw=self.driver.configdrive_scheme.common.gw)
 
-        # FIXME(kozhukalov): Prevent nailgun-agent from doing anything.
-        # This ugly hack is to be used together with the command removing
-        # this lock file not earlier than /etc/rc.local
-        # The reason for this hack to appear is to prevent nailgun-agent from
-        # changing mcollective config at the same time when cloud-init
-        # does the same. Otherwise, we can end up with corrupted mcollective
-        # config. For details see https://bugs.launchpad.net/fuel/+bug/1449186
-        LOG.debug('Preventing nailgun-agent from doing '
-                  'anything until it is unlocked')
-        utils.makedirs_if_not_exists(os.path.join(chroot, 'etc/nailgun-agent'))
-        with open(os.path.join(chroot, 'etc/nailgun-agent/nodiscover'), 'w'):
-            pass
-
         with open(chroot + '/etc/fstab', 'wt', encoding='utf-8') as f:
             for fs in self.driver.partition_scheme.fss:
                 # TODO(kozhukalov): Think of improving the logic so as to

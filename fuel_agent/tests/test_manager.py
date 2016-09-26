@@ -321,7 +321,6 @@ class TestManager(unittest2.TestCase):
             file_handle_mock = mock_open.return_value.__enter__.return_value
             self.mgr.do_bootloader()
             expected_open_calls = [
-                mock.call('/tmp/target/etc/nailgun-agent/nodiscover', 'w'),
                 mock.call('/tmp/target/etc/fstab', 'wt', encoding='utf-8')]
             self.assertEqual(expected_open_calls, mock_open.call_args_list)
             expected_write_calls = [
