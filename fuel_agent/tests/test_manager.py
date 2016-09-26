@@ -321,7 +321,6 @@ class TestManager(unittest2.TestCase):
             file_handle_mock = mock_open.return_value.__enter__.return_value
             self.mgr.do_bootloader()
             expected_open_calls = [
-                mock.call('/tmp/target/etc/nailgun-agent/nodiscover', 'w'),
                 mock.call('/tmp/target/etc/fstab', 'wt', encoding='utf-8')]
             self.assertEqual(expected_open_calls, mock_open.call_args_list)
             expected_write_calls = [
@@ -336,8 +335,6 @@ class TestManager(unittest2.TestCase):
                              file_handle_mock.write.call_args_list)
         mock_umount.assert_called_once_with('/tmp/target')
         mock_mount.assert_called_once_with('/tmp/target')
-        mock_utils.makedirs_if_not_exists.assert_called_once_with(
-            '/tmp/target/etc/nailgun-agent')
         mock_prov.udev_nic_naming_rules.assert_called_once_with(
             '/tmp/target', self.mgr.driver.configdrive_scheme.common.udevrules)
         mock_prov.configure_admin_nic.assert_called_once_with(
