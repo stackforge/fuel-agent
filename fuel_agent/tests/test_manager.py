@@ -162,6 +162,7 @@ class TestManager(unittest2.TestCase):
         mock_grub.kernel_name = 'fake_kernel_name'
         mock_grub.initrd_name = 'fake_initrd_name'
         mock_grub.kernel_params = 'fake_kernel_params'
+        mock_grub.cfg_file = '/boot/grub/grub.cfg'
         self.mgr.driver._grub = mock_grub
         self.mgr.do_bootloader()
         mock_grub.append_kernel_params.assert_called_once_with(
@@ -259,6 +260,7 @@ class TestManager(unittest2.TestCase):
         mock_gu.guess_grub_version.assert_called_once_with(
             chroot='/tmp/target')
         mock_gu.grub2_cfg.assert_called_once_with(
+            '/boot/grub/grub.cfg',
             kernel_params=' console=ttyS0,9600 console=tty0 rootdelay=90 '
                           'nomodeset',
             chroot='/tmp/target', grub_timeout=10)

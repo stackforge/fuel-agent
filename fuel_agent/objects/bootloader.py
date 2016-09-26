@@ -14,15 +14,17 @@
 
 
 class Grub(object):
-    def __init__(self, version=None, kernel_params='',
+    def __init__(self, version=2, kernel_params='',
                  kernel_name=None, kernel_regexp=None,
-                 initrd_name=None, initrd_regexp=None):
+                 initrd_name=None, initrd_regexp=None,
+                 cfg_file='/boot/grub/grub.cfg'):
         self.version = version
         self.kernel_params = kernel_params
         self.kernel_name = kernel_name
         self.initrd_name = initrd_name
         self.kernel_regexp = kernel_regexp
         self.initrd_regexp = initrd_regexp
+        self.cfg_file = cfg_file
 
     def append_kernel_params(self, *kernel_params):
         for kp in kernel_params:

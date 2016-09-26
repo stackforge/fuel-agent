@@ -26,18 +26,11 @@ from fuel_agent.utils import utils
 LOG = logging.getLogger(__name__)
 
 
-def guess_grub2_conf(chroot=''):
-    for filename in ('/boot/grub/grub.cfg', '/boot/grub2/grub.cfg'):
-        if os.path.isdir(os.path.dirname(chroot + filename)):
-            return filename
-    raise errors.GrubUtilsError('grub2 config file not found')
-
-
 def guess_grub2_default(chroot=''):
     for filename in ('/etc/default/grub', '/etc/sysconfig/grub'):
         if os.path.isfile(chroot + filename):
             return filename
-    raise errors.GrubUtilsError('grub2 defaul config file not found')
+    raise errors.GrubUtilsError('grub2 default config file not found')
 
 
 def guess_grub2_mkconfig(chroot=''):
@@ -227,7 +220,7 @@ def grub2_install(install_devices, chroot=''):
         utils.execute(*cmd, run_as_root=True, check_exit_code=[0])
 
 
-def grub2_cfg(kernel_params='', chroot='', grub_timeout=10):
+def grub2_cfg(cfg_file, kernel_params='', chroot='', grub_timeout=10):
     grub_defaults = chroot + guess_grub2_default(chroot=chroot)
     rekerparams = re.compile(r'^.*GRUB_CMDLINE_LINUX=.*')
     retimeout = re.compile(r'^.*GRUB_TIMEOUT=.*')
@@ -248,7 +241,7 @@ def grub2_cfg(kernel_params='', chroot='', grub_timeout=10):
                    format(grub_timeout=grub_timeout)
     with open(grub_defaults, 'wt', encoding='utf-8') as f:
         f.write(six.text_type(new_content))
-    cmd = [guess_grub2_mkconfig(chroot), '-o', guess_grub2_conf(chroot)]
+    cmd = [guess_grub2_mkconfig(chroot), '-o', cfg_file]
     if chroot:
         cmd[:0] = ['chroot', chroot]
     utils.execute(*cmd, run_as_root=True)

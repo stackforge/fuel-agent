@@ -918,8 +918,8 @@ class Manager(object):
         else:
             # TODO(kozhukalov): implement which kernel to use by default
             # Currently only grub1_cfg accepts kernel and initrd parameters.
-            gu.grub2_cfg(kernel_params=grub.kernel_params, chroot=chroot,
-                         grub_timeout=CONF.grub_timeout)
+            gu.grub2_cfg(grub.cfg_file, kernel_params=grub.kernel_params,
+                         chroot=chroot, grub_timeout=CONF.grub_timeout)
             gu.grub2_install(install_devices, chroot=chroot)
 
         if CONF.fix_udev_net_rules:

@@ -626,12 +626,15 @@ class Nailgun(base.BaseDataDriver):
                   self.data['ks_meta']['pm_data']['kernel_params'])
         grub.append_kernel_params(
             self.data['ks_meta']['pm_data']['kernel_params'])
-        if 'centos' in self.data['profile'].lower() and \
-                not self.data['ks_meta'].get('kernel_lt'):
-            LOG.debug('Prefered kernel version is 2.6')
-            grub.kernel_regexp = r'^vmlinuz-2\.6.*'
-            grub.initrd_regexp = r'^initramfs-2\.6.*'
-        grub.version = 1 if self.have_grub1_by_default else 2
+        if isinstance(self.operating_system, objects.Centos):
+            if self.operating_system.major == 7:
+                grub.cfg_file = '/boot/grub2/grub.cfg'
+            elif self.operating_system.major == 6:
+                grub.version = 1
+                if not self.data['ks_meta'].get('kernel_lt'):
+                    LOG.debug('Preferred kernel version is 2.6')
+                    grub.kernel_regexp = r'^vmlinuz-2\.6.*'
+                    grub.initrd_regexp = r'^initramfs-2\.6.*'
         LOG.debug('Grub version is {0}'.format(grub.version))
         return grub
 

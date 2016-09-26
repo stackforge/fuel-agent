@@ -24,32 +24,6 @@ from fuel_agent.utils import grub as gu
 
 class TestGrubUtils(unittest2.TestCase):
 
-    @mock.patch('fuel_agent.utils.grub.os.path.isdir')
-    def test_guess_grub2_conf(self, mock_isdir):
-        side_effect_values = {
-            '/target/boot/grub': True,
-            '/target/boot/grub2': False
-        }
-
-        def side_effect(key):
-            return side_effect_values[key]
-
-        mock_isdir.side_effect = side_effect
-        self.assertEqual(gu.guess_grub2_conf('/target'),
-                         '/boot/grub/grub.cfg')
-
-        side_effect_values = {
-            '/target/boot/grub': False,
-            '/target/boot/grub2': True
-        }
-        self.assertEqual(gu.guess_grub2_conf('/target'),
-                         '/boot/grub2/grub.cfg')
-
-    @mock.patch('fuel_agent.utils.grub.os.path.isdir', return_value=False)
-    def test_guess_grub2_conf_not_found(self, mock_isdir):
-        self.assertRaises(errors.GrubUtilsError, gu.guess_grub2_conf,
-                          '/target')
-
     @mock.patch('fuel_agent.utils.grub.os.path.isfile')
     def test_guess_grub2_default(self, mock_isfile):
         side_effect_values = {
@@ -447,14 +421,13 @@ title Default (kernel-version-set)
         gu.grub2_install(['/dev/foo', '/dev/bar'], chroot='/target')
         self.assertEqual(mock_exec.call_args_list, expected_calls)
 
-    @mock.patch('fuel_agent.utils.grub.guess_grub2_conf')
     @mock.patch('fuel_agent.utils.grub.guess_grub2_mkconfig')
     @mock.patch('fuel_agent.utils.grub.utils.execute')
     @mock.patch('fuel_agent.utils.grub.guess_grub2_default')
-    def test_grub2_cfg(self, mock_def, mock_exec, mock_mkconfig, mock_conf):
+    def test_grub2_cfg(self, mock_def, mock_exec, mock_mkconfig):
         mock_def.return_value = '/etc/default/grub'
         mock_mkconfig.return_value = '/sbin/grub-mkconfig'
-        mock_conf.return_value = '/boot/grub/grub.cfg'
+        cfg_file = '/boot/grub/grub.cfg'
         orig_content = """foo
 GRUB_HIDDEN_TIMEOUT=5
 GRUB_HIDDEN_TIMEOUT_QUIET=true
@@ -474,8 +447,8 @@ GRUB_RECORDFAIL_TIMEOUT=10
             mock_open.return_value = mock.MagicMock(spec=io.IOBase)
             handle = mock_open.return_value.__enter__.return_value
             handle.__iter__.return_value = six.StringIO(orig_content)
-            gu.grub2_cfg(kernel_params='kernel-params-new', chroot='/target',
-                         grub_timeout=10)
+            gu.grub2_cfg(cfg_file, kernel_params='kernel-params-new',
+                         chroot='/target', grub_timeout=10)
 
             self.assertEqual(
                 mock_open.call_args_list,
@@ -486,5 +459,5 @@ GRUB_RECORDFAIL_TIMEOUT=10
             handle.write.assert_called_once_with(new_content)
         mock_exec.assert_called_once_with('chroot', '/target',
                                           '/sbin/grub-mkconfig',
-                                          '-o', '/boot/grub/grub.cfg',
+                                          '-o', cfg_file,
                                           run_as_root=True)
