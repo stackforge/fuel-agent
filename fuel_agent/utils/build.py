@@ -210,9 +210,11 @@ def do_post_inst(chroot, hashed_root_password,
     # to prevent confusing messages in its log (regarding connection errors).
     with open(os.path.join(chroot, 'etc/init/mcollective.override'), 'w') as f:
         f.write("manual\n")
-    if os.path.exists(os.path.join(chroot, 'etc/systemd/system')):
-        os.symlink('/dev/null', os.path.join(chroot,
-                   'etc/systemd/system/mcollective.service'))
+    service_link = os.path.join(
+        chroot,
+        'etc/systemd/system/multi-user.target.wants/mcollective.service')
+    if os.path.exists(service_link):
+        os.unlink(service_link)
     cloud_init_conf = os.path.join(chroot, 'etc/cloud/cloud.cfg')
     if os.path.exists(cloud_init_conf):
         fix_cloud_init_config(cloud_init_conf)
