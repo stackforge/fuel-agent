@@ -1,0 +1,8 @@
+Code-Review+2: Aleksandr Gordeev <agordeev@mirantis.com>
+Workflow+1: Alexey Shtokolov <ashtokolov@gmail.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 14 Oct 2016 14:27:37 +0000
+Reviewed-on: https://review.openstack.org/386593
+Project: openstack/fuel-agent
+Branch: refs/heads/stable/newton
