@@ -659,9 +659,10 @@ class Manager(object):
     def umount_target(self, chroot, pseudo=True):
         LOG.debug('Umounting target file systems: %s', chroot)
         if pseudo:
-            # umount fusectl (typically mounted at /sys/fs/fuse/connections)
-            for path in ('/proc', '/dev', '/sys/fs/fuse/connections', '/sys'):
+            for path in ('/proc', '/dev', '/sys'):
                 fu.umount_fs(chroot + path)
+            # umount fusectl (typically mounted at /sys/fs/fuse/connections)
+            fu.umount_fs('/sys/fs/fuse/connections')
         for fs in self.driver.partition_scheme.fs_sorted_by_depth(
                 reverse=True):
             if fs.mount == 'swap':
