@@ -14,7 +14,7 @@
 
 
 class Grub(object):
-    def __init__(self, version=None, kernel_params='',
+    def __init__(self, version=2, kernel_params='',
                  kernel_name=None, kernel_regexp=None,
                  initrd_name=None, initrd_regexp=None):
         self.version = version
