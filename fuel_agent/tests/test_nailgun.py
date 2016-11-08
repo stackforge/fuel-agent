@@ -1734,9 +1734,9 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         drv = nailgun.Nailgun(data)
         self.assertEqual(drv.grub.kernel_params,
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
+        self.assertEqual(drv.grub.version, 1)
         self.assertEqual(drv.grub.kernel_regexp, r'^vmlinuz-2\.6.*')
         self.assertEqual(drv.grub.initrd_regexp, r'^initramfs-2\.6.*')
-        self.assertEqual(1, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_name)
         self.assertIsNone(drv.grub.initrd_name)
 
@@ -1748,9 +1748,9 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         drv = nailgun.Nailgun(data)
         self.assertEqual(drv.grub.kernel_params,
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
+        self.assertEqual(drv.grub.version, 1)
         self.assertIsNone(drv.grub.kernel_regexp)
         self.assertIsNone(drv.grub.initrd_regexp)
-        self.assertEqual(1, drv.grub.version)
         self.assertIsNone(drv.grub.kernel_name)
         self.assertIsNone(drv.grub.initrd_name)
 
@@ -1762,7 +1762,18 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         drv = nailgun.Nailgun(data)
         self.assertEqual(drv.grub.kernel_params,
                          ' ' + data['ks_meta']['pm_data']['kernel_params'])
-        self.assertEqual(2, drv.grub.version)
+        self.assertEqual(drv.grub.version, 2)
+        self.assertIsNone(drv.grub.kernel_regexp)
+        self.assertIsNone(drv.grub.initrd_regexp)
+        self.assertIsNone(drv.grub.kernel_name)
+        self.assertIsNone(drv.grub.initrd_name)
+
+    def test_grub_centos_7(self, mock_lbd, mock_image_meta):
+        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
+        data['profile'] = 'centos7-x86_64'
+        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
+        drv = nailgun.Nailgun(data)
+        self.assertEqual(drv.grub.version, 2)
         self.assertIsNone(drv.grub.kernel_regexp)
         self.assertIsNone(drv.grub.initrd_regexp)
         self.assertIsNone(drv.grub.kernel_name)
