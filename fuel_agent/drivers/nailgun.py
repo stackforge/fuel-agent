@@ -109,7 +109,7 @@ class Nailgun(base.BaseDataDriver):
         return self._grub
 
     @property
-    def have_grub1_by_default(self):
+    def is_centos6(self):
         return (isinstance(self.operating_system, objects.Centos) and
                 self.operating_system.major == 6)
 
@@ -478,7 +478,7 @@ class Nailgun(base.BaseDataDriver):
                         LOG.debug('Attaching partition to RAID '
                                   'by its mount point %s' % volume['mount'])
                         metadata = 'default'
-                        if self.have_grub1_by_default:
+                        if self.is_centos6:
                             metadata = '0.90'
                         LOG.debug('Going to use MD metadata version {0}. '
                                   'The version was guessed at the data has '
@@ -626,12 +626,12 @@ class Nailgun(base.BaseDataDriver):
                   self.data['ks_meta']['pm_data']['kernel_params'])
         grub.append_kernel_params(
             self.data['ks_meta']['pm_data']['kernel_params'])
-        if 'centos' in self.data['profile'].lower() and \
-                not self.data['ks_meta'].get('kernel_lt'):
-            LOG.debug('Prefered kernel version is 2.6')
-            grub.kernel_regexp = r'^vmlinuz-2\.6.*'
-            grub.initrd_regexp = r'^initramfs-2\.6.*'
-        grub.version = 1 if self.have_grub1_by_default else 2
+        if self.is_centos6:
+            grub.version = 1
+            if not self.data['ks_meta'].get('kernel_lt'):
+                LOG.debug('Preferred kernel version is 2.6')
+                grub.kernel_regexp = r'^vmlinuz-2\.6.*'
+                grub.initrd_regexp = r'^initramfs-2\.6.*'
         LOG.debug('Grub version is {0}'.format(grub.version))
         return grub
 

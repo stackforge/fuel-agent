@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 def guess_grub2_conf(chroot=''):
-    for filename in ('/boot/grub/grub.cfg', '/boot/grub2/grub.cfg'):
+    for filename in ('/boot/grub2/grub.cfg', '/boot/grub/grub.cfg'):
         if os.path.isdir(os.path.dirname(chroot + filename)):
             return filename
     raise errors.GrubUtilsError('grub2 config file not found')
@@ -37,7 +37,7 @@ def guess_grub2_default(chroot=''):
     for filename in ('/etc/default/grub', '/etc/sysconfig/grub'):
         if os.path.isfile(chroot + filename):
             return filename
-    raise errors.GrubUtilsError('grub2 defaul config file not found')
+    raise errors.GrubUtilsError('grub2 default config file not found')
 
 
 def guess_grub2_mkconfig(chroot=''):
