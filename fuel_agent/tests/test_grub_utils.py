@@ -45,6 +45,13 @@ class TestGrubUtils(unittest2.TestCase):
         self.assertEqual(gu.guess_grub2_conf('/target'),
                          '/boot/grub2/grub.cfg')
 
+        side_effect_values = {
+            '/target/boot/grub': True,
+            '/target/boot/grub2': True
+        }
+        self.assertEqual(gu.guess_grub2_conf('/target'),
+                         '/boot/grub2/grub.cfg')
+
     @mock.patch('fuel_agent.utils.grub.os.path.isdir', return_value=False)
     def test_guess_grub2_conf_not_found(self, mock_isdir):
         self.assertRaises(errors.GrubUtilsError, gu.guess_grub2_conf,
