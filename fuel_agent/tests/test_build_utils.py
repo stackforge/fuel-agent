@@ -214,8 +214,10 @@ class BuildUtilsTestCase(unittest2.TestCase):
                         allow_unsigned_file='fake_unsigned',
                         force_ipv4_file='fake_force_ipv4',
                         pipeline_depth_file='fake_pipeline_depth')
+
         file_handle_mock = mock_open.return_value.__enter__.return_value
-        file_handle_mock.write.assert_called_once_with('manual\n')
+        file_handle_mock.write.assert_called_with('manual\n')
+
         mock_exec_expected_calls = [
             mock.call('sed',
                       '-i',
@@ -241,6 +243,8 @@ class BuildUtilsTestCase(unittest2.TestCase):
             mock.call('chroot', 'etc/init/mcollective.override'),
             mock.call('chroot', 'etc/systemd/system'),
             mock.call('chroot', 'etc/systemd/system/mcollective.service'),
+            mock.call('chroot',
+                      'etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'),
             mock.call('chroot', 'etc/cloud/cloud.cfg'),
             mock.call('/', bu.GRUB2_DMRAID_SETTINGS)]
         self.assertEqual(mock_path_join_expected_calls,
