@@ -213,6 +213,12 @@ def do_post_inst(chroot, hashed_root_password,
     if os.path.exists(os.path.join(chroot, 'etc/systemd/system')):
         os.symlink('/dev/null', os.path.join(chroot,
                    'etc/systemd/system/mcollective.service'))
+    with open(os.path.join(
+            chroot,
+            'etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'), 'w') as cf:
+        cf.write(yaml.dump(
+            {'network': {'config': 'disabled'}},
+            default_flow_style=False))
     cloud_init_conf = os.path.join(chroot, 'etc/cloud/cloud.cfg')
     if os.path.exists(cloud_init_conf):
         fix_cloud_init_config(cloud_init_conf)
