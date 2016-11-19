@@ -1,0 +1,9 @@
+Code-Review+2: Alexey Shtokolov <ashtokolov@gmail.com>
+Code-Review+2: Vladimir Kozhukalov <vkozhukalov@mirantis.com>
+Workflow+1: Vladimir Kozhukalov <vkozhukalov@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Sat, 19 Nov 2016 17:00:11 +0000
+Reviewed-on: https://review.openstack.org/399862
+Project: openstack/fuel-agent
+Branch: refs/heads/master
