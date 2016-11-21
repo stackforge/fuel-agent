@@ -1,0 +1,13 @@
+Code-Review+1: Maksim Malchuk <mmalchuk@mirantis.com>
+Code-Review+1: Aleksey Zvyagintsev <alexz.kh.ua@gmail.com>
+Code-Review+1: Evgeniy L <eli@mirantis.com>
+Code-Review+2: Vladimir Kozhukalov <vkozhukalov@mirantis.com>
+Code-Review+1: Wenwu <pengwenwu2008@163.com>
+Code-Review+2: Ihor Kalnytskyi <ikalnitsky@mirantis.com>
+Workflow+1: Ihor Kalnytskyi <ikalnitsky@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 21 Nov 2016 09:55:20 +0000
+Reviewed-on: https://review.openstack.org/386321
+Project: openstack/fuel-agent
+Branch: refs/heads/master
