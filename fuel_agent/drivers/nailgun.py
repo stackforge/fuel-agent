@@ -433,16 +433,20 @@ class Nailgun(base.BaseDataDriver):
                                   volume['partition_guid'])
                         prt.set_guid(volume['partition_guid'])
 
-                    if 'mount' in volume and volume['mount'] != 'none':
+                    fs = volume.get('file_system')
+                    if fs not in (None, 'none'):
+                        mount = volume.get('mount', None)
+                        if mount == 'none':
+                            mount = None
+
                         LOG.debug('Adding file system on partition: '
-                                  'mount=%s type=%s' %
-                                  (volume['mount'],
-                                   volume.get('file_system', 'xfs')))
+                                  'mount=%s type=%s', mount, fs)
                         partition_scheme.add_fs(
-                            device=prt.name, mount=volume['mount'],
-                            fs_type=volume.get('file_system', 'xfs'),
+                            device=prt.name,
+                            mount=mount,
+                            fs_type=fs,
                             fs_label=volume.get('disk_label'))
-                        if volume['mount'] == '/boot' and not self._boot_done:
+                        if mount == '/boot' and not self._boot_done:
                             self._boot_done = True
 
                 if volume['type'] == 'pv':
