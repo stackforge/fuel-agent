@@ -516,7 +516,8 @@ class Manager(object):
                     LOG.debug('Trying to check if path %s exists', check_path)
                     if os.path.exists(check_path):
                         LOG.debug('Path %s exists. Trying to sync all files '
-                                  'from there to %s', mount_map[fs_mount])
+                                  'from there to %s',
+                                  head, mount_map[fs_mount])
                         src_path = check_path + '/'
                         utils.execute('rsync', '-avH', src_path,
                                       mount_map[fs_mount])
