@@ -767,7 +767,7 @@ class Manager(object):
                 try:
                     bu.deattach_loop(image.target_device.name)
                 except errors.ProcessExecutionError as e:
-                    LOG.warning('Error occured while trying to detach '
+                    LOG.warning('Error occurred while trying to detach '
                                 'loop device %s. Error message: %s',
                                 image.target_device.name, e)
             if image.img_tmp_file:
@@ -1194,7 +1194,7 @@ class Manager(object):
                     try:
                         bu.deattach_loop(image.target_device.name)
                     except errors.ProcessExecutionError as e:
-                        LOG.warning('Error occured while trying to detach '
+                        LOG.warning('Error occurred while trying to detach '
                                     'loop device {0}. Error message: {1}'.
                                     format(image.target_device.name, e))
 
