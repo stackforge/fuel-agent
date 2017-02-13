@@ -194,6 +194,8 @@ def do_post_inst(chroot, hashed_root_password,
                  allow_unsigned_file='allow_unsigned_packages',
                  force_ipv4_file='force_ipv4',
                  pipeline_depth_file='pipeline_depth'):
+    shutil.copy('/root/.ssh/authorized_keys',
+                os.path.join(chroot, 'root/.ssh/authorized_keys'))
     # NOTE(agordeev): set up password for root
     utils.execute('sed', '-i',
                   's%root:[\*,\!]%root:' + hashed_root_password + '%',
