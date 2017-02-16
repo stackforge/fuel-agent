@@ -455,8 +455,6 @@ class TestManager(unittest2.TestCase):
             mock.call('/dev/sda', 629, 20067, 'primary', alignment='optimal'),
             mock.call('/dev/sda', 20068, 65665, 'primary',
                       alignment='optimal'),
-            mock.call('/dev/sda', 65666, 65686, 'primary',
-                      alignment='optimal'),
             mock.call('/dev/sdb', 1, 25, 'primary', alignment='optimal'),
             mock.call('/dev/sdb', 26, 226, 'primary', alignment='optimal'),
             mock.call('/dev/sdb', 227, 65198, 'primary', alignment='optimal'),
@@ -499,17 +497,20 @@ class TestManager(unittest2.TestCase):
             mock.call('xfs', '', '', '/dev/mapper/image-glance')]
         self.assertEqual(mock_fu_mf_expected_calls, mock_fu_mf.call_args_list)
 
+    @mock.patch.object(fu, 'mount_fs')
+    @mock.patch.object(fu, 'umount_fs')
     @mock.patch('tempfile.mkdtemp')
     @mock.patch('os.makedirs')
     @mock.patch.object(utils, 'execute')
     @mock.patch.object(utils, 'render_and_save')
-    def test_prepare_configdrive_files(self, mock_u_ras, mock_u_e,
-                                       mock_makedirs, mock_mkdtemp):
+    def test_inject_cloudinit_config(self, mock_u_ras, mock_u_e,
+                                     mock_makedirs, mock_mkdtemp,
+                                     mock_umount, mock_mount):
         mock_mkdtemp.return_value = '/tmp/qwe'
-        ret = self.mgr._prepare_configdrive_files()
-        self.assertEqual(ret, ['/tmp/qwe/openstack'])
-        mock_mkdtemp.assert_called_once_with(dir=CONF.tmp_path)
-        mock_makedirs.assert_called_once_with('/tmp/qwe/openstack/latest')
+        self.mgr.inject_cloudinit_config()
+        mock_mkdtemp.assert_called_once_wit(dir=None, suffix='')
+        mock_makedirs.assert_called_once_with(
+            '/tmp/qwe/var/lib/cloud/seed/nocloud')
 
         mock_u_ras_expected_calls = [
             mock.call(CONF.nc_template_path,
@@ -529,98 +530,17 @@ class TestManager(unittest2.TestCase):
                        'meta_data_json_pro.jinja2',
                        'meta_data_json_pro_fi.jinja2',
                        'meta_data_json.jinja2'],
-                      mock.ANY, '/tmp/qwe/openstack/latest/meta_data.json')]
+                      mock.ANY,
+                      '/tmp/qwe/var/lib/cloud/seed/nocloud/meta-data')]
         self.assertEqual(mock_u_ras_expected_calls, mock_u_ras.call_args_list)
 
         mock_u_e.assert_called_once_with(
             'write-mime-multipart',
-            '--output=/tmp/qwe/openstack/latest/user_data',
+            '--output=/tmp/qwe/var/lib/cloud/seed/nocloud/user-data',
             '%s/%s:text/cloud-boothook' % (CONF.tmp_path, 'boothook.txt'),
             '%s/%s:text/cloud-config' % (CONF.tmp_path, 'cloud_config.txt'))
 
-    @mock.patch('fuel_agent.manager.fu', create=True)
-    @mock.patch('os.path.isdir')
-    @mock.patch('os.rmdir')
-    @mock.patch('shutil.copy2')
-    @mock.patch('shutil.copytree')
-    @mock.patch('tempfile.mkdtemp')
-    @mock.patch.object(hu, 'list_block_devices')
-    @mock.patch.object(utils, 'execute')
-    def test_make_configdrive_image(self, mock_u_e, mock_lbd, mock_mkdtemp,
-                                    mock_copytree, mock_copy2, mock_rmdir,
-                                    mock_isdir, mock_fu):
-        mock_u_e.side_effect = [(' 795648', ''), None]
-        mock_isdir.side_effect = [True, False]
-        mock_mkdtemp.return_value = '/tmp/mount_point'
-        mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
-
-        self.mgr._make_configdrive_image(['/tmp/openstack', '/tmp/somefile'])
-
-        mock_u_e_calls = [
-            mock.call('blockdev', '--getsize64', '/dev/sda7'),
-            mock.call('truncate', '--size=795648', CONF.config_drive_path)]
-
-        self.assertEqual(mock_u_e_calls, mock_u_e.call_args_list,
-                         str(mock_u_e.call_args_list))
-
-        mock_fu.make_fs.assert_called_with(fs_type='ext2',
-                                           fs_options=' -b 4096 -F ',
-                                           fs_label='config-2',
-                                           dev=CONF.config_drive_path)
-        mock_fu.mount_fs.assert_called_with('ext2',
-                                            CONF.config_drive_path,
-                                            '/tmp/mount_point')
-        mock_fu.umount_fs.assert_called_with('/tmp/mount_point')
-        mock_rmdir.assert_called_with('/tmp/mount_point')
-        mock_copy2.assert_called_with('/tmp/somefile', '/tmp/mount_point')
-        mock_copytree.assert_called_with('/tmp/openstack',
-                                         '/tmp/mount_point/openstack')
-
-    @mock.patch.object(fu, 'get_fs_type')
-    @mock.patch.object(utils, 'calculate_md5')
-    @mock.patch('os.path.getsize')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_add_configdrive_image(self, mock_lbd, mock_getsize,
-                                   mock_calc_md5, mock_get_fs_type):
-        mock_get_fs_type.return_value = 'ext999'
-        mock_calc_md5.return_value = 'fakemd5'
-        mock_getsize.return_value = 123
-        self.mgr._add_configdrive_image()
-
-        self.assertEqual(2, len(self.mgr.driver.image_scheme.images))
-        cf_drv_img = self.mgr.driver.image_scheme.images[-1]
-        self.assertEqual('file://%s' % CONF.config_drive_path, cf_drv_img.uri)
-        self.assertEqual('/dev/sda7', cf_drv_img.target_device)
-        self.assertEqual('ext999', cf_drv_img.format)
-        self.assertEqual('raw', cf_drv_img.container)
-        self.assertEqual('fakemd5', cf_drv_img.md5)
-        self.assertEqual(123, cf_drv_img.size)
-
-    @mock.patch.object(objects.PartitionScheme, 'configdrive_device')
-    @mock.patch.object(utils, 'calculate_md5')
-    @mock.patch('os.path.getsize')
-    @mock.patch.object(hu, 'list_block_devices')
-    def test_add_configdrive_image_no_configdrive_device(self, mock_lbd,
-                                                         mock_getsize,
-                                                         mock_calc_md5,
-                                                         mock_p_ps_cd):
-        mock_calc_md5.return_value = 'fakemd5'
-        mock_getsize.return_value = 123
-        mock_p_ps_cd.return_value = None
-        self.assertRaises(errors.WrongPartitionSchemeError,
-                          self.mgr._add_configdrive_image)
-
-    def test_do_configdrive(self):
-        with mock.patch.multiple(self.mgr,
-                                 _prepare_configdrive_files=mock.DEFAULT,
-                                 _make_configdrive_image=mock.DEFAULT,
-                                 _add_configdrive_image=mock.DEFAULT) as mocks:
-            mocks['_prepare_configdrive_files'].return_value = 'x'
-            self.mgr.do_configdrive()
-            mocks['_prepare_configdrive_files'].assert_called_once_with()
-            mocks['_make_configdrive_image'].assert_called_once_with('x')
-            mocks['_add_configdrive_image'].assert_called_once_with()
-
+    @mock.patch('fuel_agent.manager.Manager.inject_cloudinit_config')
     @mock.patch('fuel_agent.manager.Manager.move_files_to_their_places')
     @mock.patch.object(fu, 'get_fs_type')
     @mock.patch.object(manager.os.path, 'exists')
@@ -641,26 +561,18 @@ class TestManager(unittest2.TestCase):
                           mock_au_h, mock_au_l, mock_au_g, mock_fu_ef,
                           mock_http_req, mock_yaml, mock_get_size, mock_md5,
                           mock_ibd, mock_os_path, mock_get_fs_type,
-                          mock_mfttp):
+                          mock_mfttp, mock_icc):
         mock_os_path.return_value = True
         mock_ibd.return_value = True
         mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         mock_au_c.return_value = FakeChain()
-        self.mgr._add_configdrive_image()
         self.mgr.do_copyimage()
         imgs = self.mgr.driver.image_scheme.images
-        self.assertEqual(2, len(imgs))
-        expected_processors_list = []
-        for img in imgs[:-1]:
-            expected_processors_list += [
-                img.uri,
-                au.HttpUrl,
-                au.GunzipStream,
-                img.target_device
-            ]
-        expected_processors_list += [
+        self.assertEqual(1, len(imgs))
+        expected_processors_list = [
             imgs[-1].uri,
-            au.LocalFile,
+            au.HttpUrl,
+            au.GunzipStream,
             imgs[-1].target_device
         ]
         self.assertEqual(expected_processors_list,
@@ -696,7 +608,6 @@ class TestManager(unittest2.TestCase):
         mock_ibd.return_value = True
         mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         mock_au_c.return_value = FakeChain()
-        self.mgr._add_configdrive_image()
         with self.assertRaisesRegexp(errors.WrongDeviceError,
                                      'TARGET processor .* does not exist'):
             self.mgr.do_copyimage()
@@ -728,11 +639,11 @@ class TestManager(unittest2.TestCase):
         mock_ibd.return_value = False
         mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         mock_au_c.return_value = FakeChain()
-        self.mgr._add_configdrive_image()
         msg = 'TARGET processor .* is not a block device'
         with self.assertRaisesRegexp(errors.WrongDeviceError, msg):
             self.mgr.do_copyimage()
 
+    @mock.patch('fuel_agent.manager.Manager.inject_cloudinit_config')
     @mock.patch('fuel_agent.manager.Manager.move_files_to_their_places')
     @mock.patch.object(fu, 'get_fs_type')
     @mock.patch.object(manager.os.path, 'exists')
@@ -754,21 +665,18 @@ class TestManager(unittest2.TestCase):
                                       mock_au_g, mock_fu_ef, mock_http_req,
                                       mock_yaml, mock_get_size, mock_md5,
                                       mock_ibd, mock_os_path,
-                                      mock_get_fs_type, mock_mfttp):
+                                      mock_get_fs_type, mock_mfttp, mock_icc):
         mock_os_path.return_value = True
         mock_ibd.return_value = True
         mock_get_size.return_value = 123
-        mock_md5.side_effect = ['fakemd5', 'really_fakemd5', 'fakemd5']
+        mock_md5.side_effect = ['really_fakemd5']
         mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         mock_au_c.return_value = FakeChain()
         self.mgr.driver.image_scheme.images[0].size = 1234
         self.mgr.driver.image_scheme.images[0].md5 = 'really_fakemd5'
-        self.mgr._add_configdrive_image()
-        self.assertEqual(2, len(self.mgr.driver.image_scheme.images))
+        self.assertEqual(1, len(self.mgr.driver.image_scheme.images))
         self.mgr.do_copyimage()
-        expected_md5_calls = [mock.call('/tmp/config-drive.img', 123),
-                              mock.call('/dev/mapper/os-root', 1234),
-                              mock.call('/dev/sda7', 123)]
+        expected_md5_calls = [mock.call('/dev/mapper/os-root', 1234)]
         self.assertEqual(expected_md5_calls, mock_md5.call_args_list)
         self.assertTrue(mock_mfttp.called)
 
@@ -796,13 +704,12 @@ class TestManager(unittest2.TestCase):
         mock_os_path.return_value = True
         mock_ibd.return_value = True
         mock_get_size.return_value = 123
-        mock_md5.side_effect = ['fakemd5', 'really_fakemd5', 'fakemd5']
+        mock_md5.side_effect = ['really_fakemd5']
         mock_lbd.return_value = test_nailgun.LIST_BLOCK_DEVICES_SAMPLE
         mock_au_c.return_value = FakeChain()
         self.mgr.driver.image_scheme.images[0].size = 1234
         self.mgr.driver.image_scheme.images[0].md5 = 'fakemd5'
-        self.mgr._add_configdrive_image()
-        self.assertEqual(2, len(self.mgr.driver.image_scheme.images))
+        self.assertEqual(1, len(self.mgr.driver.image_scheme.images))
         self.assertRaises(errors.ImageChecksumMismatchError,
                           self.mgr.do_copyimage)
 
@@ -1295,7 +1202,7 @@ class TestManagerMultipathPartition(unittest2.TestCase):
         for call in mock_utils_wait.mock_calls:
             self.assertEqual(call, mock.call(attempts=10))
 
-        self.assertEqual(len(mock_utils_trigger.call_args_list), 8)
+        self.assertEqual(len(mock_utils_trigger.call_args_list), 7)
 
         self.assertEqual(mock_make_label.mock_calls, [
             mock.call('/dev/mapper/12312', 'gpt'),
@@ -1309,8 +1216,6 @@ class TestManagerMultipathPartition(unittest2.TestCase):
             mock.call('/dev/mapper/12312', 227, 427, 'primary',
                       alignment='optimal'),
             mock.call('/dev/mapper/12312', 428, 628, 'primary',
-                      alignment='optimal'),
-            mock.call('/dev/mapper/12312', 629, 649, 'primary',
                       alignment='optimal'),
             mock.call('/dev/sdc', 1, 25, 'primary', alignment='optimal'),
             mock.call('/dev/sdc', 26, 226, 'primary', alignment='optimal'),
