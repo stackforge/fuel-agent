@@ -17,10 +17,6 @@
 # Temporary directory for file manipulations (string value)
 #tmp_path=/tmp
 
-# Path where to store generated config drive image (string
-# value)
-#config_drive_path=/tmp/config-drive.img
-
 # Path where to store actual rules for udev daemon (string
 # value)
 #udev_rules_dir=/etc/udev/rules.d
@@ -63,10 +59,6 @@
 # File where to store apt setting for forcing IPv4 usage
 # (string value)
 #force_ipv4_file=force_ipv4
-
-# Create configdrive file, use pre-builded if set to False
-# (boolean value)
-#prepare_configdrive=true
 
 # Add udev rules for NIC remapping (boolean value)
 #fix_udev_net_rules=true
