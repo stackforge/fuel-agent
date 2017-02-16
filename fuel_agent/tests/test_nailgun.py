@@ -1712,7 +1712,7 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         self.assertEqual(3, drv._get_partition_count('ceph'))
         # NOTE(agordeev): (-2, -1, -1) is the list of ceph data partition
         # counts corresponding to (sda, sdb, sdc) disks respectively.
-        for disk, part in enumerate((-2, -1, -1)):
+        for disk, part in enumerate((-1, -1, -1)):
             self.assertEqual(CEPH_DATA['partition_guid'],
                              p_scheme.parteds[disk].partitions[part].guid)
 
@@ -1812,25 +1812,6 @@ class TestNailgunMockedMeta(unittest2.TestCase):
         for fs in drv.partition_scheme.fss:
             if fs.mount != '/':
                 self.assertFalse(fs.keep_data)
-
-    def test_configdrive_partition_on_os_disk(self, mock_lbd,
-                                              mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        data['ks_meta']['pm_data']['ks_spaces'] = SECOND_DISK_OS_KS_SPACES
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        root_device = drv.partition_scheme.root_device()[:-1]
-        self.assertIn(root_device, drv.partition_scheme.configdrive_device())
-        self.assertEqual('/dev/sdb', root_device)
-
-    @mock.patch.object(nailgun.Nailgun, '_needs_configdrive',
-                       return_value=False)
-    def test_configdrive_partition_not_needed(self, mock_cdrive, mock_lbd,
-                                              mock_image_meta):
-        data = copy.deepcopy(PROVISION_SAMPLE_DATA)
-        mock_lbd.return_value = LIST_BLOCK_DEVICES_SAMPLE
-        drv = nailgun.Nailgun(data)
-        self.assertIsNone(drv.partition_scheme.configdrive_device())
 
     def test_boot_partition_ok_many_normal_disks(self, mock_lbd,
                                                  mock_image_meta):

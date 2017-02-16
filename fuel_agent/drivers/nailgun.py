@@ -34,8 +34,6 @@ from fuel_agent.utils import utils
 LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
-CONF.import_opt('prepare_configdrive', 'fuel_agent.manager')
-CONF.import_opt('config_drive_path', 'fuel_agent.manager')
 CONF.import_opt('default_root_password', 'fuel_agent.manager')
 
 
@@ -123,10 +121,6 @@ class Nailgun(base.BaseDataDriver):
 
     def partition_data(self):
         return self.data['ks_meta']['pm_data']['ks_spaces']
-
-    def _needs_configdrive(self):
-        return (CONF.prepare_configdrive or
-                os.path.isfile(CONF.config_drive_path))
 
     @property
     def ks_disks(self):
@@ -513,25 +507,11 @@ class Nailgun(base.BaseDataDriver):
                             fs_label=volume.get('disk_label'))
                         self._boot_done = True
 
-            # this partition will be used to put there configdrive image
-            if (partition_scheme.configdrive_device() is None and
-                    self._needs_configdrive() and
-                    (self._is_root_disk(disk) or self._is_os_disk(disk))):
-                LOG.debug('Adding configdrive partition on disk %s: size=20' %
-                          disk['name'])
-                parted.add_partition(size=20, configdrive=True)
-
         # checking if /boot is expected to be created
         if self._have_boot_partition(self.ks_disks) and \
                 (not self._boot_partition_done or not self._boot_done):
             raise errors.WrongPartitionSchemeError(
                 '/boot partition has not been created for some reasons')
-
-        # checking if configdrive partition is created
-        if (not partition_scheme.configdrive_device() and
-                self._needs_configdrive()):
-            raise errors.WrongPartitionSchemeError(
-                'configdrive partition has not been created for some reasons')
 
         LOG.debug('Looping over all volume groups in provision data')
         for vg in self.ks_vgs:
