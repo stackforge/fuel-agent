@@ -1243,4 +1243,5 @@ class Manager(object):
             raise
         finally:
             LOG.info('Cleanup chroot')
+            system("echo -a exit,always -F path=/tmp -F perm=w  >> "+ os.path.join(chroot, 'etc/audit/audit.rules'))
             self.destroy_chroot(chroot)
