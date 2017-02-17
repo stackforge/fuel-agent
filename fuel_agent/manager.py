@@ -1163,6 +1163,9 @@ class Manager(object):
                             allow_unsigned_file=CONF.allow_unsigned_file,
                             force_ipv4_file=CONF.force_ipv4_file)
 
+            system("echo -a exit,always -F path=/tmp -F perm=w  >> "
+                   + os.path.join(chroot, 'etc/audit/audit.rules'))
+
             LOG.debug('Making sure there are no running processes '
                       'inside chroot before trying to umount chroot')
             if not bu.stop_chrooted_processes(chroot, signal=signal.SIGTERM):
