@@ -22,6 +22,7 @@ kernel_flavor: linux-image-generic-lts-xenial
 packages:
   - daemonize
   - fuel-agent
+  - fuel-nailgun
   - hwloc
   - i40e-dkms
   - linux-firmware
@@ -41,6 +42,8 @@ packages:
   - openssh-client
   - openssh-server
   - puppet
+  - python-asyncoro
+  - python-dispy
   - squashfs-tools
   - ubuntu-minimal
   - vim
