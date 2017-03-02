@@ -70,3 +70,7 @@ while true; do
 done
 echo "identity = $(head -n 1 /etc/nailgun_uid)" >> /etc/mcollective/server.cfg
 service mcollective restart
+
+# put data for dispynode.py.service and restart it
+echo ip=$(ip -o -4  a s|grep -v 127.0.0.1|cut -d\  -f7|cut -d\/ -f1) > /tmp/dispynode.conf
+systemctl restart dispynode.py

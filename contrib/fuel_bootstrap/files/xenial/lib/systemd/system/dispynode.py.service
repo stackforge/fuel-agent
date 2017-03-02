@@ -1,0 +1,14 @@
+[Unit]
+Description=The dispynode daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /var/lib/dispy
+EnvironmentFile=/tmp/dispynode.conf
+ExecStart=/usr/bin/dispynode.py --daemon --clean --name %m --dest_path_prefix=/var/lib/dispy --ip_addr ${ip}
+ExecStop=/bin/kill -s QUIT $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
