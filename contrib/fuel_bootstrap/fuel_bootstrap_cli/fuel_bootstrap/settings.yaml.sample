@@ -28,6 +28,7 @@ packages:
   - linux-headers-generic
   - live-boot
   - live-boot-initramfs-tools
+  - lshw
   - mc
   - mcollective
   - msmtp-mta
