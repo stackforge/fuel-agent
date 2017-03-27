@@ -1,0 +1,8 @@
+Code-Review+2: Vladimir Kozhukalov <vkozhukalov@mirantis.com>
+Workflow+1: Vladimir Kozhukalov <vkozhukalov@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 27 Mar 2017 06:59:08 +0000
+Reviewed-on: https://review.openstack.org/449623
+Project: openstack/fuel-agent
+Branch: refs/heads/stable/newton
