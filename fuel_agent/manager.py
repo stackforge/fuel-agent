@@ -17,6 +17,7 @@ import os
 import shutil
 import signal
 import tempfile
+import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -239,8 +240,11 @@ class Manager(object):
                 utils.udevadm_trigger_blocks()
                 for flag in prt.flags:
                     pu.set_partition_flag(prt.device, prt.count, flag)
+                utils.udevadm_trigger_blocks()
                 if prt.guid:
                     pu.set_gpt_type(prt.device, prt.count, prt.guid)
+                utils.udevadm_trigger_blocks()
+                time.sleep(5)
                 # If any partition to be created doesn't exist it's an error.
                 # Probably it's again 'device or resource busy' issue.
                 if not os.path.exists(prt.name):
