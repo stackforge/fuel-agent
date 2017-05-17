@@ -961,6 +961,7 @@ class Manager(object):
                 else:
                     f.write(u'UUID=%s %s %s defaults 0 0\n' %
                             (mount2uuid[fs.mount], fs.mount, fs.type))
+        fu.fstab_update_shm(chroot + '/etc/fstab')
 
         self.umount_target(chroot)
 
