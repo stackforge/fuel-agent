@@ -17,7 +17,8 @@ import tempfile
 from fuel_agent import errors
 from fuel_agent.openstack.common import log as logging
 from fuel_agent.utils import utils
-
+from reconfigure.configs import FSTabConfig
+from reconfigure.items.fstab import FilesystemData
 import six
 
 LOG = logging.getLogger(__name__)
@@ -132,3 +133,31 @@ def get_fs_type(device):
     output = utils.execute('blkid', '-o', 'value', '-s', 'TYPE',
                            '-c', '/dev/null', device)[0]
     return output.strip()
+
+
+def fstab_update_shm(cfg, force=False):
+    """Update "/run/shm" in fstab
+
+    This function need to update fstab cofigurathion file only for "/run/shm"
+    mountpoint.
+    :param cfg: Path to fstab file
+    :param force: Update fstab section, even if lt was already defined
+    """
+    config = FSTabConfig(path=cfg)
+    config.load()
+    shmfs = FilesystemData()
+    shmfs.mountpoint = "/run/shm"
+    shmfs.type = "tmpfs"
+    shmfs.device = "none"
+    shmfs.options = "rw,noexec,nosuid,nodev"
+
+    if any([i['mountpoint'] == shmfs.mountpoint for i in
+            config.tree.to_dict()["filesystems"]]) and not force:
+        LOG.warning("Fstab mountpoint {} has been already passed!\n"
+                    "Skipping...".format(shmfs.mountpoint))
+        return
+    config.tree.filesystems.append(shmfs)
+    LOG.debug(
+        "Append fstab:{0} with new data:{1}\n"
+        "Result:{2}".format(cfg, shmfs.to_json(), config.content))
+    config.save()

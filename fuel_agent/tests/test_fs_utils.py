@@ -18,7 +18,8 @@ import unittest2
 from fuel_agent import errors
 from fuel_agent.utils import fs as fu
 from fuel_agent.utils import utils
-
+from reconfigure.configs import FSTabConfig
+from reconfigure.items.fstab import FilesystemData
 
 @mock.patch.object(utils, 'execute')
 class TestFSUtils(unittest2.TestCase):
