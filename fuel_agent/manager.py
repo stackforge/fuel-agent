@@ -516,7 +516,8 @@ class Manager(object):
                     LOG.debug('Trying to check if path %s exists', check_path)
                     if os.path.exists(check_path):
                         LOG.debug('Path %s exists. Trying to sync all files '
-                                  'from there to %s', mount_map[fs_mount])
+                                  'from there to %s' % (check_path,
+                                                        mount_map[fs_mount]))
                         src_path = check_path + '/'
                         utils.execute('rsync', '-avH', src_path,
                                       mount_map[fs_mount])
@@ -961,6 +962,7 @@ class Manager(object):
                 else:
                     f.write(u'UUID=%s %s %s defaults 0 0\n' %
                             (mount2uuid[fs.mount], fs.mount, fs.type))
+        fu.fstab_update_shm(chroot + '/etc/fstab')
 
         self.umount_target(chroot)
 
