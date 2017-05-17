@@ -17,42 +17,43 @@ BuildRequires: python-setuptools
 BuildRequires: python-pbr
 BuildArch: noarch
 
+Requires:    PyYAML
+Requires:    bzip2
+Requires:    cloud-utils
+Requires:    coreutils
+Requires:    debootstrap
+Requires:    dmidecode
+Requires:    e2fsprogs
+Requires:    ethtool
+Requires:    gdisk
+Requires:    genisoimage
+Requires:    gzip
+Requires:    lvm2
+Requires:    mdadm
+Requires:    openssh-clients
+Requires:    parted
+Requires:    pciutils
+Requires:    psmisc
 Requires:    python
+Requires:    python-argparse
 Requires:    python-babel
 Requires:    python-eventlet
+Requires:    python-iso8601
+Requires:    python-jinja2
 Requires:    python-jsonschema
 Requires:    python-oslo-config >= 1:1.6.0
 Requires:    python-oslo-serialization >= 1.0.0
-Requires:    python-iso8601
+Requires:    python-pbr
+Requires:    python-reconfigure
+Requires:    python-requests
 Requires:    python-six
 Requires:    python-stevedore
-Requires:    python-jinja2
-Requires:    python-requests
 Requires:    python-urllib3
-Requires:    PyYAML
-Requires:    python-argparse
-Requires:    python-pbr
 Requires:    tar
-Requires:    gzip
-Requires:    bzip2
-Requires:    openssh-clients
-Requires:    mdadm
-Requires:    util-linux-ng
 Requires:    udev
-Requires:    lvm2
-Requires:    dmidecode
-Requires:    parted
-Requires:    cloud-utils
-Requires:    e2fsprogs
-Requires:    gdisk
-Requires:    genisoimage
+Requires:    util-linux-ng
 Requires:    xfsprogs
-Requires:    pciutils
-Requires:    ethtool
-Requires:    debootstrap
 Requires:    xz
-Requires:    coreutils
-Requires:    psmisc
 
 %description
 Fuel-agent package
