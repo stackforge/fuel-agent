@@ -34,9 +34,6 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import pxe_utils
@@ -98,7 +95,7 @@ def unlink_without_raise(path):
         if e.errno == errno.ENOENT:
             return
         else:
-            LOG.warning(_LW("Failed to unlink %(path)s, error: %(e)s"),
+            LOG.warning("Failed to unlink %(path)s, error: %(e)s",
                         {'path': path, 'e': e})
 
 
@@ -211,10 +208,10 @@ def build_instance_info_for_deploy(task):
             image_service.HttpImageService().validate_href(image_source)
         except exception.ImageRefValidationFailed:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Agent deploy supports only HTTP(S) URLs as "
-                              "instance_info['image_source']. Either %s "
-                              "is not a valid HTTP(S) URL or "
-                              "is not reachable."), image_source)
+                LOG.error("Agent deploy supports only HTTP(S) URLs as "
+                          "instance_info['image_source']. Either %s "
+                          "is not a valid HTTP(S) URL or "
+                          "is not reachable.", image_source)
         instance_info['image_url'] = image_source
 
     return instance_info
@@ -236,10 +233,10 @@ def _create_rootfs_link(task):
         image_service.HttpImageService().validate_href(rootfs)
     except exception.ImageRefValidationFailed:
         with excutils.save_and_reraise_exception():
-            LOG.error(_LE("Agent deploy supports only HTTP URLs as "
-                          "driver_info['deploy_squashfs']. Either %s "
-                          "is not a valid HTTP URL or "
-                          "is not reachable."), rootfs)
+            LOG.error("Agent deploy supports only HTTP URLs as "
+                      "driver_info['deploy_squashfs']. Either %s "
+                      "is not a valid HTTP URL or "
+                      "is not reachable.", rootfs)
     return rootfs
 
 
@@ -482,8 +479,8 @@ class FuelAgentDeploy(base.DeployInterface):
         # NOTE(pas-ha) this driver does not support cleaning,
         # so the only valid state to continue on heartbeat is DEPLOYWAIT
         if node.provision_state != states.DEPLOYWAIT:
-            LOG.warning(_LW('Call back from %(node)s in invalid provision '
-                            'state %(state)s'),
+            LOG.warning('Call back from %(node)s in invalid provision '
+                        'state %(state)s',
                         {'node': node.uuid, 'state': node.provision_state})
             return
 
@@ -517,7 +514,7 @@ class FuelAgentDeploy(base.DeployInterface):
                 _sftp_upload(sftp, configdrive, '/tmp/config-drive.img')
 
             _ssh_execute(ssh, cmd, params)
-            LOG.info(_LI('Fuel Agent pass on node %s'), node.uuid)
+            LOG.info('Fuel Agent pass on node %s', node.uuid)
             manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                persistent=True)
 
@@ -532,4 +529,4 @@ class FuelAgentDeploy(base.DeployInterface):
             deploy_utils.set_failed_state(task, msg, collect_logs=False)
         else:
             task.process_event('done')
-            LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
+            LOG.info('Deployment to node %s done', task.node.uuid)

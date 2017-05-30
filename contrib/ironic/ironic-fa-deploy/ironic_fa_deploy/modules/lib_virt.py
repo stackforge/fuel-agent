@@ -49,7 +49,6 @@ from oslo_log import log as logging
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -363,7 +362,7 @@ class LibvirtPower(base.PowerInterface):
         try:
             _get_libvirt_connection(driver_info)
         except f_exc.LibvirtError:
-            LOG.error(_LE("Failed to get libvirt connection node %(node)s"),
+            LOG.error("Failed to get libvirt connection node %(node)s",
                       {'node': task.node.uuid})
             raise exception.InvalidParameterValue(_("Libvirt connection cannot"
                                                     " be established"))
