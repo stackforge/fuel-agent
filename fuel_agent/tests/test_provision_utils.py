@@ -22,7 +22,7 @@ from fuel_agent.utils import provision
 class TestProvisionUtils(unittest2.TestCase):
 
     def test_udev_nic_naming_rules(self):
-        udevrules = "08:00:27:79:da:80_eth0,08:00:27:46:43:60_eth1,"\
+        udevrules = "08:00:27:79:da:80_eth0,08:00:27:46:43:60_eth_1,"\
                     "08:00:27:b1:d7:15_eth2"
         with mock.patch.object(provision, 'open', create=True) as mock_open:
             file_handle_mock = mock_open.return_value.__enter__.return_value
@@ -41,7 +41,7 @@ class TestProvisionUtils(unittest2.TestCase):
                           ', KERNEL=="eth*", NAME="eth0"\n'),
                 mock.call('SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", '
                           'ATTR{address}=="08:00:27:46:43:60", ATTR{type}=="1"'
-                          ', KERNEL=="eth*", NAME="eth1"\n'),
+                          ', KERNEL=="eth*", NAME="eth_1"\n'),
                 mock.call('SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", '
                           'ATTR{address}=="08:00:27:b1:d7:15", ATTR{type}=="1"'
                           ', KERNEL=="eth*", NAME="eth2"\n'),

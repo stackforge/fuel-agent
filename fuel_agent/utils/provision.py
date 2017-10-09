@@ -38,7 +38,7 @@ def udev_nic_naming_rules(chroot, udevrules):
                 u'BEGIN\n')
         # pattern is aa:bb:cc:dd:ee:ff_eth0,aa:bb:cc:dd:ee:ff_eth1
         for mapping in udevrules.split(','):
-            mac_addr, nic_name = mapping.split('_')
+            mac_addr, nic_name = mapping.split('_', 1)
             f.write(u'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", '
                     u'ATTR{address}=="%s", ATTR{type}=="1", '
                     u'KERNEL=="eth*", NAME="%s"\n' % (mac_addr,
