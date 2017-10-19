@@ -22,7 +22,7 @@ import six
 import yaml
 
 from fuel_agent import errors
-from fuel_agent import manager as manager
+from fuel_agent import manager
 from fuel_agent import version
 
 cli_opts = [
