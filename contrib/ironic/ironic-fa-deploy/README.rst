@@ -63,7 +63,7 @@ with path to private key file.
        "file_system": "ext4", "size": 10000}]}]'
 
 After steps above the node is ready for deploying. User can invoke
-``nova boot`` command for deploying an instance image.
+:command:`nova boot` command for deploying an instance image.
 
 
 TODO:
