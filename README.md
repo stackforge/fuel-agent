@@ -200,7 +200,7 @@ practices as Fuel itself.
 
 ## Core Reviewers
 
-* [fuel-agent cores](https://review.openstack.org/#/admin/groups/995,members)
+* [fuel-agent cores](https://review.opendev.org/#/admin/groups/995,members)
 
 
 ## Contributors
